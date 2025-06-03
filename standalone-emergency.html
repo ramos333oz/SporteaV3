@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sportea Emergency Access</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      background-color: #8b0000;
+      color: white;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    .nav-links {
+      display: flex;
+      gap: 16px;
+    }
+    .nav-links button {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 8px 12px;
+    }
+    .nav-links button:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .title {
+      font-size: 2rem;
+      margin-top: 0;
+      color: #333;
+    }
+    .subtitle {
+      font-size: 1.5rem;
+      color: #333;
+    }
+    .button {
+      background-color: #8b0000;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .button.secondary {
+      background-color: #2196f3;
+    }
+    .button.outline {
+      background-color: transparent;
+      color: #8b0000;
+      border: 1px solid #8b0000;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 24px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .form-input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    .form-select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    .loading {
+      display: flex;
+      justify-content: center;
+      padding: 40px 0;
+    }
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top: 4px solid #8b0000;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .match-card {
+      padding: 16px;
+    }
+    .match-title {
+      font-size: 1.25rem;
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+    .match-detail {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .match-description {
+      margin-bottom: 16px;
+      color: #666;
+    }
+    .match-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .hide {
+      display: none;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 768px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Sportea Emergency Access</h1>
+    <div class="nav-links">
+      <button onclick="showView('home')">Home</button>
+      <button onclick="showView('matches')">Matches</button>
+      <button onclick="showView('create')">Create Match</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Home View -->
+    <div id="home-view">
+      <h2 class="title">Sportea Emergency Access</h2>
+      <p>This is a standalone emergency access page that bypasses the normal app flow.
+        Use this to access core functionality when the main app is having issues.</p>
+
+      <div class="grid">
+        <div class="card">
+          <h3 class="subtitle">Browse Matches</h3>
+          <p>View recent matches and join existing sports activities</p>
+          <button class="button" onclick="fetchMatches()">View Matches</button>
+        </div>
+        
+        <div class="card">
+          <h3 class="subtitle">Create Match</h3>
+          <p>Host a new sports match and invite others to join</p>
+          <button class="button secondary" onclick="showView('create')">Create Match</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Matches View -->
+    <div id="matches-view" class="hide">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2 class="title">Recent Matches</h2>
+        <button class="button outline" onclick="showView('home')">Back to Home</button>
+      </div>
+      
+      <div id="matches-loading" class="loading">
+        <div class="spinner"></div>
+      </div>
+      
+      <div id="no-matches" class="card hide" style="text-align: center;">
+        <h3 class="subtitle">No matches found</h3>
+        <p>There are no recent matches to display. Try creating a new match.</p>
+        <button class="button secondary" onclick="showView('create')">Create Match</button>
+      </div>
+      
+      <div id="matches-list" class="grid"></div>
+    </div>
+
+    <!-- Create Match View -->
+    <div id="create-view" class="hide">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2 class="title">Create New Match</h2>
+        <button class="button outline" onclick="showView('home')">Back to Home</button>
+      </div>
+      
+      <div class="card">
+        <form id="create-match-form" onsubmit="createMatch(event)">
+          <div class="form-group">
+            <label for="title">Match Title*</label>
+            <input type="text" id="title" name="title" class="form-input" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" class="form-input" rows="3"></textarea>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="sport">Sport*</label>
+              <select id="sport" name="sport" class="form-select" required>
+                <option value="">Select a sport</option>
+                <!-- Sports will be populated dynamically -->
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="location_name">Location*</label>
+              <input type="text" id="location_name" name="location_name" class="form-input" required>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="date">Date*</label>
+              <input type="date" id="date" name="date" class="form-input" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="time">Time*</label>
+              <input type="time" id="time" name="time" class="form-input" required>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="duration_minutes">Duration (minutes)*</label>
+              <input type="number" id="duration_minutes" name="duration_minutes" class="form-input" value="60" min="15" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="max_participants">Max Participants*</label>
+              <input type="number" id="max_participants" name="max_participants" class="form-input" value="10" min="2" required>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="min_participants">Min Participants*</label>
+              <input type="number" id="min_participants" name="min_participants" class="form-input" value="2" min="1" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="is_private">Privacy*</label>
+              <select id="is_private" name="is_private" class="form-select" required>
+                <option value="false">Public</option>
+                <option value="true">Private</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <button type="submit" class="button" style="width: 100%;" id="create-button">Create Match</button>
+            <div id="creating" class="loading hide">
+              <div class="spinner"></div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Supabase initialization
+    const SUPABASE_URL = 'https://ymkxhlunrnhrdmcvitjp.supabase.co'; // Replace with your Supabase URL
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlta3hobHVucm5ocmRtY3ZpdGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTU4Njc4OTUsImV4cCI6MjAzMTQ0Mzg5NX0.G_sXTUUJLkVrTIVvs7TXkEXLn--e80hEJTl-gAQyA8M'; // Replace with your Supabase Anon Key
+    
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // View management
+    function showView(viewName) {
+      // Hide all views
+      document.getElementById('home-view').classList.add('hide');
+      document.getElementById('matches-view').classList.add('hide');
+      document.getElementById('create-view').classList.add('hide');
+      
+      // Show selected view
+      document.getElementById(`${viewName}-view`).classList.remove('hide');
+      
+      // If matches view, fetch matches
+      if (viewName === 'matches') {
+        fetchMatches();
+      }
+      
+      // If create view, fetch sports
+      if (viewName === 'create') {
+        fetchSports();
+      }
+    }
+    
+    // Fetch sports for dropdown
+    async function fetchSports() {
+      try {
+        const { data, error } = await supabase.from('sports').select('*');
+        
+        if (error) throw error;
+        
+        const sportSelect = document.getElementById('sport');
+        sportSelect.innerHTML = '<option value="">Select a sport</option>';
+        
+        data.forEach(sport => {
+          const option = document.createElement('option');
+          option.value = sport.name;
+          option.textContent = sport.name;
+          sportSelect.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error fetching sports:', error);
+        alert('Error loading sports. Please try again.');
+      }
+    }
+    
+    // Fetch matches
+    async function fetchMatches() {
+      const loadingEl = document.getElementById('matches-loading');
+      const noMatchesEl = document.getElementById('no-matches');
+      const matchesListEl = document.getElementById('matches-list');
+      
+      loadingEl.classList.remove('hide');
+      noMatchesEl.classList.add('hide');
+      matchesListEl.innerHTML = '';
+      
+      try {
+        const { data, error } = await supabase
+          .from('matches')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (error) throw error;
+        
+        loadingEl.classList.add('hide');
+        
+        if (!data || data.length === 0) {
+          noMatchesEl.classList.remove('hide');
+          return;
+        }
+        
+        data.forEach(match => {
+          const matchDate = new Date(match.date);
+          
+          const matchCard = document.createElement('div');
+          matchCard.className = 'card match-card';
+          matchCard.innerHTML = `
+            <h3 class="match-title">${match.title}</h3>
+            <p class="match-description">${match.description || 'No description provided.'}</p>
+            <div class="match-detail">
+              <span><strong>Sport:</strong> ${match.sport}</span>
+              <span><strong>Location:</strong> ${match.location_name}</span>
+            </div>
+            <div class="match-detail">
+              <span><strong>Participants:</strong> ${match.current_participants || 0}/${match.max_participants}</span>
+              <span><strong>Date:</strong> ${matchDate.toLocaleDateString()}</span>
+            </div>
+            <div class="match-actions">
+              <button class="button outline" onclick="viewMatchDetails('${match.id}')">View Details</button>
+              <button class="button" onclick="joinMatch('${match.id}')">Join Match</button>
+            </div>
+          `;
+          
+          matchesListEl.appendChild(matchCard);
+        });
+        
+        // Show matches view
+        showView('matches');
+      } catch (error) {
+        console.error('Error fetching matches:', error);
+        loadingEl.classList.add('hide');
+        alert('Error loading matches. Please try again.');
+      }
+    }
+    
+    // Create match
+    async function createMatch(event) {
+      event.preventDefault();
+      
+      const form = document.getElementById('create-match-form');
+      const createButton = document.getElementById('create-button');
+      const creatingEl = document.getElementById('creating');
+      
+      createButton.disabled = true;
+      createButton.classList.add('hide');
+      creatingEl.classList.remove('hide');
+      
+      try {
+        // Get form data
+        const formData = new FormData(form);
+        const matchData = Object.fromEntries(formData.entries());
+        
+        // Format data for Supabase
+        const formattedData = {
+          ...matchData,
+          date: new Date(`${matchData.date}T${matchData.time}`).toISOString(),
+          duration_minutes: parseInt(matchData.duration_minutes),
+          max_participants: parseInt(matchData.max_participants),
+          min_participants: parseInt(matchData.min_participants),
+          is_private: matchData.is_private === 'true',
+          host_id: '2022812796@student.uitm.edu.my' // Hardcoded email for emergency access
+        };
+        
+        // Remove time field
+        delete formattedData.time;
+        
+        console.log('Creating match with data:', formattedData);
+        
+        const { data, error } = await supabase
+          .from('matches')
+          .insert([formattedData])
+          .select();
+        
+        if (error) throw error;
+        
+        console.log('Match created successfully:', data);
+        alert('Match created successfully!');
+        
+        // Reset form
+        form.reset();
+        
+        // Go to matches view
+        fetchMatches();
+        showView('matches');
+      } catch (error) {
+        console.error('Error creating match:', error);
+        alert('Error creating match: ' + error.message);
+      } finally {
+        createButton.disabled = false;
+        createButton.classList.remove('hide');
+        creatingEl.classList.add('hide');
+      }
+    }
+    
+    // View match details
+    function viewMatchDetails(matchId) {
+      alert('Match details feature coming soon! Match ID: ' + matchId);
+    }
+    
+    // Join match
+    async function joinMatch(matchId) {
+      try {
+        // Get match details
+        const { data: match, error: matchError } = await supabase
+          .from('matches')
+          .select('*')
+          .eq('id', matchId)
+          .single();
+        
+        if (matchError) throw matchError;
+        
+        if (!match) {
+          alert('Match not found.');
+          return;
+        }
+        
+        // Check if match is full
+        if (match.current_participants >= match.max_participants) {
+          alert('This match is already full.');
+          return;
+        }
+        
+        // Update match participants
+        const { error: updateError } = await supabase
+          .from('matches')
+          .update({ 
+            current_participants: (match.current_participants || 0) + 1 
+          })
+          .eq('id', matchId);
+        
+        if (updateError) throw updateError;
+        
+        // Insert participant record
+        const { error: participantError } = await supabase
+          .from('match_participants')
+          .insert([{
+            match_id: matchId,
+            user_id: '2022812796@student.uitm.edu.my', // Hardcoded email for emergency access
+            status: 'confirmed'
+          }]);
+        
+        if (participantError) throw participantError;
+        
+        alert('You have successfully joined the match!');
+        fetchMatches(); // Refresh matches
+      } catch (error) {
+        console.error('Error joining match:', error);
+        alert('Error joining match: ' + error.message);
+      }
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      showView('home');
+    });
+  </script>
+</body>
+</html>

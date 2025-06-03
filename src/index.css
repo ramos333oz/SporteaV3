@@ -1,0 +1,111 @@
+:root {
+  /* Color Variables */
+  --primary-maroon: #8A1538;
+  --secondary-maroon-light: #B52E4C;
+  --secondary-maroon-pale: #F9EBEE;
+  --accent-red: #E63946;
+  --accent-gold: #F2C94C;
+  --success-green: #34A853;
+  --error-red: #D32F2F;
+  --neutral-gray: #9E9E9E;
+  --dark-gray: #424242;
+  --background-white: #FFFFFF;
+  --background-light: #F5F7F9;
+  --background-dark: #1A1A1A;
+  
+  /* Font Sizes */
+  --font-h1: 28px;
+  --font-h2: 24px;
+  --font-h3: 20px;
+  --font-body-large: 17px;
+  --font-body: 15px;
+  --font-body-small: 13px;
+  --font-caption: 12px;
+  --font-button: 16px;
+  
+  /* Spacing System */
+  --spacing-micro: 4px;
+  --spacing-small: 8px;
+  --spacing-default: 16px;
+  --spacing-medium: 24px;
+  --spacing-large: 32px;
+  --spacing-xl: 48px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  background-color: var(--background-light);
+  color: var(--dark-gray);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--primary-maroon);
+  text-decoration: none;
+}
+
+/* Transitions */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 350ms, transform 350ms;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 350ms, transform 350ms;
+}
+
+/* Animation utilities */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.pulse {
+  animation: pulse 2s infinite ease-in-out;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background-light);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--neutral-gray);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-maroon);
+}
