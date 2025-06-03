@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Box, 
@@ -15,7 +15,10 @@ import {
   List,
   ListItem,
   ListItemAvatar,
-  ListItemText
+  ListItemText,
+  Tooltip,
+  Card,
+  CardContent
 } from '@mui/material';
 import {
   CalendarMonth as CalendarIcon,
@@ -26,13 +29,217 @@ import {
   SportsSoccer as SportIcon,
   CancelOutlined as CancelIcon,
   Edit as EditIcon,
-  Share as ShareIcon
+  Share as ShareIcon,
+  CheckCircle as CheckCircleIcon,
+  HourglassEmpty as PendingIcon,
+  ExitToApp as LeftIcon,
+  Email as InviteIcon
 } from '@mui/icons-material';
-import { format } from 'date-fns';
+import { format, formatDistance, formatDistanceToNow, isPast, isFuture, isAfter, differenceInMinutes, differenceInSeconds, intervalToDuration } from 'date-fns';
 
 import { useAuth } from '../hooks/useAuth';
 import { useRealtime } from '../hooks/useRealtime';
-import { matchService } from '../services/supabase';
+import { matchService, participantService } from '../services/supabase';
+
+// Match Status Indicator component
+const MatchStatusIndicator = ({ match }) => {
+  const [timeDisplay, setTimeDisplay] = useState('');
+  const [statusInfo, setStatusInfo] = useState({ 
+    text: '', 
+    color: 'default', 
+    icon: null, 
+    progress: 0 
+  });
+
+  // Function to determine match status
+  const calculateMatchStatus = useCallback(() => {
+    const now = new Date();
+    const startTime = match?.start_time ? new Date(match.start_time) : null;
+    const endTime = match?.end_time ? new Date(match.end_time) : null;
+    
+    if (!startTime || !endTime) {
+      return { 
+        text: 'Unknown', 
+        color: 'default', 
+        icon: <HourglassEmpty />,
+        progress: 0
+      };
+    }
+    
+    // If match is cancelled
+    if (match.status === 'cancelled') {
+      setTimeDisplay('Cancelled');
+      return { 
+        text: 'Cancelled', 
+        color: 'error', 
+        icon: <CancelIcon />,
+        progress: 100
+      };
+    }
+    
+    // If match is completed
+    if (match.status === 'completed') {
+      const completedDate = endTime < now ? endTime : now;
+      setTimeDisplay(`Completed ${formatDistanceToNow(completedDate, { addSuffix: true })}`);
+      return { 
+        text: 'Completed', 
+        color: 'default', 
+        icon: <CheckCircleIcon />,
+        progress: 100
+      };
+    }
+    
+    // If match is in the future (upcoming)
+    if (isFuture(startTime)) {
+      // Calculate time remaining until start
+      const duration = intervalToDuration({ start: now, end: startTime });
+      const formattedDuration = Object.entries(duration)
+        .filter(([key, value]) => value > 0 && ['days', 'hours', 'minutes'].includes(key))
+        .map(([key, value]) => `${value} ${value === 1 ? key.slice(0, -1) : key}`)
+        .slice(0, 2)
+        .join(', ');
+      
+      setTimeDisplay(`Starts in ${formattedDuration}`);
+      
+      // Calculate progress (inverse - goes from 100% to 0% as we approach start time)
+      const totalDuration = differenceInMinutes(endTime, startTime);
+      const timeUntilStart = differenceInMinutes(startTime, now);
+      const progress = Math.max(0, Math.min(100, 100 - (timeUntilStart / totalDuration * 100)));
+      
+      return { 
+        text: 'Upcoming', 
+        color: 'info', 
+        icon: <CalendarIcon />,
+        progress: progress
+      };
+    }
+    
+    // If match is ongoing (between start and end time)
+    if (isPast(startTime) && isFuture(endTime)) {
+      // Calculate elapsed time
+      const elapsedDuration = intervalToDuration({ start: startTime, end: now });
+      const formattedElapsed = Object.entries(elapsedDuration)
+        .filter(([key, value]) => value > 0 && ['hours', 'minutes'].includes(key))
+        .map(([key, value]) => `${value} ${value === 1 ? key.slice(0, -1) : key}`)
+        .slice(0, 2)
+        .join(', ');
+      
+      setTimeDisplay(`In progress: ${formattedElapsed} elapsed`);
+      
+      // Calculate progress
+      const totalDuration = differenceInMinutes(endTime, startTime);
+      const elapsed = differenceInMinutes(now, startTime);
+      const progress = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
+      
+      return { 
+        text: 'In Progress', 
+        color: 'success', 
+        icon: <TimeIcon />,
+        progress: progress
+      };
+    }
+    
+    // If match is in the past (finished but not marked completed)
+    if (isPast(endTime)) {
+      setTimeDisplay(`Ended ${formatDistanceToNow(endTime, { addSuffix: true })}`);
+      return { 
+        text: 'Ended', 
+        color: 'warning', 
+        icon: <SportIcon />,
+        progress: 100
+      };
+    }
+    
+    // Default case
+    return { 
+      text: 'Unknown Status', 
+      color: 'default', 
+      icon: <HourglassEmpty />,
+      progress: 0
+    };
+  }, [match]);
+  
+  // Update status info and time display
+  useEffect(() => {
+    if (match) {
+      const newStatus = calculateMatchStatus();
+      setStatusInfo(newStatus);
+    }
+  }, [match, calculateMatchStatus]);
+  
+  // Set up timer to update the time display every minute
+  useEffect(() => {
+    if (!match) return;
+    
+    // Update immediately
+    calculateMatchStatus();
+    
+    // Then update every minute
+    const timer = setInterval(() => {
+      const newStatus = calculateMatchStatus();
+      setStatusInfo(newStatus);
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(timer);
+  }, [match, calculateMatchStatus]);
+  
+  return (
+    <Box>
+      <Paper 
+        elevation={1} 
+        sx={{ 
+          p: 2, 
+          mb: 3, 
+          borderLeft: 4, 
+          borderColor: `${statusInfo.color}.main`,
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        <Box sx={{ 
+          position: 'absolute', 
+          bottom: 0, 
+          left: 0, 
+          height: '4px', 
+          width: `${statusInfo.progress}%`, 
+          bgcolor: `${statusInfo.color}.main`,
+          transition: 'width 1s ease-in-out'
+        }} />
+        
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent="space-between">
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Avatar 
+              sx={{ 
+                bgcolor: `${statusInfo.color}.main`, 
+                mr: 2,
+                color: 'white'
+              }}
+            >
+              {statusInfo.icon}
+            </Avatar>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                {statusInfo.text}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {timeDisplay}
+              </Typography>
+            </Box>
+          </Box>
+          
+          <Chip 
+            label={match.status === 'cancelled' ? 'Cancelled' : 
+                  match.participants_count >= match.max_participants ? 'Full' : 'Open to Join'} 
+            color={match.status === 'cancelled' ? 'error' : 
+                  match.participants_count >= match.max_participants ? 'secondary' : 'success'}
+            variant="outlined"
+            size="small"
+          />
+        </Stack>
+      </Paper>
+    </Box>
+  );
+};
 
 const MatchDetail = () => {
   const { matchId } = useParams();
@@ -46,8 +253,11 @@ const MatchDetail = () => {
   const [error, setError] = useState(null);
   const [userParticipation, setUserParticipation] = useState(null);
   
+  // Calculate active participants count (excluding those who left)
+  const activeParticipantsCount = participants.filter(p => p.status !== 'left').length;
+  
   // Check if match is full
-  const isMatchFull = match?.participants_count >= match?.max_participants;
+  const isMatchFull = activeParticipantsCount >= match?.max_participants;
   
   // Check if user is host
   const isHost = match?.host_id === user?.id;
@@ -59,6 +269,14 @@ const MatchDetail = () => {
   
   const formatMatchTime = (date) => {
     return date ? format(new Date(date), 'h:mm a') : '';
+  };
+  
+  // Format time range from start_time to end_time
+  const formatTimeRange = () => {
+    if (!match?.start_time || !match?.end_time) return '';
+    const start = new Date(match.start_time);
+    const end = new Date(match.end_time);
+    return `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`;
   };
   
   // Join match handler
@@ -154,14 +372,27 @@ const MatchDetail = () => {
   // Fetch participants
   const fetchParticipants = async () => {
     try {
-      const data = await matchService.getMatchParticipants(matchId);
-      setParticipants(data);
+      const data = await participantService.getParticipants(matchId);
+      
+      // Sort participants: host first, then confirmed, then pending
+      const sortedParticipants = data.sort((a, b) => {
+        // Host always comes first
+        if (a.user_id === match?.host_id) return -1;
+        if (b.user_id === match?.host_id) return 1;
+        
+        // Then sort by status (confirmed > pending > left)
+        const statusOrder = { 'confirmed': 0, 'pending': 1, 'left': 2 };
+        return (statusOrder[a.status] || 3) - (statusOrder[b.status] || 3);
+      });
+      
+      setParticipants(sortedParticipants);
       
       // Check if current user is a participant
       const userParticipant = data.find(p => p.user_id === user?.id);
       setUserParticipation(userParticipant);
     } catch (error) {
       console.error('Error fetching participants:', error);
+      setError('Failed to load participants');
     } finally {
       setLoading(false);
     }
@@ -256,17 +487,20 @@ const MatchDetail = () => {
         
         <Divider sx={{ mb: 3 }} />
         
+        {/* Match Status Indicator */}
+        <MatchStatusIndicator match={match} />
+        
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
             <Stack spacing={2}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <CalendarIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography>{formatMatchDate(match.date)}</Typography>
+                <Typography>{formatMatchDate(match.start_time)}</Typography>
               </Box>
               
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <TimeIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography>{formatMatchTime(match.date)}</Typography>
+                <Typography>{formatTimeRange()}</Typography>
               </Box>
               
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -282,13 +516,18 @@ const MatchDetail = () => {
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <GroupIcon sx={{ mr: 1, color: 'primary.main' }} />
                 <Typography>
-                  {match.participants_count} / {match.max_participants} participants
+                  {activeParticipantsCount} / {match.max_participants} participants
                 </Typography>
               </Box>
               
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <PersonIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography>Hosted by: {match.host?.full_name || 'Unknown'}</Typography>
+                <Typography>
+                  Hosted by: {match.host?.full_name || match.host?.username || 
+                  participants.find(p => p.user_id === match.host_id)?.user?.full_name || 
+                  participants.find(p => p.user_id === match.host_id)?.user?.username || 
+                  'Unknown'}
+                </Typography>
               </Box>
             </Stack>
             
@@ -302,26 +541,118 @@ const MatchDetail = () => {
             <Box sx={{ mt: 3 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h3">Participants</Typography>
-                <Typography>
-                  {match.participants_count}/{match.max_participants}
-                </Typography>
+                <Chip 
+                  label={`${activeParticipantsCount}/${match.max_participants}`} 
+                  color={activeParticipantsCount >= match.max_participants ? "error" : "success"}
+                  icon={<GroupIcon />}
+                />
               </Box>
               
-              <List>
-                {participants.map((participant) => (
-                  <ListItem key={participant.id}>
-                    <ListItemAvatar>
-                      <Avatar src={participant.user?.avatar_url}>
-                        {participant.user?.full_name?.charAt(0) || 'U'}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText 
-                      primary={participant.user?.full_name} 
-                      secondary={participant.user_id === match.host_id ? 'Host' : 'Participant'}
-                    />
+              <List sx={{ bgcolor: 'background.paper', borderRadius: 1 }}>
+                {participants.length === 0 ? (
+                  <ListItem>
+                    <ListItemText primary="No participants yet" secondary="Be the first to join!" />
                   </ListItem>
-                ))}
+                ) : (
+                  participants.map((participant) => {
+                    // Determine status colors and icons
+                    let statusColor, statusIcon, statusText;
+                    
+                    if (participant.user_id === match.host_id) {
+                      statusColor = 'primary';
+                      statusIcon = <PersonIcon />;
+                      statusText = 'Host';
+                    } else {
+                      switch (participant.status) {
+                        case 'confirmed':
+                          statusColor = 'success';
+                          statusIcon = <CheckCircleIcon />;
+                          statusText = 'Confirmed';
+                          break;
+                        case 'pending':
+                          statusColor = 'warning';
+                          statusIcon = <PendingIcon />;
+                          statusText = 'Pending';
+                          break;
+                        case 'left':
+                          statusColor = 'error';
+                          statusIcon = <LeftIcon />;
+                          statusText = 'Left';
+                          break;
+                        default:
+                          statusColor = 'default';
+                          statusIcon = <PendingIcon />;
+                          statusText = 'Unknown';
+                      }
+                    }
+                    
+                    return (
+                      <ListItem 
+                        key={participant.id}
+                        sx={{
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                          '&:last-child': { borderBottom: 'none' },
+                          '&:hover': { bgcolor: 'action.hover' },
+                          transition: 'background-color 0.2s'
+                        }}
+                        secondaryAction={
+                          <Chip 
+                            size="small"
+                            label={statusText}
+                            color={statusColor}
+                            icon={statusIcon}
+                          />
+                        }
+                      >
+                        <ListItemAvatar>
+                          <Tooltip title={participant.user?.email || 'Unknown email'}>
+                            <Avatar 
+                              src={participant.user?.avatar_url}
+                              sx={{
+                                bgcolor: statusColor + '.main',
+                                border: participant.user_id === user?.id ? '2px solid' : 'none',
+                                borderColor: 'primary.main'
+                              }}
+                            >
+                              {participant.user?.full_name?.charAt(0) || 'U'}
+                            </Avatar>
+                          </Tooltip>
+                        </ListItemAvatar>
+                        <ListItemText 
+                          primary={
+                            <Typography variant="body1" fontWeight={participant.user_id === user?.id ? 'bold' : 'normal'}>
+                              {participant.user?.full_name || 'Unknown'}
+                              {participant.user_id === user?.id && ' (You)'}
+                            </Typography>
+                          }
+                          secondary={
+                            <Typography variant="body2" color="text.secondary">
+                              {participant.user?.username || participant.user?.email?.split('@')[0] || 'Unknown'}
+                              {participant.joined_at && ` • Joined ${format(new Date(participant.joined_at), 'MMM d, yyyy')}`}
+                            </Typography>
+                          }
+                        />
+                      </ListItem>
+                    );
+                  })
+                )}
               </List>
+              
+              {match.participants_count < match.max_participants && match.status === 'scheduled' && (
+                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                  <Tooltip title="Share with friends">
+                    <Button 
+                      startIcon={<InviteIcon />}
+                      onClick={handleShareMatch}
+                      variant="outlined"
+                      size="small"
+                    >
+                      Invite Friends
+                    </Button>
+                  </Tooltip>
+                </Box>
+              )}
             </Box>
           </Grid>
           

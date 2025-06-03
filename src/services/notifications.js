@@ -11,25 +11,47 @@ export const notificationService = {
    * @returns {Promise<Array>} Array of notifications
    */
   getNotifications: async (userId, unreadOnly = false) => {
-    let query = supabase
-      .from('notifications')
-      .select(`
-        *,
-        sender:users(id, full_name, avatar_url),
-        match:matches(id, title, start_time, sport_id, 
-          sport:sports(id, name, icon))
-      `)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    try {
+      // Validate input
+      if (!userId) {
+        console.warn('getNotifications called without userId');
+        return [];
+      }
+
+      // Use a simpler query that doesn't try to join with matches table
+      // since the relationship isn't properly defined in the database yet
+      let query = supabase
+        .from('notifications')
+        .select(`
+          *,
+          sender:users(id, full_name, avatar_url)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+        
+      if (unreadOnly) {
+        query = query.eq('read', false);
+      }
       
-    if (unreadOnly) {
-      query = query.eq('read', false);
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        // Return empty array instead of throwing to prevent UI breakage
+        return [];
+      }
+      
+      // Add empty match property to maintain expected data structure
+      const processedData = (data || []).map(notification => ({
+        ...notification,
+        match: null
+      }));
+      
+      return processedData;  
+    } catch (error) {
+      console.error('Unexpected error in getNotifications:', error);
+      return [];
     }
-    
-    const { data, error } = await query;
-    
-    if (error) throw error;
-    return data;
   },
   
   /**
@@ -38,14 +60,29 @@ export const notificationService = {
    * @returns {Promise<Object>} Updated notification
    */
   markAsRead: async (notificationId) => {
-    const { data, error } = await supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('id', notificationId)
-      .select();
+    try {
+      // Validate input
+      if (!notificationId) {
+        console.warn('markAsRead called without notificationId');
+        return null;
+      }
       
-    if (error) throw error;
-    return data;
+      const { data, error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId)
+        .select();
+        
+      if (error) {
+        console.error('Error marking notification as read:', error);
+        return null;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Unexpected error in markAsRead:', error);
+      return null;
+    }
   },
   
   /**
@@ -54,14 +91,29 @@ export const notificationService = {
    * @returns {Promise<Object>} Result
    */
   markAllAsRead: async (userId) => {
-    const { data, error } = await supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('user_id', userId)
-      .eq('read', false);
+    try {
+      // Validate input
+      if (!userId) {
+        console.warn('markAllAsRead called without userId');
+        return null;
+      }
       
-    if (error) throw error;
-    return data;
+      const { data, error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', userId)
+        .eq('read', false);
+        
+      if (error) {
+        console.error('Error marking all notifications as read:', error);
+        return null;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Unexpected error in markAllAsRead:', error);
+      return null;
+    }
   },
   
   /**

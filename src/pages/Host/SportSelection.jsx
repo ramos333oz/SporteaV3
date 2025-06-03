@@ -30,8 +30,10 @@ const SportSelection = ({ matchData, onUpdateMatchData }) => {
   
   const handleSelectSport = (sport) => {
     onUpdateMatchData({ 
-      sport: sport.id, 
+      sport: sport.id,
+      sport_id: sport.id, // Add explicit sport_id field for consistency
       sportIcon: sport.icon, 
+      sportName: sport.name, // Include the name for better debugging
       maxParticipants: sport.constraints.maxPlayers,
       minParticipants: sport.constraints.minPlayers
     });

@@ -64,7 +64,8 @@ const Host = () => {
     location: null,
     courtName: '',
     isPrivate: false,
-    invitedFriends: []
+    invitedFriends: [],
+    termsAccepted: false // Add terms acceptance tracking
   });
   
   const steps = ['Select Sport', 'Match Details', 'Location', 'Review'];
@@ -108,7 +109,8 @@ const Host = () => {
       location: null,
       courtName: '',
       isPrivate: false,
-      invitedFriends: []
+      invitedFriends: [],
+      termsAccepted: false // Reset terms acceptance
     });
     setShowNewMatch(false);
   };
@@ -129,6 +131,9 @@ const Host = () => {
       }
       if (!user || !user.id) {
         throw new Error('User must be logged in to create a match');
+      }
+      if (!matchData.termsAccepted) {
+        throw new Error('You must accept the terms and conditions to create a match');
       }
       
       // Format the date and time for the database
@@ -173,7 +178,8 @@ const Host = () => {
       const matchDataForDB = {
         title: matchData.title || 'Untitled Match',
         description: matchData.description || '',
-        sport_id: matchData.sport,
+        sport_id: matchData.sport_id || matchData.sport, // Use explicit sport_id if available
+        sport_name: matchData.sportName, // Include the sport name for better error reporting
         host_id: user.id,
         location_id: matchData.location.id,
         court_name: matchData.courtName || '',
@@ -197,8 +203,8 @@ const Host = () => {
       console.log('Supabase response:', result);
       
       // Extract data and error, handling different response formats
-      const data = result.data || (result.match ? result.match : null);
-      const error = result.error || null;
+      // The service now consistently returns { data, error } format
+      const { data, error } = result;
       
       if (error) {
         console.error('Error creating match:', error);
@@ -210,7 +216,8 @@ const Host = () => {
         throw new Error('Failed to create match: No data returned');
       }
       
-      const matchId = data.id || (typeof data === 'object' ? Object.values(data)[0]?.id : null);
+      // Extract the match ID, handling both direct data and nested formats
+      const matchId = data.id || (typeof data === 'object' ? data.id || Object.values(data)[0]?.id : null);
       
       if (!matchId) {
         console.error('Match created but no ID returned:', data);
@@ -389,7 +396,8 @@ const Host = () => {
                       variant="contained"
                       onClick={handleCreateMatch}
                       sx={{ borderRadius: 2 }}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || !matchData.termsAccepted}
+                      title={!matchData.termsAccepted ? 'You must accept the terms and conditions to create a match' : ''}
                     >
                       {isSubmitting ? (
                         <>

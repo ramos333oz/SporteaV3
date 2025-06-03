@@ -175,20 +175,22 @@ const MatchDetails = ({ matchData, onUpdateMatchData }) => {
               label="Date"
               value={getDefaultDate()}
               onChange={handleDateChange}
-              renderInput={(params) => (
-                <TextField 
-                  {...params} 
-                  fullWidth 
-                  required
-                  InputProps={{
+              slots={{
+                textField: TextField
+              }}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  required: true,
+                  InputProps: {
                     startAdornment: (
                       <InputAdornment position="start">
                         <EventIcon />
                       </InputAdornment>
-                    ),
-                  }}
-                />
-              )}
+                    )
+                  }
+                }
+              }}
               minDate={minDate}
               maxDate={maxDate}
             />
@@ -199,22 +201,24 @@ const MatchDetails = ({ matchData, onUpdateMatchData }) => {
               label="Start Time"
               value={getDefaultTime()}
               onChange={handleTimeChange}
-              renderInput={(params) => (
-                <TextField 
-                  {...params} 
-                  fullWidth 
-                  required
-                  error={!isValidDateTime()}
-                  helperText={!isValidDateTime() ? "Start time must be in the future" : ""}
-                  InputProps={{
+              slots={{
+                textField: TextField
+              }}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  required: true,
+                  error: !isValidDateTime(),
+                  helperText: !isValidDateTime() ? "Start time must be in the future" : "",
+                  InputProps: {
                     startAdornment: (
                       <InputAdornment position="start">
                         <AccessTimeIcon />
                       </InputAdornment>
-                    ),
-                  }}
-                />
-              )}
+                    )
+                  }
+                }
+              }}
             />
           </Grid>
           

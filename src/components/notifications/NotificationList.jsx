@@ -85,6 +85,9 @@ const NotificationList = () => {
       setUnreadCount(unread);
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      // Silently handle error and show empty state instead of breaking the UI
+      setNotifications([]);
+      setUnreadCount(0);
     } finally {
       setLoading(false);
     }
@@ -137,11 +140,19 @@ const NotificationList = () => {
       markAsRead(notification.id);
     }
     
-    // Navigate based on notification type
-    if (notification.match_id) {
+    // Navigate based on notification type and available data
+    if (notification.link) {
+      // If notification has an explicit link, use it
+      navigate(notification.link);
+    } else if (notification.match_id) {
+      // For match-related notifications
       navigate(`/match/${notification.match_id}`);
     } else if (notification.type === 'new_message' && notification.sender_id) {
+      // For message notifications
       navigate(`/messages/${notification.sender_id}`);
+    } else {
+      // For other notification types that don't need navigation
+      console.log('Notification clicked but no navigation target');
     }
     
     // Close menu

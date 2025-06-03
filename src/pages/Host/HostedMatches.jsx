@@ -40,108 +40,69 @@ const HostedMatches = () => {
   const [selectedMatch, setSelectedMatch] = useState(null);
   
   // Mock data for hosted matches (will be replaced with real data from Supabase)
-  const mockMatches = [
-    {
-      id: 101,
-      title: 'Friday Evening Football',
-      sport: 'football',
-      sportIcon: <SportsSoccerIcon />,
-      location: 'Padang Pusat Sukan A',
-      dateTime: '2025-06-06T18:00:00',
-      currentParticipants: 14,
-      maxParticipants: 22,
-      status: 'upcoming',
-      participantRequests: 3,
-      participants: [
-        { id: 1, name: 'User 1', avatar: null },
-        { id: 2, name: 'User 2', avatar: null },
-        { id: 3, name: 'User 3', avatar: null }
-      ]
-    },
-    {
-      id: 102,
-      title: 'Basketball Practice',
-      sport: 'basketball',
-      sportIcon: <SportsBasketballIcon />,
-      location: 'Court Pusat Sukan B',
-      dateTime: '2025-06-10T16:30:00',
-      currentParticipants: 8,
-      maxParticipants: 15,
-      status: 'upcoming',
-      participantRequests: 0,
-      participants: [
-        { id: 4, name: 'User 4', avatar: null },
-        { id: 5, name: 'User 5', avatar: null }
-      ]
-    },
-    {
-      id: 103,
-      title: 'Badminton Doubles',
-      sport: 'badminton',
-      sportIcon: <SportsTennisIcon />,
-      location: 'Court Pusat Sukan C',
-      dateTime: '2025-05-20T14:00:00',
-      currentParticipants: 6,
-      maxParticipants: 8,
-      status: 'completed',
-      participantRequests: 0,
-      participants: [
-        { id: 6, name: 'User 6', avatar: null },
-        { id: 7, name: 'User 7', avatar: null },
-        { id: 8, name: 'User 8', avatar: null }
-      ]
-    },
-    {
-      id: 104,
-      title: 'Football Tournament',
-      sport: 'football',
-      sportIcon: <SportsSoccerIcon />,
-      location: 'Padang Pusat Sukan A',
-      dateTime: '2025-05-15T17:00:00',
-      currentParticipants: 18,
-      maxParticipants: 22,
-      status: 'cancelled',
-      participantRequests: 0,
-      participants: []
+  // Helper function to get sport icon based on sport name
+  const getSportIcon = (sportName) => {
+    if (!sportName) return <SportsSoccerIcon />;
+    
+    const sportNameLower = sportName.toLowerCase();
+    if (sportNameLower.includes('football') || sportNameLower.includes('soccer') || sportNameLower.includes('futsal')) {
+      return <SportsSoccerIcon />;
+    } else if (sportNameLower.includes('basketball')) {
+      return <SportsBasketballIcon />;
+    } else if (sportNameLower.includes('tennis') || sportNameLower.includes('badminton')) {
+      return <SportsTennisIcon />;
     }
-  ];
-  
+    
+    return <SportsSoccerIcon />; // Default
+  };
+
   useEffect(() => {
-    // Simulate fetching hosted matches from Supabase
+    // Fetch hosted matches from Supabase
     const fetchHostedMatches = async () => {
       setLoading(true);
       try {
-        // In a real implementation, we would fetch matches from Supabase here
-        // const { data, error } = await supabase
-        //   .from('matches')
-        //   .select('*')
-        //   .eq('host_id', user.id)
-        //   .order('created_at', { ascending: false });
+        const matchStatus = tabValue === 0 ? 'upcoming' : tabValue === 1 ? 'completed' : 'cancelled';
+        const { data, error } = await supabase
+          .from('matches')
+          .select(`
+            *,
+            sport:sports(*),
+            location:locations(*),
+            participants(count)
+          `)
+          .eq('host_id', user.id)
+          .eq('status', matchStatus)
+          .order('start_time', { ascending: matchStatus === 'upcoming' });
         
-        // For now, use mock data
-        setTimeout(() => {
-          let filteredMatches;
-          
-          // Filter based on selected tab
-          if (tabValue === 0) { // Upcoming
-            filteredMatches = mockMatches.filter(match => match.status === 'upcoming');
-          } else if (tabValue === 1) { // Past
-            filteredMatches = mockMatches.filter(match => match.status === 'completed');
-          } else { // Cancelled
-            filteredMatches = mockMatches.filter(match => match.status === 'cancelled');
-          }
-          
-          setMatches(filteredMatches);
-          setLoading(false);
-        }, 1000); // Simulate network delay
+        if (error) {
+          throw error;
+        }
+        
+        // Map Supabase data to component's expected format
+        const formattedMatches = data.map(match => ({
+          id: match.id,
+          title: match.title,
+          sport: match.sport?.name?.toLowerCase() || 'unknown',
+          sportIcon: getSportIcon(match.sport?.name),
+          location: match.location?.name || 'Unknown location',
+          dateTime: match.start_time,
+          currentParticipants: match.participants?.[0]?.count || 0,
+          maxParticipants: match.max_participants,
+          status: match.status,
+          participantRequests: 0, // This would need another query to get pending requests
+          participants: [] // This would need another query to get participant details
+        }));
+        
+        setMatches(formattedMatches);
       } catch (error) {
         console.error('Error fetching hosted matches:', error);
+      } finally {
         setLoading(false);
       }
     };
     
     fetchHostedMatches();
-  }, [tabValue]);
+  }, [tabValue, user.id, supabase]);
   
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);

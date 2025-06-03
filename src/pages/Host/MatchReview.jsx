@@ -117,7 +117,7 @@ const MatchReview = ({ matchData, onUpdateMatchData }) => {
                 <ListItemText
                   primary={<span style={{ color: 'rgba(0, 0, 0, 0.6)', fontSize: '0.875rem' }}>Sport</span>}
                   secondary={
-                    <span style={{ display: 'inline-block', marginTop: '5px' }}>
+                    <Typography component="div" variant="body2" style={{ marginTop: '5px' }}>
                       <Chip 
                         icon={getSportIcon()}
                         label={matchData.sportName || 'Not selected'}
@@ -125,7 +125,7 @@ const MatchReview = ({ matchData, onUpdateMatchData }) => {
                         variant="outlined"
                         size="medium"
                       />
-                    </span>
+                    </Typography>
                   }
                 />
               </ListItem>
@@ -314,17 +314,28 @@ const MatchReview = ({ matchData, onUpdateMatchData }) => {
           </ListItem>
         </List>
         
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={termsAccepted}
-              onChange={handleTermsAcceptedChange}
-              color="primary"
-            />
-          }
-          label="I accept the terms and conditions"
-          sx={{ mt: 2 }}
-        />
+        <Box sx={{ mt: 2, p: 2, border: !termsAccepted ? '1px solid #f44336' : '1px solid rgba(0, 0, 0, 0.12)', borderRadius: 1, bgcolor: !termsAccepted ? 'rgba(244, 67, 54, 0.08)' : 'transparent' }}>
+          <FormControlLabel
+            required
+            control={
+              <Checkbox
+                checked={termsAccepted}
+                onChange={handleTermsAcceptedChange}
+                color="primary"
+              />
+            }
+            label={
+              <Typography fontWeight={500}>
+                I accept the terms and conditions
+              </Typography>
+            }
+          />
+          {!termsAccepted && (
+            <Typography variant="caption" color="error" sx={{ display: 'block', mt: 1 }}>
+              You must accept the terms and conditions to create a match
+            </Typography>
+          )}
+        </Box>
       </Paper>
     </Box>
   );

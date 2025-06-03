@@ -140,30 +140,59 @@ export const matchService = {
       // Handle sport_id - convert from string sport name to UUID
       let sport_id = matchData.sport_id;
       if (sport_id && typeof sport_id === 'string' && !sport_id.includes('-')) {
-        const { data: sportData } = await supabase
-          .from('sports')
-          .select('id')
-          .ilike('name', sport_id)
-          .single();
-          
-        if (sportData && sportData.id) {
-          sport_id = sportData.id;
-          console.log(`Mapped sport name "${matchData.sport_id}" to UUID: ${sport_id}`);
-        } else {
-          // Try an exact match as fallback
-          const { data: exactSportData } = await supabase
+        try {
+          // First try to get all sports to log them (for debugging)
+          const { data: allSports } = await supabase
             .from('sports')
-            .select('id')
-            .eq('name', sport_id)
-            .single();
+            .select('id, name');
             
-          if (exactSportData && exactSportData.id) {
-            sport_id = exactSportData.id;
-            console.log(`Mapped sport name "${matchData.sport_id}" to UUID (exact match): ${sport_id}`);
-          } else {
-            console.error(`Could not find sport with name: ${matchData.sport_id}`);
-            throw new Error(`Sport with name '${matchData.sport_id}' not found in database`);
+          console.log('Available sports in database:', allSports);
+          
+          // Try case-insensitive match first
+          const { data: sportData, error: sportError } = await supabase
+            .from('sports')
+            .select('id, name')
+            .ilike('name', sport_id)
+            .maybeSingle();
+          
+          if (sportError) {
+            console.error('Error looking up sport by name:', sportError);
           }
+            
+          if (sportData && sportData.id) {
+            sport_id = sportData.id;
+            console.log(`Mapped sport name "${matchData.sport_id}" to UUID: ${sport_id} (${sportData.name})`);
+          } else {
+            // Try an exact match as fallback
+            const { data: exactSportData } = await supabase
+              .from('sports')
+              .select('id, name')
+              .eq('name', sport_id)
+              .maybeSingle();
+              
+            if (exactSportData && exactSportData.id) {
+              sport_id = exactSportData.id;
+              console.log(`Mapped sport name "${matchData.sport_id}" to UUID (exact match): ${sport_id} (${exactSportData.name})`);
+            } else {
+              // If that still doesn't work, try to find by name containing the sport string
+              const { data: partialSportData } = await supabase
+                .from('sports')
+                .select('id, name')
+                .ilike('name', `%${sport_id}%`);
+                
+              if (partialSportData && partialSportData.length > 0) {
+                // Use the first match
+                sport_id = partialSportData[0].id;
+                console.log(`Mapped sport name "${matchData.sport_id}" to UUID (partial match): ${sport_id} (${partialSportData[0].name})`);
+              } else {
+                console.error(`Could not find sport with name: ${matchData.sport_id}`);
+                throw new Error(`Sport with name '${matchData.sport_id}' not found in database. Available sports: ${allSports.map(s => s.name).join(', ')}`);
+              }
+            }
+          }
+        } catch (sportError) {
+          console.error('Error processing sport:', sportError);
+          throw new Error(`Error processing sport: ${sportError.message}`);
         }
       }
       
@@ -215,13 +244,29 @@ export const matchService = {
       }
       
       // Make sure all fields are of correct type and remove non-existent fields
-      const { court_name, duration_minutes, min_participants, ...dataWithoutExtraFields } = matchData;
+      const { 
+        court_name, 
+        duration_minutes, 
+        min_participants, 
+        sportName, // Remove from Supabase data
+        sportIcon, // Remove from Supabase data
+        sport, // Remove duplicate field if present
+        sport_name, // Remove sport_name - not a column in matches table
+        ...dataWithoutExtraFields 
+      } = matchData;
       
       // If there is a court_name, add it to the description field
       let description = matchData.description || '';
       if (court_name) {
         description = description ? `${description} (${court_name})` : `Court: ${court_name}`;
       }
+      
+      // Log the sport information for debugging
+      console.log('Sport information being used:', {
+        providedSportId: matchData.sport_id,
+        providedSportName: sportName,
+        resolvedSportId: sport_id
+      });
       
       // Prepare clean data for Supabase
       const cleanedData = {
@@ -263,10 +308,12 @@ export const matchService = {
       }
       
       console.log('Match created successfully:', data);
-      return data;
+      // Return in a consistent format that the client expects
+      return { data: data, error: null };
     } catch (error) {
       console.error('Error in createMatch:', error);
-      throw error;
+      // Return a consistent error format that the client can handle
+      return { data: null, error: error };
     }
   },
   
@@ -286,6 +333,11 @@ export const matchService = {
     
     if (error) throw error;
     return data;
+  },
+  
+  // Alias for getMatch to maintain backward compatibility
+  getMatchById: async (matchId) => {
+    return await matchService.getMatch(matchId);
   },
   
   // Get matches hosted by a user
@@ -585,6 +637,27 @@ export const participantService = {
         user:users(*)
       `)
       .eq('match_id', matchId);
+    
+    if (status) {
+      query = query.eq('status', status);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    return data;
+  },
+  
+  // Get user's participations across all matches
+  getUserParticipations: async (userId, status = null) => {
+    let query = supabase
+      .from('participants')
+      .select(`
+        *,
+        match:matches(*, sport:sports(*), host:users!host_id(*), location:locations(*))
+      `)
+      .eq('user_id', userId)
+      .order('joined_at', { ascending: false });
     
     if (status) {
       query = query.eq('status', status);

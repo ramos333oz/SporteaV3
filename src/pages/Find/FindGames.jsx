@@ -19,7 +19,9 @@ import {
   Badge,
   Tooltip,
   LinearProgress,
-  Stack
+  Stack,
+  CircularProgress,
+  IconButton
 } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -34,8 +36,13 @@ import FiberNewIcon from '@mui/icons-material/FiberNew';
 import PeopleIcon from '@mui/icons-material/People';
 import LockIcon from '@mui/icons-material/Lock';
 import PublicIcon from '@mui/icons-material/Public';
+import RecommendIcon from '@mui/icons-material/Recommend';
+import InfoIcon from '@mui/icons-material/Info';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useAuth } from '../../hooks/useAuth';
 import { participantService } from '../../services/supabase';
+import recommendationService from '../../services/recommendationService';
+import interactionService from '../../services/interactionService';
 
 /**
  * FindGames component for displaying available sport matches
@@ -81,6 +88,49 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
     })
   ];
   
+  // Load personalized recommendations when component mounts or user changes
+  useEffect(() => {
+    const loadRecommendations = async () => {
+      if (!user) {
+        // For non-logged in users, just show the newest matches
+        if (propMatches) {
+          const sortedByDate = [...propMatches].sort((a, b) => 
+            new Date(b.created_at || 0) - new Date(a.created_at || 0)
+          );
+          setRecommendedMatches(sortedByDate.slice(0, 3));
+        }
+        return;
+      }
+      
+      try {
+        // Fetch personalized recommendations
+        const { recommendations, type, message } = await recommendationService.getRecommendations(user.id, 5);
+        
+        // Set the recommended matches with their explanation and metadata
+        setRecommendedMatches(recommendations);
+        
+        // If we got a message from the recommendation service, show it as a notification
+        if (message) {
+          setNotification({
+            severity: 'info',
+            message: message
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching recommendations:', error);
+        // Fall back to sorting by date if recommendations fail
+        if (propMatches) {
+          const sortedByDate = [...propMatches].sort((a, b) => 
+            new Date(b.created_at || 0) - new Date(a.created_at || 0)
+          );
+          setRecommendedMatches(sortedByDate.slice(0, 3));
+        }
+      }
+    };
+    
+    loadRecommendations();
+  }, [user, propMatches]);
+
   // Update matches when props or filter changes
   useEffect(() => {
     if (propMatches) {
@@ -111,16 +161,25 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         setMatches(filteredMatches);
       }
       
-      // For recommended matches, we would ideally use a recommendation algorithm
-      // Here we're just showing the newest matches for demo purposes
-      const sortedByDate = [...propMatches].sort((a, b) => 
-        new Date(b.created_at || 0) - new Date(a.created_at || 0)
-      );
-      setRecommendedMatches(sortedByDate.slice(0, 2));
+      // Register impressions for visible matches to improve recommendations
+      if (user) {
+        const matchesToTrack = selectedSportFilter === 'all' ? 
+          propMatches : 
+          propMatches.filter(match => 
+            match.sport_id?.toString() === selectedSportFilter ||
+            match.sport?.id?.toString() === selectedSportFilter
+          );
+        
+        // Track impressions in a non-blocking way
+        matchesToTrack.slice(0, 10).forEach(match => {
+          interactionService.registerMatchView(user.id, match.id)
+            .catch(console.error); // Non-blocking
+        });
+      }
     } else {
       setLoading(true);
     }
-  }, [propMatches, selectedSportFilter]);
+  }, [propMatches, selectedSportFilter, user]);
   
   // View mode tab change handler
   const handleViewModeChange = (event, newValue) => {
@@ -203,11 +262,48 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         return m;
       });
       
+      // If this is a recommended match, update it in the recommended matches list too
+      if (match.recommendation_type) {
+        const updatedRecommendations = recommendedMatches.map(m => {
+          if (m.id === match.id) {
+            return { 
+              ...m, 
+              is_joined: true, 
+              join_status: result.alreadyJoined ? result.status : 'pending',
+              current_participants: result.alreadyJoined ? m.current_participants : m.current_participants + 1
+            };
+          }
+          return m;
+        });
+        setRecommendedMatches(updatedRecommendations);
+        
+        // Track recommendation interaction
+        recommendationService.trackRecommendationAction(
+          user.id,
+          match.id,
+          'joined',
+          match.finalScore || 0.5,
+          match.recommendation_type,
+          match.explanation || ''
+        ).catch(console.error); // Non-blocking
+      }
+      
       setMatches(updatedMatches);
       setNotification({
         severity: 'success',
         message: result.message || 'Successfully requested to join match'
       });
+      
+      // Track the join interaction
+      interactionService.trackInteraction(
+        user.id,
+        match.id,
+        'join'
+      ).catch(console.error); // Non-blocking
+      
+      // Generate new user embeddings to improve future recommendations
+      // This is also triggered by the trackInteraction call above
+      recommendationService.generateUserEmbedding(user.id).catch(console.error);
     } catch (error) {
       console.error('Error joining match:', error);
       setNotification({
@@ -241,11 +337,44 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         return m;
       });
       
+      // If this is a recommended match, update it in the recommended matches list too
+      if (match.recommendation_type) {
+        const updatedRecommendations = recommendedMatches.map(m => {
+          if (m.id === match.id) {
+            return { 
+              ...m, 
+              is_joined: false,
+              join_status: null,
+              current_participants: Math.max(0, m.current_participants - 1)
+            };
+          }
+          return m;
+        });
+        setRecommendedMatches(updatedRecommendations);
+        
+        // Track recommendation interaction
+        recommendationService.trackRecommendationAction(
+          user.id,
+          match.id,
+          'left',
+          match.finalScore || 0.5,
+          match.recommendation_type,
+          match.explanation || ''
+        ).catch(console.error); // Non-blocking
+      }
+      
       setMatches(updatedMatches);
       setNotification({
         severity: 'info',
         message: result.message || 'Successfully left the match'
       });
+      
+      // Track the leave interaction
+      interactionService.trackInteraction(
+        user.id,
+        match.id,
+        'leave'
+      ).catch(console.error); // Non-blocking
     } catch (error) {
       console.error('Error leaving match:', error);
       setNotification({
@@ -256,7 +385,274 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       setJoinLoading(prev => ({ ...prev, [match.id]: false }));
     }
   };
+  
+  // Handle clicking on a recommended match card
+  const handleRecommendationClick = (match) => {
+    if (!user || !match.recommendation_type) return;
+    
+    // Track that the user clicked on this recommendation in analytics
+    recommendationService.trackRecommendationAction(
+      user.id,
+      match.id,
+      'clicked',
+      match.finalScore || 0.5,
+      match.recommendation_type,
+      match.explanation || ''
+    ).catch(console.error); // Non-blocking
+    
+    // Also track in user_interactions for collaborative filtering
+    interactionService.trackInteraction(
+      user.id,
+      match.id,
+      'click'
+    ).catch(console.error); // Non-blocking
+  };
+  
+  // Refresh recommendations
+  const handleRefreshRecommendations = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      const { recommendations, type, message } = await recommendationService.getRecommendations(user.id, 5);
+      setRecommendedMatches(recommendations);
+      
+      if (message) {
+        setNotification({
+          severity: 'info',
+          message: message
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing recommendations:', error);
+      setNotification({
+        severity: 'error',
+        message: 'Failed to refresh recommendations'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Render recommendation card (similar to match card but with recommendation details)
+  const renderRecommendationCard = (match) => {
+    // Format date and time
+    const { date, time } = formatDateTime(match.start_time);
+    
+    // Calculate spots available
+    const maxParticipants = match.max_participants || 10;
+    const currentParticipants = match.current_participants || 0;
+    const spotsAvailable = maxParticipants - currentParticipants;
+    
+    // Calculate fill percentage for visual progress bar
+    const fillPercentage = (currentParticipants / maxParticipants) * 100;
+    
+    // Determine match status
+    const isFull = spotsAvailable <= 0;
+    const isAboutToFill = spotsAvailable <= 2 && !isFull;
+    const isJoined = match.is_joined;
+    const joinStatus = match.join_status || null;
+    const isLoading = joinLoading[match.id] || false;
+    const skillLevel = match.skill_level || match.skillLevel || 'Intermediate';
+    // Check if the current user is the host of this match
+    const isUserHost = user && (match.host_id === user.id || (match.host && match.host.id === user.id));
+    
+    // Get sport data
+    const sport = match.sport || match.sports || {};
+    const sportName = sport.name || match.sport_name || 'Sport';
+    const sportIcon = getSportIcon(sportName);
+    
+    // Get location
+    const location = match.location?.name || match.location_name || match.locations?.name || 'Unknown location';
+    
+    // Get host
+    const host = match.host || {};
+    const hostName = host.full_name || host.name || host.username || 'Host';
+    
+    return (
+      <Card 
+        sx={{ 
+          height: '100%', 
+          display: 'flex', 
+          flexDirection: 'column',
+          borderRadius: 3,
+          transition: 'all 0.3s ease-in-out',
+          position: 'relative',
+          overflow: 'visible',
+          border: '2px solid #3f51b5',
+          '&:hover': {
+            transform: 'translateY(-8px)',
+            boxShadow: 6
+          },
+        }}
+        onClick={() => handleRecommendationClick(match)}
+      >
+        {/* Recommendation badge */}
+        <Box 
+          sx={{
+            position: 'absolute',
+            top: -10,
+            right: -10,
+            zIndex: 1
+          }}
+        >
+          <Tooltip title={match.explanation || 'Recommended for you'}>
+            <Badge
+              badgeContent={
+                <RecommendIcon fontSize="small" sx={{ color: 'white' }} />
+              }
+              color="primary"
+              overlap="circular"
+              sx={{ 
+                '& .MuiBadge-badge': {
+                  width: 30,
+                  height: 30,
+                  borderRadius: '50%'
+                }
+              }}
+            />
+          </Tooltip>
+        </Box>
+
+        <CardContent sx={{ flexGrow: 1 }}>
+          {/* Sport type chip and recommendation type */}
+          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Chip 
+              icon={sportIcon}
+              label={sportName}
+              size="small"
+              color="primary"
+              variant="filled"
+            />
+            
+            <Tooltip title={match.explanation || 'Recommended for you'}>
+              <Chip 
+                icon={<InfoIcon fontSize="small" />}
+                label={match.recommendation_type === 'content-based' ? 'Personalized' : 
+                      match.recommendation_type === 'collaborative' ? 'Popular' : 'Recommended'}
+                size="small"
+                color="secondary"
+                variant="outlined"
+              />
+            </Tooltip>
+          </Box>
+          
+          {/* Match title */}
+          <Typography variant="h6" component="h2" gutterBottom>
+            {match.title || 'Untitled Match'}
+          </Typography>
+          
+          {/* Match details */}
+          <Box sx={{ mb: 2 }}>
+            {/* Date and time */}
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <AccessTimeIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary">
+                {date} · {time} · {match.duration_minutes || 60} mins
+              </Typography>
+            </Box>
+            
+            {/* Location */}
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <LocationOnIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary">
+                {location}
+              </Typography>
+            </Box>
+            
+            {/* Host */}
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <PersonIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary">
+                Hosted by {hostName}
+              </Typography>
+            </Box>
+          </Box>
+          
+          {/* Participants */}
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <PeopleIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                <Typography variant="body2">
+                  {currentParticipants}/{maxParticipants} players
+                </Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary">
+                {spotsAvailable} {spotsAvailable === 1 ? 'spot' : 'spots'} left
+              </Typography>
+            </Box>
+
+            <Box sx={{ width: '100%', mb: 1 }}>
+              <LinearProgress 
+                variant="determinate" 
+                value={fillPercentage} 
+                sx={{
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: 'rgba(0,0,0,0.05)',
+                  '& .MuiLinearProgress-bar': {
+                    backgroundColor: isFull ? 'error.main' : 
+                                 isAboutToFill ? 'warning.main' : 'success.main',
+                  }
+                }}
+              />
+            </Box>
+          </Box>
+          
+          {/* Explanation */}
+          <Typography variant="body2" color="secondary" sx={{ mb: 1, fontStyle: 'italic' }}>
+            {match.explanation || 'Recommended based on your preferences'}
+          </Typography>
+        </CardContent>
+
+        <CardActions sx={{ flexDirection: 'column', gap: 1, p: 2 }}>
+          {/* Join/Leave match button */}
+          {user && (
+            isUserHost ? (
+              <Button 
+                variant="contained" 
+                color="secondary"
+                size="small"
+                fullWidth
+                startIcon={<PersonIcon />}
+                disabled
+                sx={{ mb: 1 }}
+              >
+                You're Hosting
+              </Button>
+            ) : isJoined ? (
+              <Button 
+                variant="outlined" 
+                color="error"
+                size="small" 
+                fullWidth
+                disabled={isLoading}
+                onClick={() => handleLeaveMatch(match)}
+                startIcon={isLoading ? <CircularProgress size={20} /> : null}
+                sx={{ mb: 1 }}
+              >
+                {isLoading ? 'Processing...' : joinStatus === 'pending' ? 'Cancel Request' : 'Leave Match'}
+              </Button>
+            ) : (
+              <Button 
+                variant="contained" 
+                size="small"
+                color={isFull ? 'inherit' : 'primary'}
+                fullWidth
+                disabled={isFull || isLoading}
+                onClick={() => handleJoinMatch(match)}
+                startIcon={isLoading ? <CircularProgress size={20} /> : null}
+              >
+                {isLoading ? 'Processing...' : isFull ? 'Match Full' : 'Join Match'}
+              </Button>
+            )
+          )}
+        </CardActions>
+      </Card>
+    );
+  };
+  
   // Render match card
   const renderMatchCard = (match) => {
     // Format date and time
@@ -281,6 +677,8 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
     const joinStatus = match.join_status || null;
     const isLoading = joinLoading[match.id] || false;
     const skillLevel = match.skill_level || match.skillLevel || 'Intermediate';
+    // Check if the current user is the host of this match
+    const isUserHost = user && (match.host_id === user.id || (match.host && match.host.id === user.id));
     
     // Get sport data
     const sport = match.sport || {};
@@ -458,7 +856,19 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         <CardActions sx={{ flexDirection: 'column', gap: 1, p: 2 }}>
           {/* Join/Leave match button */}
           {user && (
-            isJoined ? (
+            isUserHost ? (
+              <Button 
+                variant="contained" 
+                color="secondary"
+                size="small"
+                fullWidth
+                startIcon={<PersonIcon />}
+                disabled
+                sx={{ mb: 1 }}
+              >
+                You're Hosting
+              </Button>
+            ) : isJoined ? (
               <Button 
                 variant="outlined" 
                 color="error"
