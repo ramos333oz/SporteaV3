@@ -103,21 +103,33 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       }
       
       try {
-        // Fetch personalized recommendations
+        // Fetch personalized recommendations - we added error handling in the service itself
+        // so this should no longer throw errors
         const { recommendations, type, message } = await recommendationService.getRecommendations(user.id, 5);
         
-        // Set the recommended matches with their explanation and metadata
-        setRecommendedMatches(recommendations);
-        
-        // If we got a message from the recommendation service, show it as a notification
-        if (message) {
-          setNotification({
-            severity: 'info',
-            message: message
-          });
+        if (recommendations && recommendations.length > 0) {
+          // Set the recommended matches with their explanation and metadata
+          setRecommendedMatches(recommendations);
+          
+          // If we got a message from the recommendation service, show it as a notification
+          if (message) {
+            setNotification({
+              severity: 'info',
+              message: message
+            });
+          }
+        } else {
+          // Fall back to sorting by date if recommendations are empty
+          console.log('No recommendations returned, falling back to default sorting');
+          if (propMatches) {
+            const sortedByDate = [...propMatches].sort((a, b) => 
+              new Date(b.created_at || 0) - new Date(a.created_at || 0)
+            );
+            setRecommendedMatches(sortedByDate.slice(0, 3));
+          }
         }
       } catch (error) {
-        console.error('Error fetching recommendations:', error);
+        console.error('Error in recommendation handling:', error);
         // Fall back to sorting by date if recommendations fail
         if (propMatches) {
           const sortedByDate = [...propMatches].sort((a, b) => 

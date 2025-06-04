@@ -39,6 +39,7 @@ import { format, formatDistance, formatDistanceToNow, isPast, isFuture, isAfter,
 
 import { useAuth } from '../hooks/useAuth';
 import { useRealtime } from '../hooks/useRealtime';
+import { useToast } from '../contexts/ToastContext';
 import { matchService, participantService } from '../services/supabase';
 
 // Match Status Indicator component
@@ -246,6 +247,7 @@ const MatchDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { subscribeToMatch } = useRealtime();
+  const { showInfoToast, showSuccessToast, showWarningToast } = useToast();
   
   const [match, setMatch] = useState(null);
   const [participants, setParticipants] = useState([]);
@@ -324,7 +326,7 @@ const MatchDetail = () => {
     if (navigator.share) {
       navigator.share({
         title: `${match.sport.name} match on Sportea`,
-        text: `Join me for a ${match.sport.name} match on ${formatMatchDate(match.date)} at ${formatMatchTime(match.date)}`,
+        text: `Join me for a ${match.sport.name} match on ${formatMatchDate(match.start_time)} at ${formatMatchTime(match.start_time)}`,
         url: window.location.href
       }).catch(err => {
         console.error('Error sharing:', err);
@@ -332,19 +334,12 @@ const MatchDetail = () => {
     } else {
       // Fallback - copy to clipboard
       navigator.clipboard.writeText(window.location.href);
-      alert('Match link copied to clipboard!');
-    }
-  };
-  
-  // Real-time update handler for match
-  const handleMatchUpdate = (payload) => {
-    if (payload.new) {
-      setMatch(payload.new);
+      showInfoToast('Link Copied', 'Match link copied to clipboard!');
     }
   };
   
   // Real-time update handler for participants
-  const handleParticipantsUpdate = (payload) => {
+  const handleParticipantsUpdate = useCallback((payload) => {
     // Fetch all participants again to get the latest state
     fetchParticipants();
     
@@ -352,7 +347,19 @@ const MatchDetail = () => {
     if (payload.new?.user_id === user?.id) {
       setUserParticipation(payload.new);
     }
-  };
+  }, [user, fetchParticipants]);
+  
+  // Real-time update handler for match
+  const handleMatchUpdate = useCallback((payload) => {
+    setMatch(payload.data);
+    
+    // Show appropriate toast based on update type
+    if (payload.data.status === 'cancelled') {
+      showWarningToast('Match Cancelled', 'This match has been cancelled by the host.');
+    } else if (payload.eventType === 'UPDATE') {
+      showInfoToast('Match Updated', 'Match details have been updated.');
+    }
+  }, [showInfoToast, showWarningToast]);
   
   // Fetch match data
   const fetchMatch = async () => {

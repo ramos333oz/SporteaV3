@@ -1,10 +1,47 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
+// Initialize Supabase client with environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Validate environment variables to prevent connection issues
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase environment variables. Please check your .env file.');
+}
+
+// Create client with enhanced real-time options
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+      heartbeatIntervalMs: 15000, // Increase heartbeat interval for more stable connections
+      reconnectAfterMs: (attempts) => Math.min(2000 * (attempts + 1), 20000) // Exponential backoff with max 20s
+    },
+    autoconnect: true, // Auto-connect WebSocket on client initialization
+    timeout: 30000, // Increase timeout for connections
+    headers: {
+      apikey: supabaseAnonKey // Explicitly include API key in WebSocket headers
+    }
+  },
+  auth: {
+    persistSession: true, // Ensures authentication persists
+    autoRefreshToken: true // Auto refresh token to maintain connection
+  },
+  db: {
+    schema: 'public'
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'sportea-app' // Add client info for better debugging
+    }
+  }
+});
+
+// Enhanced logging for connection debugging
+console.log('Initializing Supabase with URL:', supabaseUrl);
+console.log('Auth configuration enabled with autoRefreshToken');
+console.log('WebSocket configuration set with exponential backoff reconnection strategy');
+console.log('Supabase client initialized with realtime enabled');
 
 // User-related queries
 export const userService = {

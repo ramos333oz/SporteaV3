@@ -3,6 +3,22 @@ import { supabase } from './supabase';
 /**
  * Recommendation service for fetching and tracking personalized match recommendations
  */
+
+// Enable debug mode for detailed logging
+const DEBUG_MODE = true;
+const LOG_PREFIX = '[Sportea Recommendation Service]';
+
+// Helper logging functions
+function log(...args) {
+  if (DEBUG_MODE) {
+    console.log(LOG_PREFIX, ...args);
+  }
+}
+
+function logError(...args) {
+  console.error(LOG_PREFIX, ...args);
+}
+
 const recommendationService = {
   /**
    * Get personalized match recommendations for the current user
@@ -12,20 +28,87 @@ const recommendationService = {
    */
   getRecommendations: async (userId, limit = 10) => {
     try {
+      // Validate input parameters to prevent 400 Bad Request errors
+      if (!userId) {
+        logError('Missing required userId parameter');
+        return {
+          recommendations: [],
+          type: 'default',
+          message: 'Default recommendations (missing userId)',
+          error: 'Missing required userId parameter'
+        };
+      }
+      
+      // Ensure limit is a valid number
+      const normalizedLimit = Number(limit) || 10;
+      
+      // Log the request details for debugging
+      log('Fetching recommendations for user:', userId, 'with limit:', normalizedLimit);
+      log('Using Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+      
+      // Add timestamp for tracing request-response flow
+      const requestTime = new Date().toISOString();
+      log(`Request initiated at ${requestTime}`);
+      
+      // Attempt to invoke the function with extended timeout and headers
       const { data, error } = await supabase.functions.invoke('get-recommendations', {
-        body: { userId, limit },
+        body: { 
+          userId, 
+          limit: normalizedLimit,
+          requestTime // Include timestamp for correlation
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       });
 
-      if (error) throw error;
+      if (error) {
+        logError(`Error in recommendation function (code: ${error.code || 'unknown'})`, error);
+        
+        // Provide additional diagnostic information based on error type
+        if (error.message?.includes('The request failed with status code 400')) {
+          logError('Bad Request error (400) detected. This may indicate invalid parameters or parsing issues.');
+          log('Request payload was:', { userId, limit: normalizedLimit });
+        } else if (error.message?.includes('timeout')) {
+          logError('Timeout detected. The Edge Function may be taking too long to respond.');
+        } else if (error.message?.includes('NetworkError')) {
+          logError('Network error detected. Check internet connectivity or Supabase service status.');
+        }
+        
+        throw error;
+      }
+      
+      log('Recommendation request successful', {
+        count: data?.recommendations?.length || 0,
+        type: data?.type || 'unknown'
+      });
       
       return {
-        recommendations: data.recommendations || [],
-        type: data.type || 'hybrid',
-        message: data.message
+        recommendations: data?.recommendations || [],
+        type: data?.type || 'hybrid',
+        message: data?.message || 'Based on your activity'
       };
     } catch (error) {
-      console.error('Error fetching recommendations:', error);
-      throw error;
+      logError('Error fetching recommendations:', error);
+      
+      // Construct a more informative error message for logging
+      const errorDetails = {
+        message: error.message,
+        code: error.code,
+        status: error.status,
+        timestamp: new Date().toISOString()
+      };
+      
+      log('Full error details:', errorDetails);
+      
+      // Return default recommendations on error instead of failing completely
+      return {
+        recommendations: [],
+        type: 'default',
+        message: `Default recommendations (error: ${error.message?.substring(0, 30)}...)`,
+        error: errorDetails
+      };
     }
   },
 

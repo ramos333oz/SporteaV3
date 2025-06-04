@@ -27,6 +27,7 @@ import MainLayout from './components/layout/MainLayout';
 
 // Auth provider
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { ToastProvider } from './contexts/ToastContext';
 
 // Create a theme instance based on the Sportea style guide
 const theme = createTheme({
@@ -311,6 +312,7 @@ function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <AuthProvider>
+          <ToastProvider>
           <ErrorBoundary>
             <Router>
               <Routes>
@@ -347,6 +349,7 @@ function App() {
               </Routes>
             </Router>
           </ErrorBoundary>
+          </ToastProvider>
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>

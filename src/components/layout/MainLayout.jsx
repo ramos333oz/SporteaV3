@@ -25,6 +25,8 @@ import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import BottomNavigation from './BottomNavigation';
 import NotificationList from '../notifications/NotificationList';
+import ConnectionStatus from '../ConnectionStatus';
+import NotificationPanel from '../NotificationPanel';
 import { useAuth } from '../../hooks/useAuth';
 
 const MainLayout = () => {
@@ -82,7 +84,8 @@ const MainLayout = () => {
           >
             Sportea
           </Typography>
-          <NotificationList />
+          <ConnectionStatus />
+          <NotificationPanel />
         </Toolbar>
       </AppBar>
       

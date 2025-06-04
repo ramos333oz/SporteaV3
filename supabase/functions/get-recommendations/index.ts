@@ -3,6 +3,13 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.24.0'
 
+// CORS headers for Edge Functions
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'apikey, X-Client-Info, Content-Type, Authorization, Accept',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+};
+
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL')
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -15,17 +22,24 @@ const MAX_RECOMMENDATIONS = 20 // Maximum number of recommendations to return
 
 // Get user preference vector
 const getUserPreference = async (supabase: any, userId: string) => {
-  const { data, error } = await supabase
-    .from('users')
-    .select('preference_vector')
-    .eq('id', userId)
-    .single()
-  
-  if (error) {
-    throw new Error(`Error fetching user preference: ${error.message}`)
+  try {
+    console.log(`Fetching preference vector for user: ${userId}`)
+    const { data, error } = await supabase
+      .from('users')
+      .select('preference_vector')
+      .eq('id', userId)
+      .single()
+    
+    if (error) {
+      console.log(`Error fetching user preference: ${error.message}`)
+      return null
+    }
+    
+    return data?.preference_vector
+  } catch (error) {
+    console.log(`Exception in getUserPreference: ${error.message}`)
+    return null
   }
-  
-  return data.preference_vector
 }
 
 // Get matches the user has already joined or is hosting
@@ -254,17 +268,60 @@ const mergeAndRankRecommendations = (contentBased: any[], collaborative: any[]) 
 
 // Handle HTTP requests
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders
+    })
+  }
+  
   try {
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    console.log('Supabase client created with URL:', supabaseUrl)
     
     // Get user ID from request
-    const { userId, limit = 10 } = await req.json()
+    let userId, limit = 10
+    try {
+      const body = await req.json()
+      console.log('Request body received:', JSON.stringify(body))
+      userId = body?.userId
+      limit = body?.limit || 10
+    } catch (parseError) {
+      console.log('Error parsing request body:', parseError)
+      return new Response(
+        JSON.stringify({ error: 'Invalid request body - could not parse JSON' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+    
+    console.log('Processing request for userId:', userId, 'with limit:', limit)
     
     if (!userId) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameter: userId' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+    
+    // Check if user exists first
+    const { data: userExists, error: userCheckError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single()
+      
+    if (userCheckError || !userExists) {
+      console.log('User not found:', userId)
+      return new Response(
+        JSON.stringify({ 
+          error: 'User not found', 
+          recommendations: [],
+          type: 'generic',
+          message: 'No recommendations available' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
     
@@ -349,7 +406,7 @@ Deno.serve(async (req) => {
           type: 'generic',
           message: 'Generic recommendations provided based on sport preferences'
         }),
-        { headers: { 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
     
@@ -382,13 +439,18 @@ Deno.serve(async (req) => {
         contentBasedCount: contentBasedRecommendations.length,
         collaborativeCount: collaborativeRecommendations.length
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
     console.error('Error generating recommendations:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ 
+        error: error.message || 'Unknown error',
+        recommendations: [],
+        type: 'error',
+        message: 'Error retrieving recommendations'
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   }
 })
