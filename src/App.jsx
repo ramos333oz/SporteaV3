@@ -20,6 +20,7 @@ import ErrorDebug from './pages/ErrorDebug';
 import EmergencyAccess from './pages/EmergencyAccess';
 import AuthDebug from './pages/AuthDebug';
 import DirectHome from './pages/DirectHome';
+import TestRecommendations from './pages/Find/TestRecommendations';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -27,6 +28,7 @@ import MainLayout from './components/layout/MainLayout';
 
 // Auth provider
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { ToastProvider } from './contexts/ToastContext';
 
 // Create a theme instance based on the Sportea style guide
 const theme = createTheme({
@@ -311,6 +313,7 @@ function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <AuthProvider>
+          <ToastProvider>
           <ErrorBoundary>
             <Router>
               <Routes>
@@ -340,6 +343,7 @@ function App() {
                   <Route path="/host" element={<Host />} />
                   <Route path="/match/:matchId" element={<MatchDetail />} />
                   <Route path="/admin" element={<Admin />} />
+                  <Route path="/test-recommendations" element={<TestRecommendations />} />
                 </Route>
                 
                 {/* Fallback for undefined routes */}
@@ -347,6 +351,7 @@ function App() {
               </Routes>
             </Router>
           </ErrorBoundary>
+          </ToastProvider>
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>

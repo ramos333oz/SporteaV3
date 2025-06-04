@@ -26,6 +26,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import EventIcon from '@mui/icons-material/Event';
+import LiveMatchBoard from '../components/LiveMatchBoard';
 
 // Match card component
 const MatchCard = ({ match, onJoin, joinedMatches }) => {
@@ -304,61 +305,18 @@ const Home = () => {
         </Grid>
       </Grid>
       
-      {/* Real-time match listing */}
+      {/* Live match board with real-time updates */}
       <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h2">
-            Upcoming Matches
-          </Typography>
+        <LiveMatchBoard />
+        
+        <Box sx={{ textAlign: 'center', mt: 2 }}>
+          <Button 
+            variant="outlined" 
+            onClick={() => navigate('/find')}
+          >
+            View All Matches
+          </Button>
         </Box>
-        
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : upcomingMatches.length > 0 ? (
-          upcomingMatches.slice(0, 3).map(match => (
-            <MatchCard 
-              key={match.id}
-              match={match}
-              onJoin={handleJoinMatch}
-              joinedMatches={joinedMatchIds}
-            />
-          ))
-        ) : (
-          <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'background.light' }}>
-            <Typography variant="h3" color="text.secondary" gutterBottom>
-              No Upcoming Matches
-            </Typography>
-            <Typography variant="body1" color="text.secondary" paragraph>
-              There are no upcoming matches right now. Why not host one yourself?
-            </Typography>
-            <Button 
-              variant="contained" 
-              color="primary"
-              onClick={() => navigate('/host')}
-            >
-              Host a Match
-            </Button>
-          </Paper>
-        )}
-        
-        {upcomingMatches.length > 3 && (
-          <Box sx={{ textAlign: 'center', mt: 2 }}>
-            <Button 
-              variant="outlined" 
-              onClick={() => navigate('/find')}
-            >
-              View All Matches
-            </Button>
-          </Box>
-        )}
       </Box>
       
       {/* Popular sports section */}

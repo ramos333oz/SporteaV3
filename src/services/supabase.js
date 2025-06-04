@@ -1,10 +1,64 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
+// Initialize Supabase client with environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Validate and normalize Supabase URL
+let normalizedSupabaseUrl = supabaseUrl;
+
+// Ensure supabaseUrl is properly formatted with https:// prefix
+if (normalizedSupabaseUrl && !normalizedSupabaseUrl.startsWith('http')) {
+  normalizedSupabaseUrl = `https://${normalizedSupabaseUrl}`;
+  console.log('Normalized Supabase URL to:', normalizedSupabaseUrl);
+}
+
+// Format WebSocket URL for realtime
+const wsUrl = normalizedSupabaseUrl ? normalizedSupabaseUrl.replace('http', 'ws') : null;
+
+// Validate environment variables to prevent connection issues
+if (!normalizedSupabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase environment variables. Please check your .env file.');
+}
+
+// Log the WebSocket URL for debugging
+console.log('WebSocket URL for realtime:', wsUrl);
+
+// Create client with enhanced real-time options
+const supabase = createClient(normalizedSupabaseUrl, supabaseAnonKey, {
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+      heartbeatIntervalMs: 15000, // Increase heartbeat interval for more stable connections
+      reconnectAfterMs: (attempts) => Math.min(2000 * (attempts + 1), 20000) // Exponential backoff with max 20s
+    },
+    autoconnect: true, // Auto-connect WebSocket on client initialization
+    timeout: 30000, // Increase timeout for connections
+    headers: {
+      apikey: supabaseAnonKey // Explicitly include API key in WebSocket headers
+    },
+    // Explicitly set WebSocket endpoint URL to ensure proper format
+    url: wsUrl || `${normalizedSupabaseUrl.replace('http', 'ws')}/realtime/v1/websocket`
+  },
+  auth: {
+    persistSession: true, // Ensures authentication persists
+    autoRefreshToken: true // Auto refresh token to maintain connection
+  },
+  db: {
+    schema: 'public'
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'sportea-app' // Add client info for better debugging
+    }
+  }
+});
+
+// Enhanced logging for connection debugging
+console.log('Initializing Supabase with URL:', supabaseUrl);
+console.log('Auth configuration enabled with autoRefreshToken');
+console.log('WebSocket configuration set with exponential backoff reconnection strategy');
+console.log('Supabase client initialized with realtime enabled');
 
 // User-related queries
 export const userService = {
