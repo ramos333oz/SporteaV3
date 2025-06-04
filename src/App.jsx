@@ -20,6 +20,7 @@ import ErrorDebug from './pages/ErrorDebug';
 import EmergencyAccess from './pages/EmergencyAccess';
 import AuthDebug from './pages/AuthDebug';
 import DirectHome from './pages/DirectHome';
+import TestRecommendations from './pages/Find/TestRecommendations';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -342,6 +343,7 @@ function App() {
                   <Route path="/host" element={<Host />} />
                   <Route path="/match/:matchId" element={<MatchDetail />} />
                   <Route path="/admin" element={<Admin />} />
+                  <Route path="/test-recommendations" element={<TestRecommendations />} />
                 </Route>
                 
                 {/* Fallback for undefined routes */}

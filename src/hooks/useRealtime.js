@@ -248,15 +248,79 @@ export const useRealtime = () => {
       
       // Try to get socket URL to validate endpoint
       try {
-        const socketUrl = new URL(supabase.realtime._options?.url || '');
-        log('Socket URL:', socketUrl.href);
+        // Get the realtime URL from options or construct a fallback
+        const realtimeUrl = supabase.realtime._options?.url;
         
-        // Verify WebSocket protocol
-        if (!socketUrl.protocol.startsWith('ws')) {
-          logError('Invalid WebSocket URL protocol:', socketUrl.protocol);
+        if (!realtimeUrl) {
+          // Construct fallback URL from supabase URL if available
+          let supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          
+          // Ensure URL has protocol prefix
+          if (supabaseUrl && !supabaseUrl.startsWith('http')) {
+            supabaseUrl = `https://${supabaseUrl}`;
+          }
+          
+          // Only proceed if we have a valid URL
+          if (supabaseUrl) {
+            // Convert to WebSocket URL
+            const fallbackWsUrl = `${supabaseUrl.replace('http', 'ws')}/realtime/v1/websocket`;
+            log('Using fallback WebSocket URL:', fallbackWsUrl);
+            
+            // Update realtime options if possible
+            if (supabase.realtime._options) {
+              supabase.realtime._options.url = fallbackWsUrl;
+              log('Updated realtime options with fallback URL');
+            }
+          } else {
+            logError('No Supabase URL available for fallback WebSocket URL');
+          }
+        } else {
+          // Validate the existing URL
+          const socketUrl = new URL(realtimeUrl);
+          log('Socket URL:', socketUrl.href);
+          
+          // Verify WebSocket protocol
+          if (!socketUrl.protocol.startsWith('ws')) {
+            logError('Invalid WebSocket URL protocol:', socketUrl.protocol);
+            
+            // Try to fix the protocol
+            const fixedUrl = realtimeUrl.replace('http:', 'ws:').replace('https:', 'wss:');
+            log('Fixed WebSocket URL:', fixedUrl);
+            
+            // Update the URL if possible
+            if (supabase.realtime._options) {
+              supabase.realtime._options.url = fixedUrl;
+              log('Updated realtime options with fixed protocol');
+            }
+          }
         }
       } catch (error) {
         logError('Error parsing WebSocket URL:', error.message);
+        log('Attempting to recover from URL parsing error...');
+        
+        // Recovery attempt - construct a valid WebSocket URL
+        try {
+          let supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          
+          if (supabaseUrl) {
+            // Ensure it has protocol prefix
+            if (!supabaseUrl.startsWith('http')) {
+              supabaseUrl = `https://${supabaseUrl}`;
+            }
+            
+            // Create a valid WebSocket URL
+            const recoveryWsUrl = `${supabaseUrl.replace('http', 'ws')}/realtime/v1/websocket`;
+            log('Recovery WebSocket URL:', recoveryWsUrl);
+            
+            // Update realtime options
+            if (supabase.realtime._options) {
+              supabase.realtime._options.url = recoveryWsUrl;
+              log('Updated realtime options with recovery URL');
+            }
+          }
+        } catch (recoveryError) {
+          logError('Failed to recover from URL parsing error:', recoveryError.message);
+        }
       }
       
       supabase.realtime.connect();
