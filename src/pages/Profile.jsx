@@ -34,7 +34,33 @@ import SportsMmaIcon from '@mui/icons-material/SportsMma';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import { userService, participantService, matchService } from '../services/supabase';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import { userService, participantService, matchService, friendshipService } from '../services/supabase';
+import { useToast } from '../contexts/ToastContext';
+import { useNavigate, useParams } from 'react-router-dom';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import CancelIcon from '@mui/icons-material/Cancel';
+
+// Utility function to normalize avatar URLs
+const normalizeAvatarUrl = (url) => {
+  if (!url) return null;
+  
+  // Check if the avatar URL is already valid and accessible
+  if (url.includes('/storage/v1/object/public/')) {
+    return url;
+  }
+  
+  // If it's a relative path, construct the full URL
+  if (url.startsWith('/')) {
+    return `https://fcwwuiitsghknsvnsrxp.supabase.co/storage/v1/object/public${url}`;
+  }
+  
+  return url;
+};
 
 // Map sport names to their respective icons
 const getSportIcon = (sportName) => {
@@ -69,12 +95,23 @@ const getSkillLevelColor = (level) => {
 
 const Profile = () => {
   const { user, supabase } = useAuth();
+  const navigate = useNavigate();
+  const { showSuccessToast, showErrorToast } = useToast();
+  const { userId } = useParams();
   const [activeTab, setActiveTab] = useState(0);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hostedMatches, setHostedMatches] = useState([]);
   const [joinedMatches, setJoinedMatches] = useState([]);
+  const [friendshipStatus, setFriendshipStatus] = useState(null);
+  const [friendshipId, setFriendshipId] = useState(null);
+  const [friendActionLoading, setFriendActionLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(null);
+  
+  // Check if viewing own profile or someone else's
+  const isOwnProfile = !userId || (user && userId === user.id);
+  const profileId = userId || (user ? user.id : null);
   
   useEffect(() => {
     // Fetch profile data from Supabase
@@ -83,20 +120,21 @@ const Profile = () => {
       setError(null);
       
       try {
-        if (!user?.id) throw new Error('User not authenticated');
+        if (!profileId) throw new Error('Profile ID is required');
+        if (!user) throw new Error('User not authenticated');
         
-        // Fetch user profile from Supabase
-        const profileData = await userService.getProfile(user.id);
+        // Fetch user profile from Supabase - use the profileId (from URL), not the current user's ID
+        const profileData = await userService.getProfile(profileId);
         
         // Transform data to match the expected format
         const formattedProfile = {
           id: profileData.id,
-          fullName: profileData.full_name || user.user_metadata?.full_name || 'UiTM Student',
-          email: profileData.email || user.email,
-          studentId: profileData.student_id || user.user_metadata?.student_id || '',
-          username: profileData.username || user.email?.split('@')[0] || '',
+          fullName: profileData.full_name || profileData.username || 'UiTM Student',
+          email: profileData.email || '',
+          studentId: profileData.student_id || '',
+          username: profileData.username || profileData.email?.split('@')[0] || '',
           bio: profileData.bio || 'No bio available',
-          avatarUrl: profileData.avatar_url,
+          avatarUrl: normalizeAvatarUrl(profileData.avatar_url),
           faculty: profileData.faculty || '',
           campus: profileData.campus || '',
           // Parse sports preferences or default to empty array
@@ -112,12 +150,12 @@ const Profile = () => {
         
         setProfile(formattedProfile);
         
-        // Fetch user's hosted matches
-        const hosted = await matchService.getHostedMatches(user.id);
+        // Fetch matches hosted by the profile owner (not the current user)
+        const hosted = await matchService.getHostedMatches(profileId);
         setHostedMatches(hosted || []);
         
-        // Fetch user's joined matches (as participant)
-        const participants = await participantService.getUserParticipations(user.id);
+        // Fetch matches joined by the profile owner (not the current user)
+        const participants = await participantService.getUserParticipations(profileId);
         setJoinedMatches(participants || []);
         
       } catch (error) {
@@ -128,13 +166,228 @@ const Profile = () => {
       }
     };
     
-    if (user) {
+    if (profileId) {
       fetchProfile();
+      fetchFriendshipStatus();
     }
-  }, [user]);
+  }, [profileId, user]);
   
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
+  };
+  
+  // Handle navigating to match details for summary
+  const handleViewMatchSummary = (matchId) => {
+    navigate(`/match/${matchId}`);
+  };
+
+  // Handle deleting a past match
+  const handleDeleteMatch = async (match) => {
+    if (window.confirm('Are you sure you want to delete this match? This action cannot be undone and all match data will be permanently deleted.')) {
+      try {
+        const result = await matchService.deleteMatch(match.id);
+        
+        if (!result.success) {
+          throw new Error(result.message || 'Failed to delete the match');
+        }
+        
+        showSuccessToast('Match Deleted', 'The match has been permanently deleted');
+        
+        // Update state to remove the deleted match
+        if (match.host_id === user.id) {
+          setHostedMatches(prev => prev.filter(m => m.id !== match.id));
+        } else {
+          setJoinedMatches(prev => prev.filter(p => p.match?.id !== match.id));
+        }
+      } catch (error) {
+        console.error('Error deleting match:', error);
+        showErrorToast('Delete Failed', error.message || 'Failed to delete the match. Please try again.');
+      }
+    }
+  };
+  
+  // Function to fetch friendship status between current user and profile user
+  const fetchFriendshipStatus = async () => {
+    if (!profileId || !user) return;
+    
+    try {
+      const { success, status, data } = await friendshipService.getFriendshipStatus(profileId);
+      
+      if (success) {
+        setFriendshipStatus(status);
+        if (data) {
+          setFriendshipId(data.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching friendship status:', error);
+      setError('Failed to load friendship status');
+    }
+  };
+
+  // Function to handle sending friend request
+  const handleSendFriendRequest = async () => {
+    if (!profileId) return;
+    
+    setActionLoading('send-request');
+    try {
+      const { success, message } = await friendshipService.sendFriendRequest(profileId);
+      
+      if (success) {
+        showSuccessToast('Friend request sent');
+        // Reload friendship status
+        fetchFriendshipStatus();
+      } else {
+        showErrorToast(message || 'Failed to send friend request');
+      }
+    } catch (error) {
+      console.error('Error sending friend request:', error);
+      showErrorToast('Failed to send friend request');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+  
+  const handleAcceptFriendRequest = async () => {
+    if (!friendshipId) return;
+    
+    setActionLoading('accept-request');
+    try {
+      const { success, message } = await friendshipService.acceptFriendRequest(friendshipId);
+      
+      if (success) {
+        showSuccessToast('Friend request accepted');
+        // Reload friendship status without navigating away
+        fetchFriendshipStatus();
+      } else {
+        showErrorToast(message || 'Failed to accept friend request');
+      }
+    } catch (error) {
+      console.error('Error accepting friend request:', error);
+      showErrorToast('Failed to accept friend request');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+  
+  const handleDeclineFriendRequest = async () => {
+    if (!friendshipId) return;
+    
+    setActionLoading('decline-request');
+    try {
+      const { success, message } = await friendshipService.declineFriendRequest(friendshipId);
+      
+      if (success) {
+        showSuccessToast('Friend request declined');
+        // Reload friendship status
+        fetchFriendshipStatus();
+      } else {
+        showErrorToast(message || 'Failed to decline friend request');
+      }
+    } catch (error) {
+      console.error('Error declining friend request:', error);
+      showErrorToast('Failed to decline friend request');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+  
+  const handleRemoveFriend = async () => {
+    if (!friendshipId) return;
+    
+    setActionLoading('remove-friend');
+    try {
+      const { success, message } = await friendshipService.removeFriend(friendshipId);
+      
+      if (success) {
+        showSuccessToast('Friend removed');
+        // Reload friendship status
+        fetchFriendshipStatus();
+      } else {
+        showErrorToast(message || 'Failed to remove friend');
+      }
+    } catch (error) {
+      console.error('Error removing friend:', error);
+      showErrorToast('Failed to remove friend');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Render friendship action button based on status
+  const renderFriendshipButton = () => {
+    if (isOwnProfile) return null;
+    
+    if (friendActionLoading) {
+      return (
+        <Button
+          variant="outlined"
+          color="primary"
+          disabled
+          startIcon={<CircularProgress size={20} />}
+        >
+          Loading...
+        </Button>
+      );
+    }
+    
+    switch (friendshipStatus) {
+      case 'friends':
+        return (
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<PersonRemoveIcon />}
+            onClick={handleRemoveFriend}
+          >
+            Remove Friend
+          </Button>
+        );
+      case 'request-sent':
+        return (
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<HourglassEmptyIcon />}
+            disabled
+          >
+            Request Sent
+          </Button>
+        );
+      case 'request-received':
+        return (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<CheckCircleIcon />}
+              onClick={handleAcceptFriendRequest}
+            >
+              Accept
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<CancelIcon />}
+              onClick={handleDeclineFriendRequest}
+            >
+              Decline
+            </Button>
+          </Box>
+        );
+      case 'not-friends':
+      default:
+        return (
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<PersonAddIcon />}
+            onClick={handleSendFriendRequest}
+          >
+            Add Friend
+          </Button>
+        );
+    }
   };
   
   if (loading) {
@@ -180,13 +433,17 @@ const Profile = () => {
   
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Box sx={{ position: 'relative', mb: 4 }}>
-        <IconButton 
-          sx={{ position: 'absolute', top: 0, right: 0 }}
-          aria-label="settings"
-        >
-          <SettingsIcon />
-        </IconButton>
+              <Box sx={{ position: 'relative', mb: 4 }}>
+        {isOwnProfile && (
+          <IconButton 
+            sx={{ position: 'absolute', top: 0, right: 0 }}
+            aria-label="settings"
+            onClick={() => navigate('/profile/edit')}
+            title="Edit Profile"
+          >
+            <SettingsIcon />
+          </IconButton>
+        )}
         
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 3 }}>
           <Box sx={{ position: 'relative' }}>
@@ -197,6 +454,7 @@ const Profile = () => {
                 bgcolor: 'primary.main',
                 fontSize: '2.5rem'
               }}
+              src={profile?.avatarUrl}
             >
               {profile?.fullName?.charAt(0) || 'U'}
             </Avatar>
@@ -223,11 +481,12 @@ const Profile = () => {
               {profile?.fullName}
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              Student ID: {profile?.studentId}
+              Student ID: {profile?.studentId || (profile?.email && profile.email.includes('@student.uitm.edu.my') ? profile.email.split('@')[0] : '')}
             </Typography>
             <Typography variant="body1" mt={1}>
               {profile?.bio}
             </Typography>
+            {renderFriendshipButton()}
           </Box>
         </Box>
       </Box>
@@ -365,57 +624,44 @@ const Profile = () => {
                 {/* Show hosted matches */}
                 {hostedMatches.map((match) => (
                   <React.Fragment key={`hosted-${match.id}`}>
-                    <ListItem alignItems="flex-start">
+                    <ListItem 
+                      alignItems="flex-start"
+                      secondaryAction={
+                        (match.status === 'completed' || match.status === 'cancelled') && (
+                          <Box>
+                            <IconButton 
+                              edge="end" 
+                              aria-label="view" 
+                              onClick={() => handleViewMatchSummary(match.id)}
+                              title="View Match Summary"
+                            >
+                              <VisibilityIcon />
+                            </IconButton>
+                            {isOwnProfile && (
+                              <IconButton 
+                                edge="end" 
+                                aria-label="delete" 
+                                onClick={() => handleDeleteMatch(match)}
+                                title="Delete Match"
+                                sx={{ color: 'error.main' }}
+                              >
+                                <DeleteOutlineIcon />
+                              </IconButton>
+                            )}
+                          </Box>
+                        )
+                      }
+                    >
                       <ListItemAvatar>
                         <Avatar sx={{ bgcolor: 'primary.main' }}>
                           {getSportIcon(match.sport?.name)}
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText
-                        primary={`Hosted "${match.title}"`}
-                        secondary={
-                          <>
-                            <Typography component="span" variant="body2" color="text.primary">
-                              {match.sport?.name} - {match.location?.name}
-                            </Typography>
-                            {` — ${new Date(match.start_time).toLocaleDateString()}`}
-                          </>
-                        }
+                        primary={`${match.sport?.name} Match`}
+                        secondary={`${match.status === 'completed' ? 'Completed' : match.status === 'cancelled' ? 'Cancelled' : 'In Progress'}`}
                       />
                     </ListItem>
-                    <Divider variant="inset" component="li" />
-                  </React.Fragment>
-                ))}
-                
-                {/* Show joined matches */}
-                {joinedMatches.map((participation) => (
-                  <React.Fragment key={`joined-${participation.id}`}>
-                    <ListItem alignItems="flex-start">
-                      <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: 'secondary.main' }}>
-                          {getSportIcon(participation.match?.sport?.name)}
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={`Joined "${participation.match?.title}"`}
-                        secondary={
-                          <>
-                            <Chip 
-                              size="small" 
-                              label={participation.status} 
-                              color={
-                                participation.status === 'confirmed' ? 'success' :
-                                participation.status === 'pending' ? 'warning' :
-                                'error'
-                              }
-                              sx={{ mr: 1 }}
-                            />
-                            {` — ${new Date(participation.joined_at).toLocaleDateString()}`}
-                          </>
-                        }
-                      />
-                    </ListItem>
-                    <Divider variant="inset" component="li" />
                   </React.Fragment>
                 ))}
               </List>
@@ -423,12 +669,6 @@ const Profile = () => {
           </Box>
         )}
       </Paper>
-      
-      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-        <Button variant="outlined" color="primary">
-          Edit Profile
-        </Button>
-      </Box>
     </Container>
   );
 };

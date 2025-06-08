@@ -102,8 +102,46 @@ const Find = () => {
           prev.filter(match => match.id !== update.oldData.id)
         );
       }
+    } else if (update.type === 'participant_update') {
+      // Handle participant updates to update participant count in real-time
+      const matchId = update.data?.match_id || update.oldData?.match_id;
+      if (matchId) {
+        console.log('Real-time: Participant update for match', matchId, update.eventType);
+        // Fetch current participant count for the match
+        fetchParticipantCount(matchId);
+      }
     }
   }, [activeTab]);
+  
+  // Function to fetch updated participant count for a match
+  const fetchParticipantCount = useCallback(async (matchId) => {
+    try {
+      // Count confirmed participants for this match
+      const { count, error } = await supabase
+        .from('participants')
+        .select('*', { count: 'exact', head: true })
+        .eq('match_id', matchId)
+        .eq('status', 'confirmed');
+      
+      if (error) throw error;
+      
+      console.log(`Updated participant count for match ${matchId}:`, count);
+      
+      // Update the match in our list with the new participant count
+      setMatches(prev => prev.map(match => {
+        if (match.id === matchId) {
+          return { 
+            ...match, 
+            current_participants: count,
+            isUpdated: true // Flag for visual indication
+          };
+        }
+        return match;
+      }));
+    } catch (err) {
+      console.error('Error fetching participant count:', err);
+    }
+  }, []);
   
   // Set up real-time subscriptions
   useEffect(() => {

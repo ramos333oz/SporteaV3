@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+1. Always understand the structure of the project by reading the project's [Architecture.md](mdc:Architecture.md) , [Features.md](mdc:Features.md) , [FeaturesDesign.md](mdc:FeaturesDesign.md) , [ROADMAP.md](mdc:ROADMAP.md) before proceeding with changes in codebase. 
+2. Always utilize Exa and Context7 MCP for the latest documentation to be used in the codebase for both features and problem solving, use SHRIMP MCP for features and problem solving and use SUPABASE MCP everytime you wanted to interact with the backend (Supabase) or to understand the backend schema before you started solving problems that involve the backend of the app. 
+3. After we have completed constructing the features, once I am satisfied, then update the progress inside [ROADMAP.md](mdc:ROADMAP.md) .
+
+

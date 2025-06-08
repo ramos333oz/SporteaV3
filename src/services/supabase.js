@@ -1,8 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
+import { notificationService, createNotificationContent } from './notifications';
 
 // Initialize Supabase client with environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Project reference for direct WebSocket connection
+const projectRef = 'fcwwuiitsghknsvnsrxp'; // Sporteav2 project reference
 
 // Validate and normalize Supabase URL
 let normalizedSupabaseUrl = supabaseUrl;
@@ -13,8 +17,23 @@ if (normalizedSupabaseUrl && !normalizedSupabaseUrl.startsWith('http')) {
   console.log('Normalized Supabase URL to:', normalizedSupabaseUrl);
 }
 
-// Format WebSocket URL for realtime
-const wsUrl = normalizedSupabaseUrl ? normalizedSupabaseUrl.replace('http', 'ws') : null;
+// Extract project ref from URL if possible
+let extractedProjectRef = null;
+try {
+  extractedProjectRef = normalizedSupabaseUrl.match(/https:\/\/([^\.]+)\./)?.[1];
+  if (extractedProjectRef) {
+    console.log('Extracted project ref from URL:', extractedProjectRef);
+  }
+} catch (error) {
+  console.warn('Could not extract project ref from URL', error);
+}
+
+// Use extracted project ref or fallback to known ref
+const finalProjectRef = extractedProjectRef || projectRef;
+
+// Format WebSocket URLs properly to ensure connection works
+// Must include API key and version as query parameters directly in the URL
+const wsUrl = `wss://${finalProjectRef}.supabase.co/realtime/v1/websocket?apikey=${supabaseAnonKey}&vsn=1.0.0`;
 
 // Validate environment variables to prevent connection issues
 if (!normalizedSupabaseUrl || !supabaseAnonKey) {
@@ -22,37 +41,150 @@ if (!normalizedSupabaseUrl || !supabaseAnonKey) {
 }
 
 // Log the WebSocket URL for debugging
-console.log('WebSocket URL for realtime:', wsUrl);
+console.log('WebSocket URL for realtime connection:', wsUrl);
 
-// Create client with enhanced real-time options
-const supabase = createClient(normalizedSupabaseUrl, supabaseAnonKey, {
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-      heartbeatIntervalMs: 15000, // Increase heartbeat interval for more stable connections
-      reconnectAfterMs: (attempts) => Math.min(2000 * (attempts + 1), 20000) // Exponential backoff with max 20s
-    },
-    autoconnect: true, // Auto-connect WebSocket on client initialization
-    timeout: 30000, // Increase timeout for connections
-    headers: {
-      apikey: supabaseAnonKey // Explicitly include API key in WebSocket headers
-    },
-    // Explicitly set WebSocket endpoint URL to ensure proper format
-    url: wsUrl || `${normalizedSupabaseUrl.replace('http', 'ws')}/realtime/v1/websocket`
-  },
-  auth: {
-    persistSession: true, // Ensures authentication persists
-    autoRefreshToken: true // Auto refresh token to maintain connection
-  },
+// Enhanced options for realtime WebSocket connections with more aggressive retry settings
+const realtimeOptions = {
+  eventsPerSecond: 10,
   db: {
     schema: 'public'
   },
+  heartbeatIntervalMs: 60000, // Increased to 60 seconds for better stability
+  autoRefreshToken: true,
+  persistSession: true,
+  retryAfterIntervalMs: 10000,  // Increased to 10 seconds
+  maxRetryAttempts: 20,         // Doubled retry attempts
+  maxReconnectionAttempts: 30   // Double reconnection attempts
+};
+
+// Log realtime options for debugging
+console.log('Realtime options:', { 
+  wsUrl,
+  heartbeat: realtimeOptions.heartbeatIntervalMs,
+  retries: realtimeOptions.maxRetryAttempts,
+  reconnects: realtimeOptions.maxReconnectionAttempts
+});
+
+// Initialize Supabase client with enhanced WebSocket configuration
+// Ensure we create a robust instance that can handle network instability
+const supabase = createClient(normalizedSupabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true, // Handle redirects with session info automatically
+    storageKey: 'sportea_auth' // Use a custom storage key to avoid conflicts
+  },
+  realtime: {
+    // Main realtime config
+    heartbeatIntervalMs: realtimeOptions.heartbeatIntervalMs,
+    eventsPerSecond: realtimeOptions.eventsPerSecond,
+    maxReconnectionAttempts: realtimeOptions.maxReconnectionAttempts,
+    retryAfterIntervalMs: realtimeOptions.retryAfterIntervalMs,
+    
+    // Explicitly configured WebSocket
+    websocket: {
+      url: wsUrl,
+      params: {
+        apikey: supabaseAnonKey,
+        vsn: '1.0.0', // Add version parameter
+      },
+      // Add event handlers for WebSocket lifecycle
+      connectParams: {
+        token: supabaseAnonKey
+      },
+      heartbeatIntervalMs: realtimeOptions.heartbeatIntervalMs,
+      reconnectAfterMs: (tries) => {
+        // Exponential backoff with jitter
+        return (Math.min(10000, 1000 * Math.pow(2, tries)) + 
+                (Math.random() * 1000));
+      },
+      logger: (kind, msg, data) => {
+        console.log(`[Supabase WebSocket] [${kind}] ${msg}`, data);
+      }
+    }
+  },
   global: {
     headers: {
-      'X-Client-Info': 'sportea-app' // Add client info for better debugging
+      'X-Client-Info': 'sportea-v3'
     }
   }
 });
+
+// Initialize realtime connection on client creation
+if (supabase.realtime && typeof supabase.realtime.connect === 'function') {
+  // Small delay to ensure proper initialization
+  setTimeout(() => {
+    try {
+      console.log('[Supabase] Connecting to realtime service...');
+      supabase.realtime.connect();
+      
+      // Verify connection after a short delay
+      setTimeout(() => {
+        const isConnected = verifyRealtimeConnection();
+        if (isConnected) {
+          console.log('[Supabase] Successfully connected to realtime service');
+        } else {
+          console.warn('[Supabase] Realtime connection may not be established properly');
+        }
+      }, 2000);
+      
+    } catch (error) {
+      console.error('[Supabase] Error connecting to realtime:', error);
+    }
+  }, 500);
+} else {
+  console.error('[Supabase] Realtime client or connect method not available');
+}
+
+// Function to verify and validate realtime WebSocket connection
+const verifyRealtimeConnection = () => {
+  if (!supabase.realtime) {
+    console.error('[Supabase] Realtime client not initialized properly');
+    return false;
+  }
+  
+  try {
+    // Log current client configuration for debugging
+    const opts = supabase.realtime.opts || {};
+    console.log('[Supabase] Current realtime configuration:', {
+      url: opts.url || wsUrl || 'Not available',
+      heartbeat: opts.heartbeatIntervalMs || realtimeOptions.heartbeatIntervalMs || 'Not available',
+      timeout: opts.timeout || 'Not available',
+      params: opts.params || realtimeOptions.params || '{}'
+    });
+    
+    // Multiple ways to check connection status
+    let isConnected = false;
+    
+    // Method 1: Direct socket check
+    if (supabase.realtime.socket) {
+      const socketState = supabase.realtime.socket.readyState;
+      const stateMap = {
+        0: 'CONNECTING',
+        1: 'OPEN',
+        2: 'CLOSING',
+        3: 'CLOSED',
+        undefined: 'NOT_AVAILABLE'
+      };
+      
+      console.log(`[Supabase] WebSocket state: ${stateMap[socketState] || 'UNKNOWN'} (${socketState})`);
+      isConnected = socketState === 1; // OPEN
+    } else {
+      console.log('[Supabase] Socket object not available to check readyState');
+    }
+    
+    // Method 2: If socket isn't available, check if we can connect
+    if (!isConnected && typeof supabase.realtime.connect === 'function') {
+      console.log('[Supabase] Socket not connected, attempting to connect...');
+      supabase.realtime.connect();
+    }
+    
+    return isConnected;
+  } catch (error) {
+    console.error('[Supabase] Error verifying realtime connection:', error);
+    return false;
+  }
+};
 
 // Enhanced logging for connection debugging
 console.log('Initializing Supabase with URL:', supabaseUrl);
@@ -126,6 +258,19 @@ export const checkUserExists = async (userId) => {
 };
 
 export const matchService = {
+  supabase, // Expose supabase client for direct queries in components
+  
+  // Add leaveMatch function to fix "matchService.leaveMatch is not a function" error
+  leaveMatch: async (matchId, userId) => {
+    try {
+      // Call the participantService.leaveMatch function
+      return await participantService.leaveMatch(matchId, userId);
+    } catch (error) {
+      console.error('Error in matchService.leaveMatch:', error);
+      throw error;
+    }
+  },
+  
   // Create a new match
   createMatch: async (matchData) => {
     try {
@@ -386,6 +531,34 @@ export const matchService = {
       .single();
     
     if (error) throw error;
+    
+    // Check for missing host data and log a warning
+    if (!data.host || Object.keys(data.host).length === 0) {
+      console.warn(`Host data is missing for match ${matchId} (host_id: ${data.host_id})`);
+      
+      // Add placeholder host data to prevent UI errors
+      data.host = {
+        id: data.host_id,
+        username: 'Unknown',
+        full_name: 'Unknown Host',
+      };
+    }
+    
+    // Process participants to ensure user data is available
+    if (data.participants && Array.isArray(data.participants)) {
+      data.participants = data.participants.map(participant => {
+        if (!participant.user) {
+          console.warn(`User data missing for participant in match ${matchId}`);
+          participant.user = {
+            id: participant.user_id,
+            username: 'Unknown',
+            full_name: 'Unknown User'
+          };
+        }
+        return participant;
+      });
+    }
+    
     return data;
   },
   
@@ -440,10 +613,25 @@ export const matchService = {
     const { data, error } = await query;
     
     if (error) throw error;
-    return data.map(item => ({
-      ...item.match,
-      participation_status: item.status
-    }));
+    
+    // Process the data to ensure host is never null/undefined
+    return data.map(item => {
+      // Add placeholder host data if missing
+      if (!item.match.host || Object.keys(item.match.host).length === 0) {
+        console.warn(`Host data is missing for match ${item.match.id} (host_id: ${item.match.host_id})`);
+        
+        item.match.host = {
+          id: item.match.host_id,
+          username: 'Unknown',
+          full_name: 'Unknown Host'
+        };
+      }
+      
+      return {
+        ...item.match,
+        participation_status: item.status
+      };
+    });
   },
   
   // Update match details
@@ -460,7 +648,114 @@ export const matchService = {
   
   // Cancel a match
   cancelMatch: async (matchId) => {
-    return await matchService.updateMatch(matchId, { status: 'cancelled' });
+    try {
+      // Check if match exists and get its status
+      const { data: match, error: matchError } = await supabase
+        .from('matches')
+        .select('status, id, title')
+        .eq('id', matchId)
+        .single();
+      
+      if (matchError) {
+        console.error('Error checking match before cancellation:', matchError);
+        throw new Error(`Match not found or you don't have permission to cancel it.`);
+      }
+      
+      // Check if match is already cancelled
+      if (match.status === 'cancelled') {
+        console.log(`Match ${matchId} (${match.title}) is already cancelled`);
+        return { success: true, message: 'Match is already cancelled' };
+      }
+      
+      // Check if match is in the past
+      if (match.status === 'completed') {
+        console.error('Attempted to cancel a completed match:', match);
+        throw new Error(`Cannot cancel a match that has already been completed.`);
+      }
+      
+      console.log(`Cancelling match ${matchId} (${match.title})`);
+      
+      // Update the match status to cancelled
+      const { data, error } = await supabase
+        .from('matches')
+        .update({ status: 'cancelled' })
+        .eq('id', matchId)
+        .select();
+      
+      if (error) {
+        console.error('Error cancelling match:', error);
+        throw new Error(`Failed to cancel match: ${error.message}`);
+      }
+      
+      console.log(`Successfully cancelled match ${matchId}`);
+      return { success: true, data, message: 'Match cancelled successfully' };
+    } catch (error) {
+      console.error('Error in cancelMatch:', error);
+      // Return a structured error object instead of throwing
+      return { 
+        success: false, 
+        error: true, 
+        message: error.message || 'An error occurred while cancelling the match'
+      };
+    }
+  },
+  
+  // Delete a match
+  deleteMatch: async (matchId) => {
+    try {
+      // Check if match exists and get its status
+      const { data: match, error: matchError } = await supabase
+        .from('matches')
+        .select('status, id, title')
+        .eq('id', matchId)
+        .single();
+      
+      if (matchError) {
+        console.error('Error checking match before deletion:', matchError);
+        throw new Error(`Match not found or you don't have permission to delete it.`);
+      }
+      
+      // Enforce that a match must be cancelled or completed before deletion
+      if (match.status !== 'cancelled' && match.status !== 'completed') {
+        console.error('Attempted to delete a match that is not cancelled or completed:', match);
+        throw new Error(`Match "${match.title}" must be cancelled or completed before it can be deleted.`);
+      }
+      
+      console.log(`Deleting match ${matchId} (${match.title})`);
+      
+      // Delete participants first to avoid foreign key constraints
+      const { error: participantsError } = await supabase
+        .from('participants')
+        .delete()
+        .eq('match_id', matchId);
+      
+      if (participantsError) {
+        console.warn('Error deleting participants, but continuing with match deletion:', participantsError);
+        // Continue with match deletion even if participant deletion has an error
+      }
+      
+      // Then delete the match
+      const { data, error } = await supabase
+        .from('matches')
+        .delete()
+        .eq('id', matchId);
+      
+      if (error) {
+        console.error('Error deleting match:', error);
+        throw new Error(`Failed to delete match: ${error.message}`);
+      }
+      
+      console.log(`Successfully deleted match ${matchId}`);
+      return { success: true, message: 'Match deleted successfully' };
+    } catch (error) {
+      console.error('Error in deleteMatch:', error);
+      // Return a structured error object instead of throwing
+      return { 
+        success: false, 
+        error: true, 
+        message: error.message || 'An error occurred while deleting the match'
+      };
+    }
   },
   
   // Search for matches
@@ -506,7 +801,125 @@ export const matchService = {
     const { data, error } = await query;
     
     if (error) throw error;
-    return data;
+    
+    // Process each match to ensure it has valid host data
+    const processedData = data.map(match => {
+      // Add placeholder data if host is missing
+      if (!match.host || Object.keys(match.host).length === 0) {
+        console.warn(`Host data is missing for match ${match.id} (host_id: ${match.host_id})`);
+        
+        match.host = {
+          id: match.host_id,
+          username: 'Unknown',
+          full_name: 'Unknown Host'
+        };
+      }
+      
+      return match;
+    });
+    
+    return processedData;
+  },
+  
+  // Leave a match - wrapper for participantService.leaveMatch
+  leaveMatch: async (matchId, userId) => {
+    try {
+      // Call the participantService.leaveMatch function
+      return await participantService.leaveMatch(matchId, userId);
+    } catch (error) {
+      console.error('Error in matchService.leaveMatch:', error);
+      throw error;
+    }
+  },
+  
+  // Restore a cancelled match
+  restoreMatch: async (matchId) => {
+    try {
+      // Check if match exists and is cancelled
+      const { data: match, error: matchError } = await supabase
+        .from('matches')
+        .select('status, id, title, host_id')
+        .eq('id', matchId)
+        .single();
+      
+      if (matchError) {
+        console.error('Error checking match before restoration:', matchError);
+        throw new Error(`Match not found or you don't have permission to restore it.`);
+      }
+      
+      // Enforce that a match must be cancelled before restoration
+      if (match.status !== 'cancelled') {
+        console.error('Attempted to restore a match that is not cancelled:', match);
+        throw new Error(`Match "${match.title}" is not cancelled and cannot be restored.`);
+      }
+      
+      // Update match status to scheduled
+      const { data: updatedMatch, error: updateError } = await supabase
+        .from('matches')
+        .update({ status: 'scheduled' })
+        .eq('id', matchId)
+        .select();
+      
+      if (updateError) {
+        console.error('Error restoring match:', updateError);
+        throw new Error(`Failed to restore match: ${updateError.message}`);
+      }
+      
+      // Get confirmed participants (to restore only them)
+      const { data: confirmedParticipants, error: participantsError } = await supabase
+        .from('participants')
+        .select('id, user_id, status')
+        .eq('match_id', matchId)
+        .eq('status', 'confirmed');
+      
+      if (participantsError) {
+        console.error('Error getting confirmed participants:', participantsError);
+        // Continue execution, as match status has been updated
+      } else if (confirmedParticipants && confirmedParticipants.length > 0) {
+        // Restore confirmed participants
+        const participantUpdates = confirmedParticipants.map(p => ({
+          id: p.id,
+          status: 'confirmed'
+        }));
+        
+        const { error: participantUpdateError } = await supabase
+          .from('participants')
+          .upsert(participantUpdates);
+        
+        if (participantUpdateError) {
+          console.error('Error restoring confirmed participants:', participantUpdateError);
+          // Continue execution, as match status has been updated
+        }
+        
+        // Send notifications to confirmed participants
+        try {
+          for (const participant of confirmedParticipants) {
+            // Skip the host, they don't need a notification about their own action
+            if (participant.user_id === match.host_id) continue;
+            
+            // Get match title for notification
+            await notificationService.createNotification({
+              user_id: participant.user_id,
+              type: 'match_updated',
+              data: {
+                match_id: matchId,
+                match_title: match.title,
+                message: 'This match has been restored and is now active again'
+              },
+              read: false
+            });
+          }
+        } catch (notifError) {
+          console.error('Non-critical error creating notifications:', notifError);
+          // Continue execution
+        }
+      }
+      
+      return { success: true, data: updatedMatch };
+    } catch (error) {
+      console.error('Error in restoreMatch:', error);
+      return { success: false, message: error.message || 'Failed to restore match' };
+    }
   }
 };
 
@@ -577,66 +990,212 @@ export const participantService = {
   },
   
   // Join a match
-  joinMatch: async (matchId, userId, accessCode = null) => {
+  joinMatch: async (matchId, userId) => {
     try {
-      // Check if match is available
-      const { available, requiresCode, reason, spotsLeft } = await participantService.checkMatchAvailability(matchId);
-      
-      if (!available) {
-        throw new Error(reason || 'This match is not available for joining');
-      }
-      
-      // If match is private, verify access code
-      if (requiresCode) {
-        const { data: match, error: matchError } = await supabase
-          .from('matches')
-          .select('access_code')
-          .eq('id', matchId)
-          .single();
-          
-        if (matchError) throw matchError;
-        
-        if (!accessCode || accessCode !== match.access_code) {
-          throw new Error('Invalid access code for private match');
-        }
-      }
-      
-      // Check if user is already participating
+      // Check if user is already a participant
       const { isParticipant, status } = await participantService.checkParticipationStatus(matchId, userId);
       
       if (isParticipant) {
-        if (status === 'confirmed' || status === 'pending') {
-          return { alreadyJoined: true, status, message: `You have already ${status === 'confirmed' ? 'joined' : 'requested to join'} this match` };
-        } else if (status === 'declined' || status === 'left') {
-          // If previously declined or left, update the status instead of creating a new record
-          const { data, error } = await supabase
-            .from('participants')
-            .update({ status: 'pending', joined_at: new Date().toISOString() })
-            .eq('match_id', matchId)
-            .eq('user_id', userId)
-            .select();
+        // If user has already joined and status is not 'left', return appropriate message
+        if (status !== 'pending') {
+          return {
+            success: false,
+            message: `You have already ${status === 'confirmed' ? 'joined' : 'confirmed'} this match`,
+            status
+          };
+        }
+        
+        // If status is 'left', update the status to 'pending' to rejoin
+        const { data, error } = await supabase
+          .from('participants')
+          .update({ status: 'pending' })
+          .eq('match_id', matchId)
+          .eq('user_id', userId)
+          .select();
+          
+        if (error) throw error;
+        
+        return {
+          success: true,
+          message: 'Successfully requested to rejoin the match',
+          status: 'pending',
+          data
+        };
+      }
+      
+      // Get match data for validation
+      const { data: match, error: matchError } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', matchId)
+        .single();
+        
+      if (matchError) throw matchError;
+      
+      // Insert new participant with 'pending' status
+      const { data, error } = await supabase
+        .from('participants')
+        .insert([{
+          match_id: matchId,
+          user_id: userId,
+          status: 'pending'
+        }])
+        .select();
+        
+      if (error) throw error;
+      
+      // Create notification for the match host
+      try {
+        console.log(`Creating join request notification for host ${match.host_id} from user ${userId}`);
+        
+        // Get user data for a better notification
+        const { data: userData } = await supabase
+          .from('users')
+          .select('full_name, username, avatar_url')
+          .eq('id', userId)
+          .single();
+          
+        const notificationData = {
+          user_id: match.host_id, // Send notification to the host
+          type: 'match_join_request',
+          title: 'New Join Request',
+          content: JSON.stringify({
+            message: `${userData?.full_name || userData?.username || 'A user'} wants to join your match "${match.title}"`,
+            sender_id: userId
+          }),
+          match_id: matchId,
+          is_read: false
+        };
+        
+        // Use the direct method to create a notification
+        const { data: notificationResult, error: notifError } = await supabase
+          .from('notifications')
+          .insert([notificationData])
+          .select();
+        
+        if (notifError) throw notifError;
+        
+        console.log('Join request notification created:', notificationResult);
+      } catch (notifError) {
+        console.error('Non-critical error creating notification:', notifError);
+        console.error('Notification error details:', JSON.stringify(notifError));
+        // Continue execution - this is non-blocking
+      }
+
+      return {
+        success: true,
+        message: 'Successfully requested to join the match',
+        status: 'pending',
+        data
+      };
+    } catch (error) {
+      console.error('Error joining match:', error);
+      throw error;
+    }
+  },
+  
+  // Add a function to accept a join request
+  acceptJoinRequest: async (matchId, userId) => {
+    try {
+      // Update participant status to confirmed
+      const { data, error } = await supabase
+        .from('participants')
+        .update({ status: 'confirmed' })
+        .eq('match_id', matchId)
+        .eq('user_id', userId)
+        .select();
+        
+      if (error) throw error;
+      
+      // Get match data for notification
+      const { data: match, error: matchError } = await supabase
+        .from('matches')
+        .select('title')
+        .eq('id', matchId)
+        .single();
+        
+      if (!matchError) {
+        // Create notification for the user
+        try {
+          const notificationData = {
+            user_id: userId,
+            type: 'join_request_accepted',
+            title: 'Join Request Accepted',
+            content: `Your request to join "${match.title}" has been accepted`,
+            match_id: matchId,
+            is_read: false
+          };
+          
+          // Direct insertion for better error reporting
+          const { error: notifError } = await supabase
+            .from('notifications')
+            .insert([notificationData]);
             
-          if (error) throw error;
-          return { success: true, data, message: 'Successfully requested to join match again' };
+          if (notifError) {
+            console.error('Notification creation error:', notifError);
+          }
+        } catch (notifError) {
+          console.error('Non-critical error creating notification:', notifError);
+          // Continue execution
         }
       }
       
-      // Create new participant record
+      return { success: true, data, message: 'Participant request accepted' };
+    } catch (error) {
+      console.error('Error accepting join request:', error);
+      throw error;
+    }
+  },
+  
+  // Add a function to decline a join request
+  declineJoinRequest: async (matchId, userId) => {
+    try {
+      // Update participant status to declined
       const { data, error } = await supabase
         .from('participants')
-        .insert({
-          match_id: matchId,
-          user_id: userId,
-          status: 'pending',  // Default to pending, requires host approval
-          joined_at: new Date().toISOString()
-        })
+        .update({ status: 'declined' })
+        .eq('match_id', matchId)
+        .eq('user_id', userId)
         .select();
-      
+        
       if (error) throw error;
       
-      return { success: true, data, message: 'Successfully requested to join match' };
+      // Get match data for notification
+      const { data: match, error: matchError } = await supabase
+        .from('matches')
+        .select('title')
+        .eq('id', matchId)
+        .single();
+        
+      if (!matchError) {
+        // Create notification for the user
+        try {
+          const notificationData = {
+            user_id: userId,
+            type: 'join_request_rejected',
+            title: 'Join Request Declined',
+            content: `Your request to join "${match.title}" has been declined`,
+            match_id: matchId,
+            is_read: false
+          };
+          
+          // Direct insertion for better error reporting
+          const { error: notifError } = await supabase
+            .from('notifications')
+            .insert([notificationData]);
+            
+          if (notifError) {
+            console.error('Notification creation error:', notifError);
+          }
+        } catch (notifError) {
+          console.error('Non-critical error creating notification:', notifError);
+          // Continue execution
+        }
+      }
+      
+      return { success: true, data, message: 'Participant request declined' };
     } catch (error) {
-      console.error('Error joining match:', error);
+      console.error('Error declining join request:', error);
       throw error;
     }
   },
@@ -684,22 +1243,87 @@ export const participantService = {
   
   // Get participants for a match
   getParticipants: async (matchId, status = null) => {
-    let query = supabase
-      .from('participants')
-      .select(`
-        *,
-        user:users(*)
-      `)
-      .eq('match_id', matchId);
-    
-    if (status) {
-      query = query.eq('status', status);
+    try {
+      console.log(`Fetching participants for match ID: ${matchId}, status filter: ${status || 'all'}`);
+      
+      let query = supabase
+        .from('participants')
+        .select(`
+          id,
+          match_id,
+          user_id,
+          status,
+          joined_at,
+          users:users!user_id(*)
+        `)
+        .eq('match_id', matchId);
+      
+      if (status) {
+        query = query.eq('status', status);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      // Log raw data to debug missing user issues
+      console.log('Raw participants data from Supabase:', JSON.stringify(data));
+      
+      // Process the nested user data to make it more accessible
+      const processedData = data.map(participant => {
+        // Extract user from the nested data structure, with null/undefined check
+        const userData = participant.users || {}; // Default to empty object if user data is missing
+        
+        // Log detailed information about each participant for debugging
+        console.log(`Processing participant ${participant.id}:`, {
+          participant_id: participant.id,
+          user_id: participant.user_id,
+          status: participant.status,
+          has_user_data: !!participant.users,
+          user_data_keys: participant.users ? Object.keys(participant.users) : [],
+          user_data: participant.users
+        });
+        
+        // Log warning if user data is missing
+        if (!participant.users) {
+          console.warn(`User data missing for participant (ID: ${participant.id}, user_id: ${participant.user_id})`);
+          
+          // Try to get basic user data as a fallback
+          supabase.from('users')
+            .select('id, email, username, full_name, avatar_url')
+            .eq('id', participant.user_id)
+            .single()
+            .then(({ data: fallbackUser, error }) => {
+              if (!error && fallbackUser) {
+                console.log('Retrieved fallback user data:', fallbackUser);
+                // Update this participant in the state (in the component that called this)
+                // Note: This won't update the returned data immediately, but will help in subsequent renders
+              } else if (error) {
+                console.error('Error fetching fallback user data:', error);
+              }
+            })
+            .catch(err => console.error('Error fetching fallback user data:', err));
+        }
+        
+        // Ensure at least username or full_name is available
+        const enhancedUserData = {
+          ...userData,
+          username: userData.username || 'User',
+          full_name: userData.full_name || userData.username || 'Unknown'
+        };
+        
+        return {
+          ...participant,
+          user: enhancedUserData
+        };
+      });
+      
+      console.log('Processed participant data:', processedData);
+      return processedData;
+    } catch (error) {
+      console.error('Error fetching participants:', error);
+      throw error;
     }
-    
-    const { data, error } = await query;
-    
-    if (error) throw error;
-    return data;
   },
   
   // Get user's participations across all matches
@@ -786,5 +1410,9 @@ export const locationService = {
     return data;
   }
 };
+
+// Export services
+export { notificationService } from './notifications';
+export { friendshipService } from './friendship';
 
 export { supabase };

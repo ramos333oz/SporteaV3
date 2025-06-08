@@ -146,94 +146,114 @@ const MatchCard = ({ match, isRecentlyUpdated, onView }) => {
 const LiveMatchBoard = () => {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [recentlyUpdated, setRecentlyUpdated] = useState({});
   const { connectionState, subscribeToAllMatches, unsubscribe } = useRealtime();
   const { showInfoToast, showSuccessToast } = useToast();
   const navigate = useNavigate();
 
-  // Fetch initial matches
-  useEffect(() => {
-    const fetchMatches = async () => {
-      try {
-        // Get matches that are not cancelled or completed
-        const { data, error } = await supabase
-          .from('matches')
-          .select(`
-            id,
-            title,
-            start_time,
-            end_time,
-            max_participants,
-            status,
-            location_name:locations(name),
-            sport_name:sports(name)
-          `)
-          .in('status', ['open', 'in_progress', 'full'])
-          .order('start_time', { ascending: true })
-          .limit(20);
-
-        if (error) throw error;
+  // Define fetchMatches function at component level so it's accessible everywhere
+  const fetchMatches = async () => {
+    try {
+      console.log('Fetching live matches...');
+      setLoading(true);
+      
+      // Get matches that are happening now or soon
+      const { data, error } = await supabase
+        .from('matches')
+        .select(`
+          id,
+          title,
+          start_time,
+          end_time,
+          max_participants,
+          status,
+          locations(id, name),
+          sports(id, name)
+        `)
+        .not('status', 'eq', 'cancelled')
+        .not('status', 'eq', 'completed')
+        .order('start_time', { ascending: true })
+        .limit(20);
         
-        // Format the matches to normalize structure
-        const formattedMatches = data.map(match => ({
-          ...match,
-          current_participants: 0, // Default value, will be updated
-          location_name: match.location_name?.name || 'Unknown Location',
-          sport_name: match.sport_name?.name || 'Unknown Sport'
-        }));
-        
-        // Get participant counts for each match
-        if (formattedMatches.length > 0) {
-          await fetchParticipantCounts(formattedMatches);
-        } else {
-          setMatches(formattedMatches);
-        }
-      } catch (error) {
-        console.error('Error fetching matches:', error);
-      } finally {
-        setLoading(false);
+      if (error) throw error;
+      
+      console.log('Fetched matches data:', data);
+      
+      // Log full data structure received from server to help debugging
+      console.log('Raw matches data received:', JSON.stringify(data));
+      
+      // Transform data to include location and sport names
+      const transformedMatches = data.map(match => ({
+        ...match,
+        location_name: match.locations?.name,
+        sport_name: match.sports?.name,
+        current_participants: 0 // Will be filled in later
+      }));
+      
+      console.log('Formatted matches:', transformedMatches);
+      
+      // Check if we have matches before setting state
+      if (transformedMatches.length === 0) {
+        console.log('No matches found to display in LiveMatchBoard. This could be normal if there are no active matches.');
+      } else {
+        console.log(`Found ${transformedMatches.length} matches to display in LiveMatchBoard.`);
       }
-    };
-    
-    // Helper function to fetch participant counts for all matches
-    const fetchParticipantCounts = async (matchesArray) => {
+      
+      setMatches(transformedMatches);
+      
+      // Get participant counts for each match
       try {
-        // Create array of promises to fetch participant counts
-        const countPromises = matchesArray.map(async (match) => {
-          const { data, error } = await supabase
+        const participantPromises = transformedMatches.map(async (match) => {
+          const { count, error } = await supabase
             .from('participants')
-            .select('id')
+            .select('id', { count: 'exact' })
             .eq('match_id', match.id)
             .eq('status', 'confirmed');
             
-          if (error) {
-            console.error('Error fetching participants for match:', match.id, error);
-            return { ...match };
-          }
-          
-          return { 
-            ...match, 
-            current_participants: data ? data.length : 0 
+          return {
+            matchId: match.id,
+            count: error ? 0 : (count || 0),
+            error
           };
         });
         
-        // Wait for all promises to resolve
-        const matchesWithCounts = await Promise.all(countPromises);
-        setMatches(matchesWithCounts);
-      } catch (error) {
-        console.error('Error fetching participant counts:', error);
+        const participantResults = await Promise.all(participantPromises);
+        
+        // Update matches with participant counts
+        setMatches(currentMatches => {
+          return currentMatches.map(match => {
+            const result = participantResults.find(r => r.matchId === match.id);
+            return {
+              ...match,
+              current_participants: result && !result.error ? result.count : 0
+            };
+          });
+        });
+      } catch (countError) {
+        console.error('Error fetching participant counts:', countError);
       }
-    };
-
-    fetchMatches();
-  }, []);
+    } catch (error) {
+      console.error('Error fetching matches:', error);
+      setError('Failed to load matches. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Hook into real-time updates
   useEffect(() => {
-    // Only subscribe when connected, with safety check
-    if (!connectionState || !connectionState.isConnected) {
-      return;
-    }
+    // Subscribe even if not connected yet - the useRealtime hook will handle reconnection
+    console.log('Setting up real-time subscriptions for matches, connection state:', connectionState);
+    
+    // Force a refresh of the matches data every 30 seconds as a fallback
+    const refreshInterval = setInterval(() => {
+      console.log('Performing scheduled refresh of matches data');
+      fetchMatches(); // This will now be in scope
+    }, 30000); // 30 second refresh
+    
+    // Initial fetch
+    fetchMatches();
 
     const handleUpdate = (update) => {
       if (update.type === 'match_update') {
@@ -281,6 +301,9 @@ const LiveMatchBoard = () => {
 
     // Cleanup function
     return () => {
+      // Clear the refresh interval
+      clearInterval(refreshInterval);
+      
       // Manually unsubscribe just to be safe
       if (subscriptionId && typeof unsubscribe === 'function') {
         try {

@@ -29,19 +29,74 @@ const ConnectionStatus = () => {
     return baseDelay + jitter;
   }, []);
   
-  // Check connection status function
+  // Check connection status function with improved detection for Supabase v2.39.0
   const checkConnectionStatus = useCallback(() => {
-    if (supabase.realtime && typeof supabase.realtime.getState === 'function') {
-      const state = supabase.realtime.getState();
-      setIsConnected(state === 'CONNECTED');
-      
-      if (state === 'CONNECTED') {
-        setStatusMessage('Live Updates Active');
-      } else {
-        setStatusMessage('Connecting...');
+    if (!supabase?.realtime) {
+      console.error('Realtime client not available');
+      setIsConnected(false);
+      setStatusMessage('Realtime service unavailable');
+      return;
+    }
+    
+    try {
+      // First check Phoenix transport's WebSocket (v2.39.0+ structure)
+      if (supabase.realtime?.transport?.conn?.transport?.ws) {
+        const ws = supabase.realtime.transport.conn.transport.ws;
+        const wsConnected = ws.readyState === 1; // WebSocket.OPEN
+        
+        if (wsConnected) {
+          setIsConnected(true);
+          setStatusMessage('Live Updates Active');
+          return;
+        }
       }
+      
+      // Check transport connection state as fallback
+      if (supabase.realtime.transport && 
+          typeof supabase.realtime.transport.connectionState === 'string') {
+        const internalState = supabase.realtime.transport.connectionState;
+        const transportConnected = internalState === 'open' || internalState === 'connected';
+        
+        if (transportConnected) {
+          setIsConnected(true);
+          setStatusMessage('Live Updates Active');
+          return;
+        }
+      }
+      
+      // Legacy getState method as final fallback
+      if (typeof supabase.realtime.getState === 'function') {
+        const state = supabase.realtime.getState();
+        if (state === 'CONNECTED') {
+          setIsConnected(true);
+          setStatusMessage('Live Updates Active');
+          return;
+        }
+      }
+      
+      // Channel state check as last resort
+      const channels = supabase.realtime.channels || [];
+      const activeChannels = channels.filter(ch => 
+        ch.state === 'joined' || ch.state === 'joining' || ch.socket?.isConnected()
+      ).length;
+      
+      if (activeChannels > 0) {
+        console.log(`Found ${activeChannels} active channels, assuming connection is active`);
+        setIsConnected(true);
+        setStatusMessage('Live Updates Active');
+        return;
+      }
+      
+      // If all checks fail, consider disconnected
+      setIsConnected(false);
+      setStatusMessage('Connecting...');
+    } catch (error) {
+      console.error('Error checking connection status:', error);
+      setIsConnected(false);
+      setStatusMessage('Connection error');
     }
   }, []);
+
 
   // Reset channels and connections manually
   const resetConnection = useCallback(() => {
@@ -209,13 +264,25 @@ const ConnectionStatus = () => {
       }}
     >
       {/* Reset button shown when connection attempts are high or connection is stuck */}
-      {(connectionAttempts > maxReconnectAttempts / 2 || statusMessage === 'Connection failed. Please refresh the page.' || statusMessage === 'Reset failed') && (
+      {(connectionAttempts > 0 || statusMessage === 'Connection failed. Please refresh the page.' || statusMessage === 'Reset failed' || !isConnected) && (
         <Tooltip title="Reset real-time connection" arrow placement="bottom">
           <IconButton 
             size="small" 
             onClick={resetConnection} 
             disabled={isResetting}
-            sx={{ mr: 1, opacity: isResetting ? 0.5 : 1 }}
+            color={!isConnected ? "error" : "default"}
+            sx={{ 
+              mr: 1, 
+              opacity: isResetting ? 0.5 : 1,
+              border: !isConnected ? '1px solid' : 'none',
+              borderColor: 'error.main',
+              animation: !isConnected ? 'pulse 1.5s infinite' : 'none',
+              '@keyframes pulse': {
+                '0%': { opacity: 1 },
+                '50%': { opacity: 0.6 },
+                '100%': { opacity: 1 }
+              }
+            }}
             aria-label="Reset connection"
           >
             <RefreshIcon 
@@ -232,7 +299,7 @@ const ConnectionStatus = () => {
         </Tooltip>
       )}
       
-      <Tooltip title={`Connection attempts: ${connectionAttempts}/${maxReconnectAttempts}`} arrow placement="bottom-end">
+      <Tooltip title={`Status: ${isConnected ? 'Connected' : 'Disconnected'} • Attempts: ${connectionAttempts}/${maxReconnectAttempts}`} arrow placement="bottom-end">
         <Box
           sx={{
             display: 'flex',

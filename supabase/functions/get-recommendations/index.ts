@@ -15,10 +15,12 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 // Constants for recommendation configuration
-const CONTENT_BASED_WEIGHT = 0.6 // Weight for content-based filtering
-const COLLABORATIVE_WEIGHT = 0.4 // Weight for collaborative filtering
+const CONTENT_BASED_WEIGHT = 0.5 // Weight for content-based filtering (adjusted from 0.6)
+const COLLABORATIVE_WEIGHT = 0.3 // Weight for collaborative filtering (adjusted from 0.4)
+const ACTIVITY_WEIGHT = 0.2 // New weight for activity-based scoring
 const SIMILARITY_THRESHOLD = 0.3 // Minimum similarity threshold
 const MAX_RECOMMENDATIONS = 20 // Maximum number of recommendations to return
+const RRF_CONSTANT = 60 // Constant for Reciprocal Rank Fusion (RRF)
 
 // Get user preference vector
 const getUserPreference = async (supabase: any, userId: string) => {
@@ -74,14 +76,19 @@ const getUserExistingMatches = async (supabase: any, userId: string) => {
 }
 
 // Get content-based recommendations using vector similarity
-const getContentBasedRecommendations = async (supabase: any, userId: string, userPreference: any, excludeMatchIds: string[]) => {
+const getContentBasedRecommendations = async (supabase: any, userId: string, userPreference: any, excludeMatchIds: string[], useHnsw = true) => {
   if (!userPreference) {
     return []
   }
   
-  // Call the match_similar_vector function
+  // Use appropriate function based on indexing strategy
+  const functionName = useHnsw ? 'match_similar_vector_hnsw' : 'match_similar_vector'
+  
+  console.log(`Using ${functionName} for content-based recommendations`)
+  
+  // Call the match similarity function
   const { data, error } = await supabase.rpc(
-    'match_similar_vector',
+    functionName,
     {
       query_embedding: userPreference,
       match_threshold: SIMILARITY_THRESHOLD,
@@ -223,45 +230,107 @@ const getCollaborativeRecommendations = async (supabase: any, userId: string, ex
     })
 }
 
-// Merge and rank recommendations
-const mergeAndRankRecommendations = (contentBased: any[], collaborative: any[]) => {
-  // Create a map to combine duplicate recommendations
-  const recommendationMap = new Map()
-  
-  // Process content-based recommendations
-  contentBased.forEach(rec => {
-    recommendationMap.set(rec.id, {
-      ...rec,
-      contentScore: rec.similarity,
-      collaborativeScore: 0,
-      finalScore: rec.similarity * CONTENT_BASED_WEIGHT
-    })
-  })
-  
-  // Process collaborative recommendations
-  collaborative.forEach(rec => {
-    if (recommendationMap.has(rec.id)) {
-      // Combine with existing content-based recommendation
-      const existing = recommendationMap.get(rec.id)
-      existing.collaborativeScore = rec.similarity
-      existing.finalScore = (existing.contentScore * CONTENT_BASED_WEIGHT) + 
-                            (rec.similarity * COLLABORATIVE_WEIGHT)
-      
-      // Combine explanations
-      existing.explanation = `${existing.explanation} and ${rec.explanation.toLowerCase()}`
-    } else {
-      // Add new collaborative recommendation
-      recommendationMap.set(rec.id, {
-        ...rec,
-        contentScore: 0,
-        collaborativeScore: rec.similarity,
-        finalScore: rec.similarity * COLLABORATIVE_WEIGHT
-      })
+// Get activity-based recommendations using user's past interactions
+const getActivityBasedRecommendations = async (supabase: any, userId: string, excludeMatchIds: string[]) => {
+  // Query to get user activity patterns
+  const userActivityQuery = `
+    SELECT 
+      ui.match_id,
+      COUNT(*) as interaction_count,
+      MAX(ui.timestamp) as last_interaction,
+      m.title,
+      m.sport_id,
+      m.host_id,
+      m.start_time,
+      m.skill_level,
+      m.status,
+      m.location_id,
+      s.name as sport_name,
+      l.name as location_name,
+      l.address as location_address
+    FROM user_interactions ui
+    JOIN matches m ON ui.match_id = m.id 
+    JOIN sports s ON m.sport_id = s.id
+    JOIN locations l ON m.location_id = l.id
+    WHERE ui.user_id = $1
+    AND m.status = 'active'
+    GROUP BY ui.match_id, m.title, m.sport_id, m.host_id, m.start_time, 
+             m.skill_level, m.status, m.location_id, s.name, l.name, l.address
+    ORDER BY interaction_count DESC, last_interaction DESC
+    LIMIT 20
+  `
+
+  try {
+    // Execute the raw query
+    const { data: activityData, error: activityError } = await supabase
+      .rpc('query_raw', { query: userActivityQuery, params: [userId] })
+
+    if (activityError) {
+      throw new Error(`Error fetching user activity data: ${activityError.message}`)
     }
-  })
+
+    // Process the results
+    return (activityData || [])
+      .filter(match => !excludeMatchIds.includes(match.match_id))
+      .map(match => ({
+        id: match.match_id,
+        title: match.title,
+        sport_id: match.sport_id,
+        host_id: match.host_id,
+        start_time: match.start_time,
+        sports: { name: match.sport_name },
+        location_id: match.location_id,
+        locations: { name: match.location_name, address: match.location_address },
+        skill_level: match.skill_level,
+        status: match.status,
+        similarity: Math.min(match.interaction_count / 10, 1), // Normalized score
+        recommendation_type: 'activity',
+        explanation: 'Based on your recent activity patterns'
+      }))
+  } catch (error) {
+    console.error(`Error in activity-based recommendations: ${error.message}`)
+    return [] // Return empty array on error
+  }
+}
+
+// Reciprocal Rank Fusion algorithm for combining multiple ranked lists
+function reciprocalRankFusion(recommendations: Map<string, any>) {
+  const itemScores = new Map<string, number>()
+  const itemData = new Map<string, any>()
   
-  // Convert to array and sort by final score
-  return Array.from(recommendationMap.values())
+  // Process each recommendation type (content, collaborative, activity)
+  for (const [type, recs] of recommendations.entries()) {
+    const weight = type === 'content-based' ? CONTENT_BASED_WEIGHT :
+                  type === 'collaborative' ? COLLABORATIVE_WEIGHT :
+                  ACTIVITY_WEIGHT
+    
+    // Calculate RRF scores for each item
+    recs.forEach((rec: any, index: number) => {
+      const id = rec.id
+      const rrf = weight * (1.0 / (index + RRF_CONSTANT))
+      itemScores.set(id, (itemScores.get(id) || 0) + rrf)
+      
+      // Store item data for later
+      if (!itemData.has(id)) {
+        itemData.set(id, {...rec, explanations: []})
+      }
+      
+      // Add explanation
+      itemData.get(id).explanations.push(rec.explanation)
+    })
+  }
+  
+  // Convert to array and add final scores
+  return Array.from(itemScores.entries())
+    .map(([id, score]) => {
+      const data = itemData.get(id)
+      return {
+        ...data,
+        finalScore: score,
+        // Join unique explanations
+        explanation: [...new Set(data.explanations)].join(' and ')
+      }
+    })
     .sort((a, b) => b.finalScore - a.finalScore)
     .slice(0, MAX_RECOMMENDATIONS)
 }
@@ -281,13 +350,16 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     console.log('Supabase client created with URL:', supabaseUrl)
     
-    // Get user ID from request
-    let userId, limit = 10
+    // Get user ID and options from request
+    let userId, limit = 10, useHnsw = true, useHybridSearch = true, useActivityContext = true
     try {
       const body = await req.json()
       console.log('Request body received:', JSON.stringify(body))
       userId = body?.userId
       limit = body?.limit || 10
+      useHnsw = body?.useHnsw !== undefined ? body.useHnsw : true
+      useHybridSearch = body?.useHybridSearch !== undefined ? body.useHybridSearch : true
+      useActivityContext = body?.useActivityContext !== undefined ? body.useActivityContext : true
     } catch (parseError) {
       console.log('Error parsing request body:', parseError)
       return new Response(
@@ -296,7 +368,8 @@ Deno.serve(async (req) => {
       )
     }
     
-    console.log('Processing request for userId:', userId, 'with limit:', limit)
+    console.log('Processing request for userId:', userId, 'with limit:', limit, 
+                'useHnsw:', useHnsw, 'useHybridSearch:', useHybridSearch, 'useActivityContext:', useActivityContext)
     
     if (!userId) {
       return new Response(
@@ -331,13 +404,22 @@ Deno.serve(async (req) => {
     // Get matches the user is already part of (to exclude from recommendations)
     const excludeMatchIds = await getUserExistingMatches(supabase, userId)
     
+    // Start timing
+    const startTime = performance.now()
+    
+    // Create a map to store recommendation lists by type
+    const recommendationsMap = new Map<string, any[]>()
+    
     // Get content-based recommendations
     const contentBasedRecommendations = await getContentBasedRecommendations(
       supabase,
       userId,
       userPreference,
-      excludeMatchIds
+      excludeMatchIds,
+      useHnsw // Use HNSW indexing if enabled
     )
+    
+    recommendationsMap.set('content-based', contentBasedRecommendations)
     
     // Get collaborative filtering recommendations
     const collaborativeRecommendations = await getCollaborativeRecommendations(
@@ -346,11 +428,37 @@ Deno.serve(async (req) => {
       excludeMatchIds
     )
     
-    // Merge and rank recommendations
-    const finalRecommendations = mergeAndRankRecommendations(
-      contentBasedRecommendations,
-      collaborativeRecommendations
-    ).slice(0, limit)
+    recommendationsMap.set('collaborative', collaborativeRecommendations)
+    
+    // Get activity-based recommendations if enabled
+    if (useActivityContext) {
+      const activityRecommendations = await getActivityBasedRecommendations(
+        supabase,
+        userId,
+        excludeMatchIds
+      )
+      
+      recommendationsMap.set('activity', activityRecommendations)
+    }
+    
+    // Generate final recommendations
+    let finalRecommendations = []
+    
+    if (useHybridSearch) {
+      // Use Reciprocal Rank Fusion for sophisticated merging
+      finalRecommendations = reciprocalRankFusion(recommendationsMap).slice(0, limit)
+    } else {
+      // Use the old simple merging method
+      const oldMerged = mergeAndRankRecommendations(
+        contentBasedRecommendations,
+        collaborativeRecommendations
+      ).slice(0, limit)
+      
+      finalRecommendations = oldMerged
+    }
+    
+    // End timing
+    const endTime = performance.now()
     
     // For new users without preference vectors, provide generic sport-based recommendations
     if (finalRecommendations.length === 0) {
@@ -404,7 +512,13 @@ Deno.serve(async (req) => {
         JSON.stringify({
           recommendations: genericRecommendations,
           type: 'generic',
-          message: 'Generic recommendations provided based on sport preferences'
+          message: 'Generic recommendations provided based on sport preferences',
+          metrics: {
+            executionTimeMs: endTime - startTime,
+            useHnsw,
+            useHybridSearch,
+            useActivityContext
+          }
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
@@ -418,7 +532,7 @@ Deno.serve(async (req) => {
           user_id: userId,
           match_id: rec.id,
           action: 'shown',
-          recommendation_type: rec.recommendation_type,
+          recommendation_type: rec.recommendation_type || 'hybrid',
           score: rec.finalScore,
           explanation: rec.explanation
         })
@@ -437,7 +551,14 @@ Deno.serve(async (req) => {
         recommendations: finalRecommendations,
         type: 'hybrid',
         contentBasedCount: contentBasedRecommendations.length,
-        collaborativeCount: collaborativeRecommendations.length
+        collaborativeCount: collaborativeRecommendations.length,
+        activityCount: recommendationsMap.get('activity')?.length || 0,
+        metrics: {
+          executionTimeMs: endTime - startTime,
+          useHnsw,
+          useHybridSearch,
+          useActivityContext
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
@@ -454,3 +575,46 @@ Deno.serve(async (req) => {
     )
   }
 })
+
+// Legacy function for backward compatibility
+const mergeAndRankRecommendations = (contentBased: any[], collaborative: any[]) => {
+  // Create a map to combine duplicate recommendations
+  const recommendationMap = new Map()
+  
+  // Process content-based recommendations
+  contentBased.forEach(rec => {
+    recommendationMap.set(rec.id, {
+      ...rec,
+      contentScore: rec.similarity,
+      collaborativeScore: 0,
+      finalScore: rec.similarity * CONTENT_BASED_WEIGHT
+    })
+  })
+  
+  // Process collaborative recommendations
+  collaborative.forEach(rec => {
+    if (recommendationMap.has(rec.id)) {
+      // Combine with existing content-based recommendation
+      const existing = recommendationMap.get(rec.id)
+      existing.collaborativeScore = rec.similarity
+      existing.finalScore = (existing.contentScore * CONTENT_BASED_WEIGHT) + 
+                            (rec.similarity * COLLABORATIVE_WEIGHT)
+      
+      // Combine explanations
+      existing.explanation = `${existing.explanation} and ${rec.explanation.toLowerCase()}`
+    } else {
+      // Add new collaborative recommendation
+      recommendationMap.set(rec.id, {
+        ...rec,
+        contentScore: 0,
+        collaborativeScore: rec.similarity,
+        finalScore: rec.similarity * COLLABORATIVE_WEIGHT
+      })
+    }
+  })
+  
+  // Convert to array and sort by final score
+  return Array.from(recommendationMap.values())
+    .sort((a, b) => b.finalScore - a.finalScore)
+    .slice(0, MAX_RECOMMENDATIONS)
+}

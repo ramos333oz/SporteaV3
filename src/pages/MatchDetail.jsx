@@ -18,7 +18,13 @@ import {
   ListItemText,
   Tooltip,
   Card,
-  CardContent
+  CardContent,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from '@mui/material';
 import {
   CalendarMonth as CalendarIcon,
@@ -33,7 +39,10 @@ import {
   CheckCircle as CheckCircleIcon,
   HourglassEmpty as PendingIcon,
   ExitToApp as LeftIcon,
-  Email as InviteIcon
+  Email as InviteIcon,
+  DeleteOutline as DeleteIcon,
+  ThumbUp as ThumbUpIcon,
+  ThumbDown as ThumbDownIcon
 } from '@mui/icons-material';
 import { format, formatDistance, formatDistanceToNow, isPast, isFuture, isAfter, differenceInMinutes, differenceInSeconds, intervalToDuration } from 'date-fns';
 
@@ -41,6 +50,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useRealtime } from '../hooks/useRealtime';
 import { useToast } from '../contexts/ToastContext';
 import { matchService, participantService } from '../services/supabase';
+import { notificationService } from '../services/notifications';
 
 // Match Status Indicator component
 const MatchStatusIndicator = ({ match }) => {
@@ -254,6 +264,9 @@ const MatchDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userParticipation, setUserParticipation] = useState(null);
+  const [openJoinDialog, setOpenJoinDialog] = useState(false);
+  const [openLeaveDialog, setOpenLeaveDialog] = useState(false);
+  const [buttonLoading, setButtonLoading] = useState(false);
   
   // Calculate active participants count (excluding those who left)
   const activeParticipantsCount = participants.filter(p => p.status !== 'left').length;
@@ -281,25 +294,73 @@ const MatchDetail = () => {
     return `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`;
   };
   
-  // Join match handler
+  // Modify the handleJoinMatch to open the dialog first
+  const handleJoinMatchClick = () => {
+    setOpenJoinDialog(true);
+  };
+
+  // Actual join match handler (called from dialog confirmation)
   const handleJoinMatch = async () => {
     try {
-      await matchService.joinMatch(matchId, user.id);
-      // Update will come through real-time subscription
+      setOpenJoinDialog(false);
+      setButtonLoading(true);
+      
+      const result = await participantService.joinMatch(matchId, user.id);
+      
+      // Update local state immediately to reflect the change
+      if (result && result.success) {
+        setUserParticipation({
+          user_id: user.id,
+          match_id: matchId,
+          status: 'pending' // Always set to pending for new joins
+        });
+        showSuccessToast('Request Sent', 'Successfully sent request to join match. Waiting for host approval.');
+      } else if (result && result.alreadyJoined) {
+        showInfoToast('Already Joined', result.message);
+      }
+      // Real-time update will eventually come through subscription as well
     } catch (error) {
       setError('Failed to join the match. Please try again.');
       console.error('Error joining match:', error);
+      showErrorToast('Error', error.message || 'Failed to join match');
+    } finally {
+      setButtonLoading(false);
     }
   };
   
   // Leave match handler
   const handleLeaveMatch = async () => {
     try {
-      await matchService.leaveMatch(matchId, user.id);
-      // Update will come through real-time subscription
+      // Show confirmation dialog using Dialog component instead of window.confirm
+      setOpenLeaveDialog(true);
+    } catch (error) {
+      setError('Failed to process your request. Please try again.');
+      console.error('Error in leave match handler:', error);
+      showErrorToast('Error', error.message || 'Failed to process your request');
+    }
+  };
+  
+  // Actual leave match implementation after confirmation
+  const processLeaveMatch = async () => {
+    try {
+      setButtonLoading(true);
+      const result = await participantService.leaveMatch(matchId, user.id);
+      
+      // Update local state immediately to reflect the change
+      if (result && result.success) {
+        setUserParticipation(null); // Clear user participation
+        showSuccessToast('Success', result.message || 'You have successfully left the match');
+        // Force refetch participants to update UI correctly
+        fetchParticipants();
+      }
+      setOpenLeaveDialog(false);
+      setButtonLoading(false);
     } catch (error) {
       setError('Failed to leave the match. Please try again.');
       console.error('Error leaving match:', error);
+      showErrorToast('Error', error.message || 'Failed to leave the match');
+      setButtonLoading(false);
+      setOpenLeaveDialog(false);
     }
   };
   
@@ -308,15 +369,71 @@ const MatchDetail = () => {
     navigate(`/edit-match/${matchId}`);
   };
   
-  // Cancel match handler
+  // Handle cancel match
   const handleCancelMatch = async () => {
-    if (window.confirm('Are you sure you want to cancel this match? This action cannot be undone.')) {
+    try {
+      if (!window.confirm('Are you sure you want to cancel this match?')) {
+        return;
+      }
+      
+      const result = await matchService.cancelMatch(matchId);
+      
+      // After cancellation, send notifications to all participants
       try {
-        await matchService.cancelMatch(matchId);
-        // Update will come through real-time subscription
+        // Get all participants who need to be notified (confirmed and pending)
+        const participantsToNotify = participants.filter(p => 
+          (p.status === 'confirmed' || p.status === 'pending') && 
+          p.user_id !== user?.id // Don't notify the host
+        );
+        
+        // Create notifications for each participant
+        for (const participant of participantsToNotify) {
+          await notificationService.createNotification({
+            user_id: participant.user_id,
+            type: 'match_cancelled',
+            data: {
+              match_id: matchId,
+              match_title: match.title,
+              sender_id: user.id,
+              sender_name: user.full_name || user.username || 'Match host'
+            },
+            read: false
+          });
+        }
+      } catch (notifError) {
+        console.error('Error sending cancellation notifications:', notifError);
+        // Continue execution - this is non-blocking
+      }
+      
+      showSuccessToast('Match Cancelled', 'The match has been cancelled successfully');
+      // Refresh match data to show cancelled status
+      fetchMatch();
+    } catch (error) {
+      console.error('Error cancelling match:', error);
+      showErrorToast('Error', 'Failed to cancel the match');
+    }
+  };
+  
+  // Delete match handler
+  const handleDeleteMatch = async () => {
+    // Check if the match is cancelled or completed first
+    if (match.status !== 'cancelled' && match.status !== 'completed') {
+      if (window.confirm('This match needs to be cancelled before it can be deleted. Would you like to go to the Host page to cancel it first?')) {
+        navigate('/host');
+      }
+      return;
+    }
+    
+    // If match is already cancelled or completed, proceed with deletion
+    if (window.confirm('Are you sure you want to delete this match? This action cannot be undone and all match data will be permanently deleted.')) {
+      try {
+        await matchService.deleteMatch(matchId);
+        showSuccessToast('Match Deleted', 'Match has been permanently deleted');
+        navigate('/host'); // Redirect to host page after deletion
       } catch (error) {
-        setError('Failed to cancel the match. Please try again.');
-        console.error('Error canceling match:', error);
+        setError('Failed to delete the match. Please try again.');
+        console.error('Error deleting match:', error);
+        showErrorToast('Delete Failed', 'Failed to delete the match');
       }
     }
   };
@@ -338,29 +455,6 @@ const MatchDetail = () => {
     }
   };
   
-  // Real-time update handler for participants
-  const handleParticipantsUpdate = useCallback((payload) => {
-    // Fetch all participants again to get the latest state
-    fetchParticipants();
-    
-    // Check if update involves current user
-    if (payload.new?.user_id === user?.id) {
-      setUserParticipation(payload.new);
-    }
-  }, [user, fetchParticipants]);
-  
-  // Real-time update handler for match
-  const handleMatchUpdate = useCallback((payload) => {
-    setMatch(payload.data);
-    
-    // Show appropriate toast based on update type
-    if (payload.data.status === 'cancelled') {
-      showWarningToast('Match Cancelled', 'This match has been cancelled by the host.');
-    } else if (payload.eventType === 'UPDATE') {
-      showInfoToast('Match Updated', 'Match details have been updated.');
-    }
-  }, [showInfoToast, showWarningToast]);
-  
   // Fetch match data
   const fetchMatch = async () => {
     try {
@@ -381,6 +475,8 @@ const MatchDetail = () => {
     try {
       const data = await participantService.getParticipants(matchId);
       
+      console.log('Fetched participants data:', data);
+      
       // Sort participants: host first, then confirmed, then pending
       const sortedParticipants = data.sort((a, b) => {
         // Host always comes first
@@ -388,7 +484,7 @@ const MatchDetail = () => {
         if (b.user_id === match?.host_id) return 1;
         
         // Then sort by status (confirmed > pending > left)
-        const statusOrder = { 'confirmed': 0, 'pending': 1, 'left': 2 };
+        const statusOrder = { 'confirmed': 0, 'pending': 1, 'left': 2, 'declined': 3 };
         return (statusOrder[a.status] || 3) - (statusOrder[b.status] || 3);
       });
       
@@ -404,6 +500,29 @@ const MatchDetail = () => {
       setLoading(false);
     }
   };
+  
+  // Real-time update handler for participants
+  const handleParticipantsUpdate = useCallback((payload) => {
+    // Fetch all participants again to get the latest state
+    fetchParticipants();
+    
+    // Check if update involves current user
+    if (payload.new?.user_id === user?.id) {
+      setUserParticipation(payload.new);
+    }
+  }, [user]);
+  
+  // Real-time update handler for match
+  const handleMatchUpdate = useCallback((payload) => {
+    setMatch(payload.data);
+    
+    // Show appropriate toast based on update type
+    if (payload.data.status === 'cancelled') {
+      showWarningToast('Match Cancelled', 'This match has been cancelled by the host.');
+    } else if (payload.eventType === 'UPDATE') {
+      showInfoToast('Match Updated', 'Match details have been updated.');
+    }
+  }, [showInfoToast, showWarningToast]);
   
   // Fetch data on mount
   useEffect(() => {
@@ -431,7 +550,33 @@ const MatchDetail = () => {
         // Cleanup is handled by the useRealtime hook internally
       };
     }
-  }, [matchId, subscribeToMatch]);
+  }, [matchId, subscribeToMatch, handleMatchUpdate, handleParticipantsUpdate]);
+  
+  // Handle accepting a join request
+  const handleAcceptRequest = async (participantId, userId) => {
+    try {
+      await participantService.acceptJoinRequest(matchId, userId);
+      showSuccessToast('Request Accepted', 'The participant has been accepted to join the match');
+      // Fetch participants again to update the UI
+      fetchParticipants();
+    } catch (error) {
+      console.error('Error accepting request:', error);
+      showErrorToast('Error', 'Failed to accept join request');
+    }
+  };
+
+  // Handle declining a join request
+  const handleDeclineRequest = async (participantId, userId) => {
+    try {
+      await participantService.declineJoinRequest(matchId, userId);
+      showSuccessToast('Request Declined', 'The join request has been declined');
+      // Fetch participants again to update the UI
+      fetchParticipants();
+    } catch (error) {
+      console.error('Error declining request:', error);
+      showErrorToast('Error', 'Failed to decline join request');
+    }
+  };
   
   if (loading) {
     return (
@@ -483,6 +628,15 @@ const MatchDetail = () => {
       return <Chip label="Open" color="success" />;
     }
   };
+  
+  // Filter participants by status
+  const currentParticipants = participants.filter(p => 
+    p.status === 'confirmed' || (p.user_id === match?.host_id)
+  );
+
+  const pendingParticipants = participants.filter(p => 
+    p.status === 'pending' && p.user_id !== match?.host_id
+  );
   
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
@@ -555,111 +709,158 @@ const MatchDetail = () => {
                 />
               </Box>
               
-              <List sx={{ bgcolor: 'background.paper', borderRadius: 1 }}>
-                {participants.length === 0 ? (
-                  <ListItem>
-                    <ListItemText primary="No participants yet" secondary="Be the first to join!" />
-                  </ListItem>
-                ) : (
-                  participants.map((participant) => {
-                    // Determine status colors and icons
-                    let statusColor, statusIcon, statusText;
-                    
-                    if (participant.user_id === match.host_id) {
-                      statusColor = 'primary';
-                      statusIcon = <PersonIcon />;
-                      statusText = 'Host';
-                    } else {
-                      switch (participant.status) {
-                        case 'confirmed':
-                          statusColor = 'success';
-                          statusIcon = <CheckCircleIcon />;
-                          statusText = 'Confirmed';
-                          break;
-                        case 'pending':
-                          statusColor = 'warning';
-                          statusIcon = <PendingIcon />;
-                          statusText = 'Pending';
-                          break;
-                        case 'left':
-                          statusColor = 'error';
-                          statusIcon = <LeftIcon />;
-                          statusText = 'Left';
-                          break;
-                        default:
-                          statusColor = 'default';
-                          statusIcon = <PendingIcon />;
-                          statusText = 'Unknown';
-                      }
-                    }
-                    
-                    return (
-                      <ListItem 
-                        key={participant.id}
-                        sx={{
-                          borderBottom: '1px solid',
-                          borderColor: 'divider',
-                          '&:last-child': { borderBottom: 'none' },
-                          '&:hover': { bgcolor: 'action.hover' },
-                          transition: 'background-color 0.2s'
-                        }}
-                        secondaryAction={
-                          <Chip 
-                            size="small"
-                            label={statusText}
-                            color={statusColor}
-                            icon={statusIcon}
-                          />
-                        }
-                      >
-                        <ListItemAvatar>
-                          <Tooltip title={participant.user?.email || 'Unknown email'}>
+              {/* Show pending requests to host */}
+              {isHost && pendingParticipants.length > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="h4" color="warning.main" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <PendingIcon sx={{ mr: 1 }} /> Pending Requests
+                  </Typography>
+                  <Paper elevation={1}>
+                    <List sx={{ bgcolor: 'background.paper', borderRadius: 1 }}>
+                      {pendingParticipants.map((participant) => (
+                        <ListItem 
+                          key={`pending-${participant.id}`}
+                          sx={{
+                            borderBottom: '1px solid',
+                            borderColor: 'divider',
+                            '&:last-child': { borderBottom: 'none' },
+                            '&:hover': { bgcolor: 'action.hover' },
+                            transition: 'background-color 0.2s'
+                          }}
+                          secondaryAction={
+                            <Box>
+                              <IconButton 
+                                edge="end" 
+                                aria-label="accept" 
+                                onClick={() => handleAcceptRequest(participant.id, participant.user_id)}
+                                color="success"
+                                title="Accept Request"
+                                sx={{ mr: 1 }}
+                              >
+                                <ThumbUpIcon />
+                              </IconButton>
+                              <IconButton 
+                                edge="end" 
+                                aria-label="decline" 
+                                onClick={() => handleDeclineRequest(participant.id, participant.user_id)}
+                                color="error"
+                                title="Decline Request"
+                              >
+                                <ThumbDownIcon />
+                              </IconButton>
+                            </Box>
+                          }
+                        >
+                          <ListItemAvatar>
                             <Avatar 
                               src={participant.user?.avatar_url}
                               sx={{
-                                bgcolor: statusColor + '.main',
-                                border: participant.user_id === user?.id ? '2px solid' : 'none',
-                                borderColor: 'primary.main'
+                                bgcolor: 'warning.main',
                               }}
                             >
-                              {participant.user?.full_name?.charAt(0) || 'U'}
+                              {participant.user?.full_name?.charAt(0) || participant.user?.username?.charAt(0) || 'U'}
                             </Avatar>
-                          </Tooltip>
-                        </ListItemAvatar>
-                        <ListItemText 
-                          primary={
-                            <Typography variant="body1" fontWeight={participant.user_id === user?.id ? 'bold' : 'normal'}>
-                              {participant.user?.full_name || 'Unknown'}
-                              {participant.user_id === user?.id && ' (You)'}
-                            </Typography>
-                          }
-                          secondary={
-                            <Typography variant="body2" color="text.secondary">
-                              {participant.user?.username || participant.user?.email?.split('@')[0] || 'Unknown'}
-                              {participant.joined_at && ` • Joined ${format(new Date(participant.joined_at), 'MMM d, yyyy')}`}
-                            </Typography>
-                          }
-                        />
-                      </ListItem>
-                    );
-                  })
-                )}
-              </List>
-              
-              {match.participants_count < match.max_participants && match.status === 'scheduled' && (
-                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                  <Tooltip title="Share with friends">
-                    <Button 
-                      startIcon={<InviteIcon />}
-                      onClick={handleShareMatch}
-                      variant="outlined"
-                      size="small"
-                    >
-                      Invite Friends
-                    </Button>
-                  </Tooltip>
+                          </ListItemAvatar>
+                          <ListItemText 
+                            primary={
+                              <Typography variant="body1">
+                                {participant.user?.full_name || participant.user?.username || 'Unknown'}
+                              </Typography>
+                            }
+                            secondary={
+                              <Typography variant="body2" color="text.secondary">
+                                {participant.user?.username || participant.user?.email?.split('@')[0] || 'Unknown'}
+                                {participant.joined_at && ` • Requested ${format(new Date(participant.joined_at), 'MMM d, yyyy')}`}
+                              </Typography>
+                            }
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Paper>
                 </Box>
               )}
+              
+              {/* Current participants */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h4" color="success.main" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <CheckCircleIcon sx={{ mr: 1 }} /> Current Participants
+                </Typography>
+                <Paper elevation={1}>
+                  <List sx={{ bgcolor: 'background.paper', borderRadius: 1 }}>
+                    {currentParticipants.length === 0 ? (
+                      <ListItem>
+                        <ListItemText primary="No confirmed participants yet" />
+                      </ListItem>
+                    ) : (
+                      currentParticipants.map((participant) => {
+                        // Determine status colors and icons
+                        let statusColor, statusIcon, statusText;
+                        
+                        if (participant.user_id === match.host_id) {
+                          statusColor = 'primary';
+                          statusIcon = <PersonIcon />;
+                          statusText = 'Host';
+                        } else {
+                          statusColor = 'success';
+                          statusIcon = <CheckCircleIcon />;
+                          statusText = 'Confirmed';
+                        }
+                        
+                        return (
+                          <ListItem 
+                            key={`current-${participant.id}`}
+                            sx={{
+                              borderBottom: '1px solid',
+                              borderColor: 'divider',
+                              '&:last-child': { borderBottom: 'none' },
+                              '&:hover': { bgcolor: 'action.hover' },
+                              transition: 'background-color 0.2s'
+                            }}
+                            secondaryAction={
+                              <Chip 
+                                size="small"
+                                label={statusText}
+                                color={statusColor}
+                                icon={statusIcon}
+                              />
+                            }
+                          >
+                            <ListItemAvatar>
+                              <Tooltip title={participant.user?.email || 'Unknown email'}>
+                                <Avatar 
+                                  src={participant.user?.avatar_url}
+                                  sx={{
+                                    bgcolor: statusColor + '.main',
+                                    border: participant.user_id === user?.id ? '2px solid' : 'none',
+                                    borderColor: 'primary.main'
+                                  }}
+                                >
+                                  {participant.user?.full_name?.charAt(0) || participant.user?.username?.charAt(0) || 'U'}
+                                </Avatar>
+                              </Tooltip>
+                            </ListItemAvatar>
+                            <ListItemText 
+                              primary={
+                                <Typography variant="body1" fontWeight={participant.user_id === user?.id ? 'bold' : 'normal'}>
+                                  {participant.user?.full_name || participant.user?.username || 'Unknown'}
+                                  {participant.user_id === user?.id && ' (You)'}
+                                </Typography>
+                              }
+                              secondary={
+                                <Typography variant="body2" color="text.secondary">
+                                  {participant.user?.full_name || participant.user?.username || (participant.user?.email ? `${participant.user.email.split('@')[0]}` : 'Unknown')}
+                                  {participant.joined_at && ` • Joined ${format(new Date(participant.joined_at), 'MMM d, yyyy')}`}
+                                </Typography>
+                              }
+                            />
+                          </ListItem>
+                        );
+                      })
+                    )}
+                  </List>
+                </Paper>
+              </Box>
             </Box>
           </Grid>
           
@@ -667,58 +868,85 @@ const MatchDetail = () => {
             <Paper sx={{ p: 2, mb: 2 }}>
               <Typography variant="h3" gutterBottom>Actions</Typography>
               
-              {match.status !== 'cancelled' && match.status !== 'completed' && (
-                <Stack spacing={2}>
-                  {isHost ? (
-                    <>
+              <Stack spacing={2}>
+                {match.status !== 'cancelled' && match.status !== 'completed' ? (
+                  <>
+                    {isHost ? (
+                      <>
+                        <Button 
+                          variant="contained" 
+                          startIcon={<EditIcon />}
+                          onClick={handleEditMatch}
+                          fullWidth
+                        >
+                          Edit Match
+                        </Button>
+                        <Button 
+                          variant="outlined" 
+                          color="error"
+                          startIcon={<CancelIcon />}
+                          onClick={handleCancelMatch}
+                          fullWidth
+                        >
+                          Cancel Match
+                        </Button>
+                      </>
+                    ) : userParticipation ? (
+                      userParticipation.status === 'pending' ? (
+                        <Button 
+                          variant="outlined" 
+                          color="warning"
+                          onClick={handleLeaveMatch}
+                          fullWidth
+                          disabled={buttonLoading}
+                        >
+                          {buttonLoading ? <CircularProgress size={24} /> : 'Cancel Request'}
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="outlined" 
+                          color="error"
+                          onClick={handleLeaveMatch}
+                          fullWidth
+                          disabled={buttonLoading}
+                        >
+                          {buttonLoading ? <CircularProgress size={24} /> : 'Leave Match'}
+                        </Button>
+                      )
+                    ) : (
                       <Button 
                         variant="contained" 
-                        startIcon={<EditIcon />}
-                        onClick={handleEditMatch}
+                        onClick={handleJoinMatchClick}
+                        disabled={isMatchFull || buttonLoading}
                         fullWidth
                       >
-                        Edit Match
+                        {buttonLoading ? <CircularProgress size={24} /> : isMatchFull ? 'Match is Full' : 'Request to Join'}
                       </Button>
-                      <Button 
-                        variant="outlined" 
-                        color="error"
-                        startIcon={<CancelIcon />}
-                        onClick={handleCancelMatch}
-                        fullWidth
-                      >
-                        Cancel Match
-                      </Button>
-                    </>
-                  ) : userParticipation ? (
+                    )}
+                  </>
+                ) : (
+                  isHost && (
                     <Button 
                       variant="outlined" 
                       color="error"
-                      onClick={handleLeaveMatch}
+                      startIcon={<DeleteIcon />}
+                      onClick={handleDeleteMatch}
                       fullWidth
                     >
-                      Leave Match
+                      Delete Match
                     </Button>
-                  ) : (
-                    <Button 
-                      variant="contained" 
-                      onClick={handleJoinMatch}
-                      disabled={isMatchFull}
-                      fullWidth
-                    >
-                      {isMatchFull ? 'Match is Full' : 'Join Match'}
-                    </Button>
-                  )}
-                  
-                  <Button 
-                    variant="outlined"
-                    startIcon={<ShareIcon />}
-                    onClick={handleShareMatch}
-                    fullWidth
-                  >
-                    Share Match
-                  </Button>
-                </Stack>
-              )}
+                  )
+                )}
+                
+                <Button 
+                  variant="outlined"
+                  startIcon={<ShareIcon />}
+                  onClick={handleShareMatch}
+                  fullWidth
+                >
+                  Share Match
+                </Button>
+              </Stack>
               
               {match.status === 'cancelled' && (
                 <Alert severity="warning" sx={{ mb: 2 }}>
@@ -740,10 +968,103 @@ const MatchDetail = () => {
               >
                 Back to Home
               </Button>
+              
+              {/* Add button to navigate to Host page for match management when user is the host */}
+              {isHost && (
+                <Button 
+                  variant="text" 
+                  onClick={() => navigate('/host')} 
+                  sx={{ mt: 1 }}
+                  fullWidth
+                >
+                  Manage Your Matches
+                </Button>
+              )}
             </Paper>
           </Grid>
         </Grid>
       </Paper>
+      
+      {/* Add this new section to display match summary for completed matches */}
+      {match && match.status === 'completed' && (
+        <Paper sx={{ p: 3, mt: 3, borderRadius: 2 }}>
+          <Typography variant="h2" gutterBottom>
+            Match Summary
+          </Typography>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body1" fontWeight="bold">
+              Match Result
+            </Typography>
+            <Typography variant="body1">
+              This match was completed on {formatMatchDate(match.end_time)} at {formatMatchTime(match.end_time)}.
+            </Typography>
+          </Box>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body1" fontWeight="bold">
+              Participation
+            </Typography>
+            <Typography variant="body1">
+              {participants.filter(p => p.status === 'confirmed').length} participants joined this match.
+            </Typography>
+          </Box>
+          {isHost && (
+            <Box sx={{ mt: 3 }}>
+              <Button 
+                variant="outlined" 
+                color="error" 
+                startIcon={<DeleteIcon />}
+                onClick={handleDeleteMatch}
+              >
+                Delete Match
+              </Button>
+            </Box>
+          )}
+        </Paper>
+      )}
+      
+      {/* Join Match Confirmation Dialog */}
+      <Dialog
+        open={openJoinDialog}
+        onClose={() => setOpenJoinDialog(false)}
+        aria-labelledby="join-match-dialog-title"
+      >
+        <DialogTitle id="join-match-dialog-title">Request to Join Match</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to send a request to join "{match?.title}"? The host will need to approve your request.
+            {match?.is_private && " This is a private match and will require an access code."}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenJoinDialog(false)}>Cancel</Button>
+          <Button onClick={handleJoinMatch} color="primary" variant="contained" disabled={buttonLoading}>
+            {buttonLoading ? <CircularProgress size={24} /> : 'Send Request'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Leave Match Confirmation Dialog */}
+      <Dialog
+        open={openLeaveDialog}
+        onClose={() => setOpenLeaveDialog(false)}
+        aria-labelledby="leave-match-dialog-title"
+      >
+        <DialogTitle id="leave-match-dialog-title">Leave Match</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to leave "{match?.title}"? 
+            {userParticipation?.status === 'confirmed' 
+              ? " You will need to request to join again if you change your mind."
+              : " This will cancel your request to join."}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenLeaveDialog(false)}>Cancel</Button>
+          <Button onClick={processLeaveMatch} color="error" variant="contained" disabled={buttonLoading}>
+            {buttonLoading ? <CircularProgress size={24} /> : 'Leave Match'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

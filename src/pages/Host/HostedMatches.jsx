@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Box, 
   Typography, 
@@ -30,14 +31,19 @@ import PersonIcon from '@mui/icons-material/Person';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useAuth } from '../../hooks/useAuth';
 import { format } from 'date-fns';
+import { matchService } from '../../services/supabase';
+import { useToast } from '../../contexts/ToastContext';
 
 const HostedMatches = () => {
   const { user, supabase } = useAuth();
+  const navigate = useNavigate();
+  const { showSuccessToast, showErrorToast } = useToast();
   const [tabValue, setTabValue] = useState(0);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [selectedMatch, setSelectedMatch] = useState(null);
+  const open = Boolean(menuAnchorEl);
   
   // Mock data for hosted matches (will be replaced with real data from Supabase)
   // Helper function to get sport icon based on sport name
@@ -56,13 +62,16 @@ const HostedMatches = () => {
     return <SportsSoccerIcon />; // Default
   };
 
-  useEffect(() => {
-    // Fetch hosted matches from Supabase
-    const fetchHostedMatches = async () => {
-      setLoading(true);
-      try {
-        const matchStatus = tabValue === 0 ? 'upcoming' : tabValue === 1 ? 'completed' : 'cancelled';
-        const { data, error } = await supabase
+  // Define fetchHostedMatches outside of useEffect so it can be called from handlers
+  const fetchHostedMatches = async () => {
+    setLoading(true);
+    try {
+      const matchStatus = tabValue === 0 ? 'upcoming' : tabValue === 1 ? 'completed' : 'cancelled';
+      
+      // Handle automatic categorization of past matches
+      if (matchStatus === 'upcoming') {
+        // First, get all upcoming matches
+        const { data: upcomingMatches, error: upcomingError } = await supabase
           .from('matches')
           .select(`
             *,
@@ -71,38 +80,74 @@ const HostedMatches = () => {
             participants(count)
           `)
           .eq('host_id', user.id)
-          .eq('status', matchStatus)
-          .order('start_time', { ascending: matchStatus === 'upcoming' });
+          .eq('status', 'upcoming')
+          .order('start_time', { ascending: true });
         
-        if (error) {
-          throw error;
+        if (upcomingError) {
+          throw upcomingError;
         }
         
-        // Map Supabase data to component's expected format
-        const formattedMatches = data.map(match => ({
-          id: match.id,
-          title: match.title,
-          sport: match.sport?.name?.toLowerCase() || 'unknown',
-          sportIcon: getSportIcon(match.sport?.name),
-          location: match.location?.name || 'Unknown location',
-          dateTime: match.start_time,
-          currentParticipants: match.participants?.[0]?.count || 0,
-          maxParticipants: match.max_participants,
-          status: match.status,
-          participantRequests: 0, // This would need another query to get pending requests
-          participants: [] // This would need another query to get participant details
-        }));
+        // Check if any "upcoming" matches are actually in the past
+        const now = new Date();
+        const pastMatches = upcomingMatches.filter(match => new Date(match.start_time) < now);
         
-        setMatches(formattedMatches);
-      } catch (error) {
-        console.error('Error fetching hosted matches:', error);
-      } finally {
-        setLoading(false);
+        // If we found past matches that are still marked as "upcoming", update them to "completed"
+        if (pastMatches.length > 0) {
+          // Update status in database
+          for (const match of pastMatches) {
+            await supabase
+              .from('matches')
+              .update({ status: 'completed' })
+              .eq('id', match.id);
+          }
+        }
       }
-    };
-    
+      
+      // Now get the matches with the current tab status (which may have just been updated)
+      const { data, error } = await supabase
+        .from('matches')
+        .select(`
+          *,
+          sport:sports(*),
+          location:locations(*),
+          participants(count)
+        `)
+        .eq('host_id', user.id)
+        .eq('status', matchStatus)
+        .order('start_time', { ascending: matchStatus === 'upcoming' });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Map Supabase data to component's expected format
+      const formattedMatches = data.map(match => ({
+        id: match.id,
+        title: match.title,
+        sport: match.sport?.name?.toLowerCase() || 'unknown',
+        sportIcon: getSportIcon(match.sport?.name),
+        location: match.location?.name || 'Unknown location',
+        dateTime: match.start_time,
+        currentParticipants: match.participants?.[0]?.count || 0,
+        maxParticipants: match.max_participants,
+        status: match.status,
+        participantRequests: 0, // This would need another query to get pending requests
+        participants: [] // This would need another query to get participant details
+      }));
+      
+      setMatches(formattedMatches);
+    } catch (error) {
+      console.error('Error fetching hosted matches:', error);
+      showErrorToast('Error', 'Failed to load your matches');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch hosted matches when component mounts or tab changes
     fetchHostedMatches();
-  }, [tabValue, user.id, supabase]);
+  }, [tabValue, user.id]);
   
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -120,19 +165,92 @@ const HostedMatches = () => {
   const handleEditMatch = () => {
     console.log('Edit match:', selectedMatch);
     handleMenuClose();
-    // Logic to edit match will be implemented later
+    // Navigate to edit match page
+    navigate(`/edit-match/${selectedMatch.id}`);
   };
   
-  const handleCancelMatch = () => {
+  const handleCancelMatch = async () => {
     console.log('Cancel match:', selectedMatch);
     handleMenuClose();
-    // Logic to cancel match will be implemented later
+    
+    if (window.confirm('Are you sure you want to cancel this match? This action cannot be undone.')) {
+      try {
+        const result = await matchService.cancelMatch(selectedMatch.id);
+        
+        if (result && result.error) {
+          throw new Error(result.message || 'Failed to cancel the match');
+        }
+        
+        showSuccessToast('Match Cancelled', 'The match has been cancelled successfully');
+        
+        // Refresh the matches list
+        fetchHostedMatches();
+      } catch (error) {
+        console.error('Error cancelling match:', error);
+        showErrorToast('Cancel Failed', error.message || 'Failed to cancel the match. Please try again.');
+      }
+    }
+  };
+  
+  const handleDeleteMatch = async () => {
+    console.log('Delete match:', selectedMatch);
+    handleMenuClose();
+    
+    if (window.confirm('Are you sure you want to delete this match? This action cannot be undone and all match data will be permanently deleted.')) {
+      try {
+        const result = await matchService.deleteMatch(selectedMatch.id);
+        
+        if (!result.success) {
+          throw new Error(result.message || 'Failed to delete the match');
+        }
+        
+        showSuccessToast('Match Deleted', 'The match has been permanently deleted');
+        
+        // Refresh the matches list
+        fetchHostedMatches();
+      } catch (error) {
+        console.error('Error deleting match:', error);
+        showErrorToast('Delete Failed', error.message || 'Failed to delete the match. Please try again.');
+      }
+    }
+  };
+  
+  // Handle restoring a cancelled match
+  const handleRestoreMatch = async (matchFromCard) => {
+    // If called from card button, use that match, otherwise use the selected match from menu
+    const matchToRestore = matchFromCard || selectedMatch;
+    
+    console.log('Restore match:', matchToRestore);
+    
+    // If called from menu, close it
+    if (!matchFromCard) {
+      handleMenuClose();
+    }
+    
+    if (window.confirm('Are you sure you want to restore this cancelled match? This will make the match active again and notify all confirmed participants.')) {
+      try {
+        const result = await matchService.restoreMatch(matchToRestore.id);
+        
+        if (!result.success) {
+          throw new Error(result.message || 'Failed to restore the match');
+        }
+        
+        showSuccessToast('Match Restored', 'The match has been restored successfully and confirmed participants have been notified');
+        
+        // Refresh the matches list
+        fetchHostedMatches();
+      } catch (error) {
+        console.error('Error restoring match:', error);
+        showErrorToast('Restore Failed', error.message || 'Failed to restore the match. Please try again.');
+      }
+    }
   };
   
   const handleViewParticipants = () => {
     console.log('View participants for match:', selectedMatch);
     handleMenuClose();
-    // Logic to view participants will be implemented later
+    // Navigate to match detail page
+    navigate(`/match/${selectedMatch.id}`);
   };
   
   // Format date and time
@@ -265,7 +383,7 @@ const HostedMatches = () => {
               size="small" 
               variant="outlined"
               color="primary"
-              onClick={handleEditMatch}
+              onClick={() => handleRestoreMatch(match)}
             >
               Restore Match
             </Button>
@@ -338,7 +456,7 @@ const HostedMatches = () => {
       {/* Match options menu */}
       <Menu
         anchorEl={menuAnchorEl}
-        open={Boolean(menuAnchorEl)}
+        open={open}
         onClose={handleMenuClose}
       >
         {selectedMatch?.status === 'upcoming' && (
@@ -346,6 +464,12 @@ const HostedMatches = () => {
         )}
         {selectedMatch?.status === 'upcoming' && (
           <MenuItem onClick={handleCancelMatch}>Cancel Match</MenuItem>
+        )}
+        {selectedMatch?.status === 'cancelled' && (
+          <MenuItem onClick={() => handleRestoreMatch(selectedMatch)}>Restore Match</MenuItem>
+        )}
+        {(selectedMatch?.status === 'cancelled' || selectedMatch?.status === 'completed') && (
+          <MenuItem onClick={handleDeleteMatch}>Delete Match</MenuItem>
         )}
         <MenuItem onClick={handleViewParticipants}>
           {selectedMatch?.status === 'completed' ? 'View Summary' : 'View Participants'}

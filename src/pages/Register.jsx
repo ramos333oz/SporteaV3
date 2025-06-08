@@ -23,6 +23,7 @@ const Register = () => {
   const [formData, setFormData] = useState({
     email: '',
     fullName: '',
+    username: '',
     studentId: '',
     password: '',
     confirmPassword: ''
@@ -112,6 +113,7 @@ const Register = () => {
     try {
       const userData = {
         full_name: formData.fullName,
+        username: formData.username,
         student_id: formData.studentId
       };
       
@@ -272,6 +274,20 @@ const Register = () => {
             autoComplete="name"
             value={formData.fullName}
             onChange={handleChange}
+            sx={{ mb: 2 }}
+          />
+          
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="username"
+            label="Username"
+            name="username"
+            autoComplete="username"
+            value={formData.username}
+            onChange={handleChange}
+            helperText="Choose a unique username (not your student ID)"
             sx={{ mb: 2 }}
           />
           

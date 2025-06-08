@@ -10,9 +10,11 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import ProfileEdit from './pages/ProfileEdit';
 import Find from './pages/Find';
 import Host from './pages/Host';
 import MatchDetail from './pages/MatchDetail';
+import EditMatch from './pages/EditMatch';
 import Admin from './pages/Admin';
 import NotFound from './pages/NotFound';
 import AuthCallback from './pages/Auth/AuthCallback';
@@ -21,6 +23,8 @@ import EmergencyAccess from './pages/EmergencyAccess';
 import AuthDebug from './pages/AuthDebug';
 import DirectHome from './pages/DirectHome';
 import TestRecommendations from './pages/Find/TestRecommendations';
+import Friends from './pages/Friends';
+import FindPlayers from './pages/Find/FindPlayers';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -339,11 +343,16 @@ function App() {
                 <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
                   <Route path="/home" element={<Home />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/profile/:userId" element={<Profile />} />
+                  <Route path="/profile/edit" element={<ProfileEdit />} />
                   <Route path="/find" element={<Find />} />
+                  <Route path="/find/players" element={<FindPlayers />} />
                   <Route path="/host" element={<Host />} />
                   <Route path="/match/:matchId" element={<MatchDetail />} />
+                  <Route path="/edit-match/:matchId" element={<EditMatch />} />
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/test-recommendations" element={<TestRecommendations />} />
+                  <Route path="/friends" element={<Friends />} />
                 </Route>
                 
                 {/* Fallback for undefined routes */}

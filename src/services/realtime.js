@@ -39,21 +39,51 @@ class RealtimeService {
     if (supabase.realtime) {
       log('Setting up global error handling for realtime events');
       try {
-        // Track global connection state
-        const stateChangeSubscription = supabase.realtime.onStateChange((state) => {
-          log('Global realtime state changed:', state);
+        // Check if we have a realtime transport object
+        if (supabase.realtime.transport) {
+          // Phoenix websocket-based approach (usually for newer versions)
+          if (supabase.realtime.transport.conn) {
+            // Log connection info
+            log('Realtime transport detected:', {
+              type: 'phoenix',
+              status: supabase.realtime.transport.conn.connectionState || 'unknown'
+            });
+            
+            // Try accessing websocket through known paths
+            const phoenixSocket = supabase.realtime.transport.conn.transport?.ws;
+            if (phoenixSocket) {
+              const stateMap = {
+                0: 'CONNECTING',
+                1: 'OPEN', 
+                2: 'CLOSING',
+                3: 'CLOSED'
+              };
+              log('Phoenix WebSocket state:', stateMap[phoenixSocket.readyState] || 'UNKNOWN');
+              this.connectionStatus = stateMap[phoenixSocket.readyState]?.toLowerCase() || 'unknown';
+            }
+          } 
+        } else if (supabase.realtime.getState) {
+          // Legacy approach for older versions
+          const state = supabase.realtime.getState();
+          log('Realtime connection state (legacy):', state);
           this.connectionStatus = state.toLowerCase();
-        });
+        } else {
+          // Simple connection check
+          log('Basic realtime check: Realtime object exists but cannot determine state');
+          this.connectionStatus = 'unknown';
+        }
         
         // Log realtime client info
         const url = supabase.realtime._options?.url || 'unknown';
         log('Supabase realtime URL:', url);
         
       } catch (error) {
-        logError('Error setting up global error handling:', error.message);
+        logError('Error setting up global error handling:', error);
+        this.connectionStatus = 'error';
       }
     } else {
       logError('Supabase realtime not available');
+      this.connectionStatus = 'unavailable';
     }
   }
 
@@ -146,8 +176,6 @@ class RealtimeService {
       const errorSubId = `error_match_${matchId}_${Date.now()}`;
       return errorSubId;
     }
-
-
   }
 
   /**
@@ -215,8 +243,6 @@ class RealtimeService {
       const errorSubId = `error_all_matches_${Date.now()}`;
       return errorSubId;
     }
-
-
   }
 
   /**
@@ -356,116 +382,82 @@ class RealtimeService {
 
   /**
    * Unsubscribe from a subscription
-   * @param {string} subscriptionId - ID of the subscription to remove
+   * @param {string} subscriptionId - ID to unsubscribe
    */
   unsubscribe(subscriptionId) {
-    log(`Unsubscribing from subscription: ${subscriptionId}`);
-    if (this.channels.has(subscriptionId)) {
-      const channel = this.channels.get(subscriptionId);
-      try {
-        supabase.removeChannel(channel);
-        log(`Successfully removed channel for subscription: ${subscriptionId}`);
-      } catch (error) {
-        logError(`Error removing channel for subscription: ${subscriptionId}`, error.message);
-      }
-      this.channels.delete(subscriptionId);
-      this.subscriptions.delete(subscriptionId);
-      return true;
-    } else {
+    log(`Unsubscribing from: ${subscriptionId}`);
+    
+    if (!this.subscriptions.has(subscriptionId)) {
       log(`Subscription not found: ${subscriptionId}`);
       return false;
     }
-  }
-
-  /**
-   * Unsubscribe all subscriptions
-   */
-  unsubscribeAll() {
-    log(`Unsubscribing from all channels: ${this.channels.size} active channels`);
-    this.channels.forEach((channel, subscriptionId) => {
-      try {
-        supabase.removeChannel(channel);
-        log(`Removed channel for subscription: ${subscriptionId}`);
-      } catch (error) {
-        logError(`Error removing channel for subscription: ${subscriptionId}`, error.message);
+    
+    try {
+      const channelName = this.subscriptions.get(subscriptionId).channel;
+      
+      if (this.channels.has(channelName)) {
+        const channel = this.channels.get(channelName);
+        if (channel && typeof channel.unsubscribe === 'function') {
+          channel.unsubscribe();
+          log(`Successfully unsubscribed from channel: ${channelName}`);
+        }
+        
+        this.channels.delete(channelName);
       }
-    });
-    this.channels.clear();
-    this.subscriptions.clear();
-    log('All channels unsubscribed');
+      
+      this.subscriptions.delete(subscriptionId);
+      return true;
+    } catch (error) {
+      logError(`Error unsubscribing from ${subscriptionId}:`, error);
+      return false;
+    }
   }
   
   /**
-   * Reset all channels - disconnect, reconnect, and resubscribe
-   * Use this when experiencing persistent connection issues
+   * Reset all subscriptions by unsubscribing and resubscribing
+   * Useful for recovering from persistent connection issues
    */
-  resetChannels() {
-    log('Resetting all real-time channels...');
+  resetSubscriptions() {
+    log('Resetting all realtime subscriptions...');
     
-    // Store current subscriptions for resubscribing
-    const currentSubscriptions = Array.from(this.subscriptions.entries());
-    
-    // Unsubscribe all current channels
-    this.unsubscribeAll();
-    
-    // Force reconnection of the Supabase client
-    if (supabase.realtime) {
-      try {
-        // Disconnect the realtime client
-        log('Disconnecting Supabase realtime client...');
-        supabase.realtime.disconnect();
-        
-        // Small delay to ensure clean disconnection
-        setTimeout(() => {
-          try {
-            // Reconnect
-            log('Reconnecting Supabase realtime client...');
-            supabase.realtime.connect();
-            
-            // Allow time for reconnection before resubscribing
-            setTimeout(() => {
-              // Resubscribe to previous subscriptions
-              log(`Resubscribing to ${currentSubscriptions.length} previous subscriptions...`);
-              currentSubscriptions.forEach(([id, subscription]) => {
-                try {
-                  // Determine subscription type and resubscribe appropriately
-                  if (subscription.matchId === 'all') {
-                    this.subscribeToAllMatches(subscription.callback);
-                  } else if (subscription.matchId) {
-                    this.subscribeToMatch(subscription.matchId, subscription.callback);
-                  } else if (subscription.userId) {
-                    if (id.includes('notifications')) {
-                      this.subscribeToUserNotifications(subscription.userId, subscription.callback);
-                    } else if (id.includes('matches')) {
-                      this.subscribeToUserMatches(subscription.userId, subscription.callback);
-                    }
-                  }
-                } catch (subError) {
-                  logError(`Error resubscribing to ${id}:`, subError.message);
-                }
-              });
-              
-              log('Channel reset complete');
-            }, 1000);
-          } catch (connectError) {
-            logError('Error reconnecting realtime client:', connectError.message);
+    try {
+      // Store current subscriptions in a new array to avoid modification during iteration
+      const currentSubscriptions = [...this.subscriptions.entries()];
+      
+      // Unsubscribe from all channels
+      this.channels.forEach((channel, channelName) => {
+        if (channel && typeof channel.unsubscribe === 'function') {
+          channel.unsubscribe();
+          log(`Unsubscribed from channel during reset: ${channelName}`);
+        }
+      });
+      
+      // Clear all channels
+      this.channels.clear();
+      
+      // Wait a small amount of time before resubscribing
+      setTimeout(() => {
+        // Resubscribe based on stored subscription info
+        currentSubscriptions.forEach(([subscriptionId, details]) => {
+          if (details.type === 'match') {
+            this.subscribeToMatch(details.id, details.callback);
+            log(`Resubscribed to match: ${details.id}`);
+          } else if (details.type === 'user_notifications') {
+            this.subscribeToUserNotifications(details.id, details.callback);
+            log(`Resubscribed to user notifications: ${details.id}`);
           }
-        }, 500);
-      } catch (error) {
-        logError('Error disconnecting realtime client:', error.message);
-      }
-    } else {
-      logError('Supabase realtime client not available');
+        });
+        
+        log('All subscriptions have been reset and reestablished.');
+      }, 500); // Wait 500ms before resubscribing
+    } catch (error) {
+      logError('Error resetting subscriptions:', error);
     }
-    
-    return true;
   }
 }
 
-// Export singleton instance
+// Create a singleton instance of the RealtimeService
 const realtimeService = new RealtimeService();
 
-// Initialize the service to ensure global error handling is setup
-log('Exporting realtime service singleton');
-
+// Export the instance as the default export
 export default realtimeService;

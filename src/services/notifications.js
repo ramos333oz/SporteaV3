@@ -121,14 +121,35 @@ export const notificationService = {
    * @param {Object} notification - Notification data
    * @returns {Promise<Object>} Created notification
    */
-  createNotification: async (notification) => {
-    const { data, error } = await supabase
-      .from('notifications')
-      .insert(notification)
-      .select();
-      
-    if (error) throw error;
-    return data;
+  createNotification: async ({ user_id, title, type, content, match_id = null }) => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id,
+          title,
+          type,
+          content,
+          match_id,
+          is_read: false
+        })
+        .select();
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        message: 'Notification created successfully',
+        data: data[0]
+      };
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      return {
+        success: false,
+        message: 'Failed to create notification',
+        error
+      };
+    }
   },
   
   /**
@@ -136,15 +157,41 @@ export const notificationService = {
    * @param {string} userId - User ID
    * @returns {Promise<number>} Count of unread notifications
    */
-  getUnreadCount: async (userId) => {
-    const { count, error } = await supabase
-      .from('notifications')
-      .select('id', { count: 'exact' })
-      .eq('user_id', userId)
-      .eq('read', false);
+  getUnreadCount: async () => {
+    try {
+      const currentUser = supabase.auth.getUser();
       
-    if (error) throw error;
-    return count;
+      if (!currentUser || !currentUser.data || !currentUser.data.user) {
+        return {
+          success: false,
+          message: 'You must be logged in to get unread count',
+          count: 0
+        };
+      }
+      
+      const user = currentUser.data.user;
+      
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        count: count || 0
+      };
+    } catch (error) {
+      console.error('Error getting unread notification count:', error);
+      return {
+        success: false,
+        message: 'Failed to get unread count',
+        count: 0,
+        error
+      };
+    }
   },
   
   /**
@@ -153,12 +200,28 @@ export const notificationService = {
    * @returns {Promise<void>}
    */
   deleteNotification: async (notificationId) => {
-    const { error } = await supabase
-      .from('notifications')
-      .delete()
-      .eq('id', notificationId);
-      
-    if (error) throw error;
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId)
+        .select();
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        message: 'Notification deleted successfully',
+        data: data[0]
+      };
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      return {
+        success: false,
+        message: 'Failed to delete notification',
+        error
+      };
+    }
   }
 };
 
@@ -181,6 +244,16 @@ export const createNotificationContent = (type, data) => {
       return `Your match "${data.match_title}" is starting soon`;
     case 'new_message':
       return `New message from ${data.sender_name}`;
+    case 'friend_request':
+      return `${data.sender_name} sent you a friend request`;
+    case 'friend_request_accepted':
+      return `${data.sender_name} accepted your friend request`;
+    case 'friend_request_declined':
+      return `${data.sender_name} declined your friend request`;
+    case 'friend_removed':
+      return `${data.sender_name} is no longer your friend`;
+    case 'friend_blocked':
+      return `You have blocked ${data.sender_name}`;
     default:
       return `New notification`;
   }

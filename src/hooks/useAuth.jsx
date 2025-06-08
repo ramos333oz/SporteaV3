@@ -155,22 +155,22 @@ export const AuthProvider = ({ children }) => {
       
       console.log('Auth signup successful:', authData);
       
-      // Create user profile in users table
-      if (authData?.user) {
-        console.log('Creating user profile for:', authData.user.email);
-        
-        // Create a clean user data object with all required fields
-        const userProfile = {
-          id: authData.user.id,
-          email: authData.user.email,
-          username: userData.username || email.split('@')[0], // Fallback to email prefix if no username
-          full_name: userData.full_name || '',
-          student_id: userData.student_id || '',
-          faculty: userData.faculty || '',
-          campus: userData.campus || '',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
+              // Create user profile in users table
+        if (authData?.user) {
+          console.log('Creating user profile for:', authData.user.email);
+          
+          // Create a clean user data object with all required fields
+          const userProfile = {
+            id: authData.user.id,
+            email: authData.user.email,
+            username: userData.username || userData.full_name?.replace(/\s+/g, '') || 'User' + Math.floor(Math.random() * 10000), // Prefer username, then use full name without spaces, then generate random
+            full_name: userData.full_name || '',
+            student_id: userData.student_id || '',
+            faculty: userData.faculty || '',
+            campus: userData.campus || '',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
         
         // First attempt with service role client (bypasses RLS)
         try {
@@ -313,7 +313,7 @@ const signIn = async (email, password) => {
           .insert({
             id: data.user.id,
             email: data.user.email,
-            username: data.user.email.split('@')[0], // Basic username from email
+            username: 'User' + Math.floor(Math.random() * 10000), // Generate a random username instead of using student ID
             created_at: new Date().toISOString()
           });
           
@@ -327,7 +327,7 @@ const signIn = async (email, password) => {
             .upsert({
               id: data.user.id,
               email: data.user.email,
-              username: data.user.email.split('@')[0], // Basic username from email
+              username: 'User' + Math.floor(Math.random() * 10000), // Generate a random username instead of using student ID
               created_at: new Date().toISOString()
             });
             

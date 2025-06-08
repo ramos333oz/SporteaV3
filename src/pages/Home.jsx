@@ -27,6 +27,8 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import EventIcon from '@mui/icons-material/Event';
 import LiveMatchBoard from '../components/LiveMatchBoard';
+import RecommendationsList from '../components/RecommendationsList';
+import { supabase } from '../services/supabase';
 
 // Match card component
 const MatchCard = ({ match, onJoin, joinedMatches }) => {
@@ -156,19 +158,68 @@ const Home = () => {
       const matches = await matchService.searchMatches({});
       setUpcomingMatches(matches);
       
-      // Update sport counts
-      const sportCounts = {};
-      matches.forEach(match => {
-        if (match.sport?.id) {
-          sportCounts[match.sport.id] = (sportCounts[match.sport.id] || 0) + 1;
+      // Update sport counts with direct query to get accurate counts
+      try {
+        // Direct query to get sport counts
+        const { data: sportCountData, error: sportCountError } = await supabase
+          .from('matches')
+          .select(`
+            sport_id,
+            sports!inner(id, name)
+          `)
+          .not('status', 'eq', 'cancelled')
+          .not('status', 'eq', 'completed');
+        
+        if (!sportCountError && sportCountData) {
+          // Count occurrences of each sport
+          const sportCounts = {};
+          sportCountData.forEach(item => {
+            const sportId = item.sports?.id;
+            if (sportId) {
+              sportCounts[sportId] = (sportCounts[sportId] || 0) + 1;
+            }
+          });
+          
+          // Get the sport names and create count objects
+          const sportNamesAndCounts = sportCountData.reduce((acc, item) => {
+            const sportId = item.sports?.id;
+            const sportName = item.sports?.name;
+            
+            if (sportId && sportName && !acc.some(s => s.id === sportId)) {
+              acc.push({
+                id: sportId,
+                name: sportName,
+                count: sportCounts[sportId] || 0
+              });
+            }
+            
+            return acc;
+          }, []);
+          
+          // Sort by count (descending) and take top 4
+          const topSports = sportNamesAndCounts
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 4);
+          
+          console.log('Updated sport counts:', topSports);
+          setPopularSports(topSports);
         }
-      });
-      
-      // Update popular sports with real counts
-      setPopularSports(prev => prev.map(sport => ({
-        ...sport,
-        count: sportCounts[sport.id] || 0
-      })));
+      } catch (sportCountErr) {
+        console.error('Error fetching sport counts:', sportCountErr);
+        // Fall back to the original counting method if direct query fails
+        const sportCounts = {};
+        matches.forEach(match => {
+          if (match.sport?.id) {
+            sportCounts[match.sport.id] = (sportCounts[match.sport.id] || 0) + 1;
+          }
+        });
+        
+        // Update popular sports with fallback counts
+        setPopularSports(prev => prev.map(sport => ({
+          ...sport,
+          count: sportCounts[sport.id] || 0
+        })));
+      }
       
       setError(null);
     } catch (err) {
@@ -318,6 +369,12 @@ const Home = () => {
           </Button>
         </Box>
       </Box>
+      
+      {/* Personalized match recommendations */}
+      <RecommendationsList 
+        limit={3}
+        onError={(err) => console.error('Recommendation error:', err)}
+      />
       
       {/* Popular sports section */}
       <Box sx={{ mb: 2 }}>

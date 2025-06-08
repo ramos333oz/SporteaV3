@@ -12,363 +12,636 @@ import {
   Chip,
   Skeleton,
   Divider,
-  Rating
+  Rating,
+  Tooltip,
+  CircularProgress,
+  FormControl,
+  Select,
+  MenuItem,
+  InputLabel,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import SportsBasketballIcon from '@mui/icons-material/SportsBasketball';
 import SportsTennisIcon from '@mui/icons-material/SportsTennis';
 import SportsVolleyballIcon from '@mui/icons-material/SportsVolleyball';
 import PeopleIcon from '@mui/icons-material/People';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import CheckIcon from '@mui/icons-material/Check';
+import CancelIcon from '@mui/icons-material/Cancel';
+import BlockIcon from '@mui/icons-material/Block';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { supabase, friendshipService } from '../../services/supabase';
+import { useToast } from '../../contexts/ToastContext';
 
-const FindPlayers = ({ searchQuery }) => {
-  const { supabase } = useAuth();
-  const [players, setPlayers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedSportFilter, setSelectedSportFilter] = useState('all');
-  
-  // Mock data for sports filters
-  const sportFilters = [
-    { id: 'all', name: 'All Sports' },
-    { id: 'football', name: 'Football', icon: <SportsSoccerIcon /> },
-    { id: 'basketball', name: 'Basketball', icon: <SportsBasketballIcon /> },
-    { id: 'badminton', name: 'Badminton', icon: <SportsTennisIcon /> },
-    { id: 'volleyball', name: 'Volleyball', icon: <SportsVolleyballIcon /> },
-  ];
-  
-  // Mock player data (will be replaced with real data from Supabase)
-  const mockPlayers = [
-    {
-      id: 1,
-      name: 'Ahmad Zulkifli',
-      studentId: '2021123456',
-      avatar: null,
-      rating: 4.5,
-      bio: 'Football enthusiast looking for weekend matches. Prefer playing as a striker but can adapt to any position.',
-      sports: [
-        { name: 'football', level: 'Professional', icon: <SportsSoccerIcon /> },
-        { name: 'basketball', level: 'Intermediate', icon: <SportsBasketballIcon /> }
-      ],
-      mutual_friends: 3,
-      achievements: 5
-    },
-    {
-      id: 2,
-      name: 'Sarah Tan',
-      studentId: '2020654321',
-      avatar: null,
-      rating: 4.2,
-      bio: 'Basketball player with 5 years of experience. Looking for training partners to improve skills.',
-      sports: [
-        { name: 'basketball', level: 'Professional', icon: <SportsBasketballIcon /> },
-        { name: 'volleyball', level: 'Beginner', icon: <SportsVolleyballIcon /> }
-      ],
-      mutual_friends: 0,
-      achievements: 7
-    },
-    {
-      id: 3,
-      name: 'Raj Kumar',
-      studentId: '2021987654',
-      avatar: null,
-      rating: 3.8,
-      bio: 'Badminton player looking for doubles partner. Also enjoy casual football on weekends.',
-      sports: [
-        { name: 'badminton', level: 'Professional', icon: <SportsTennisIcon /> },
-        { name: 'football', level: 'Intermediate', icon: <SportsSoccerIcon /> }
-      ],
-      mutual_friends: 1,
-      achievements: 3
-    },
-    {
-      id: 4,
-      name: 'Lisa Wong',
-      studentId: '2022112233',
-      avatar: null,
-      rating: 4.7,
-      bio: 'Volleyball team captain looking for new players to join training sessions.',
-      sports: [
-        { name: 'volleyball', level: 'Professional', icon: <SportsVolleyballIcon /> }
-      ],
-      mutual_friends: 2,
-      achievements: 9
-    },
-    {
-      id: 5,
-      name: 'Haziq Jalil',
-      studentId: '2020445566',
-      avatar: null,
-      rating: 4.0,
-      bio: 'Sports science student interested in football, basketball and badminton.',
-      sports: [
-        { name: 'football', level: 'Intermediate', icon: <SportsSoccerIcon /> },
-        { name: 'basketball', level: 'Beginner', icon: <SportsBasketballIcon /> },
-        { name: 'badminton', level: 'Intermediate', icon: <SportsTennisIcon /> }
-      ],
-      mutual_friends: 5,
-      achievements: 4
-    }
-  ];
-  
-  useEffect(() => {
-    // Simulate fetching players from Supabase
-    const fetchPlayers = async () => {
-      setLoading(true);
-      try {
-        // In a real implementation, we would fetch players from Supabase here
-        // const { data, error } = await supabase
-        //   .from('profiles')
-        //   .select('*')
-        //   .order('rating', { ascending: false });
-        
-        // For now, use mock data
-        setTimeout(() => {
-          // Filter players based on search query if provided
-          let filteredPlayers = [...mockPlayers];
-          
-          if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            filteredPlayers = filteredPlayers.filter(player => 
-              player.name.toLowerCase().includes(query) || 
-              player.bio.toLowerCase().includes(query) ||
-              player.studentId.includes(query) ||
-              player.sports.some(sport => sport.name.toLowerCase().includes(query))
-            );
-          }
-          
-          // Filter by selected sport if not 'all'
-          if (selectedSportFilter !== 'all') {
-            filteredPlayers = filteredPlayers.filter(player => 
-              player.sports.some(sport => sport.name === selectedSportFilter)
-            );
-          }
-          
-          setPlayers(filteredPlayers);
-          setLoading(false);
-        }, 1000); // Simulate network delay
-      } catch (error) {
-        console.error('Error fetching players:', error);
-        setLoading(false);
-      }
-    };
-    
-    fetchPlayers();
-  }, [searchQuery, selectedSportFilter]);
-  
-  const handleSportFilterChange = (sportId) => {
-    setSelectedSportFilter(sportId);
+// Sport icon mapping function
+const getSportIcon = (sportName) => {
+  const sportIcons = {
+    'Basketball': <i className="fa-solid fa-basketball"></i>,
+    'Football': <i className="fa-solid fa-futbol"></i>,
+    'Volleyball': <i className="fa-solid fa-volleyball"></i>,
+    'Tennis': <i className="fa-solid fa-tennis-ball"></i>,
+    'Badminton': <i className="fa-solid fa-shuttlecock"></i>,
+    'Swimming': <i className="fa-solid fa-person-swimming"></i>,
+    'Running': <i className="fa-solid fa-person-running"></i>,
+    'Cycling': <i className="fa-solid fa-bicycle"></i>,
+    'Table Tennis': <i className="fa-solid fa-table-tennis-paddle-ball"></i>,
+    'Rugby': <i className="fa-solid fa-football"></i>
   };
   
-  // Render player card
-  const renderPlayerCard = (player) => {
-    return (
-      <Card 
-        elevation={2} 
-        sx={{ 
-          borderRadius: 3,
-          transition: 'transform 0.2s, box-shadow 0.2s',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: 4
-          },
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        <CardContent sx={{ flexGrow: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Avatar 
-              sx={{ 
-                width: 56, 
-                height: 56, 
-                bgcolor: 'primary.main',
-                fontSize: '1.5rem',
-                mr: 2
-              }}
-            >
-              {player.name.charAt(0)}
-            </Avatar>
-            <Box>
-              <Typography variant="h3" component="h3" gutterBottom>
-                {player.name}
-              </Typography>
-              <Rating 
-                value={player.rating} 
-                precision={0.5} 
-                size="small" 
-                readOnly 
-              />
-            </Box>
-          </Box>
-          
-          <Typography 
-            variant="body2" 
-            color="text.secondary" 
-            sx={{ 
-              mb: 2,
-              display: '-webkit-box',
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              height: '54px' // Approximately 3 lines
-            }}
-          >
-            {player.bio}
-          </Typography>
-          
-          <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
-            Preferred Sports:
-          </Typography>
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              flexWrap: 'wrap', 
-              gap: 1,
-              mb: 2
-            }}
-          >
-            {player.sports.map((sport, index) => (
-              <Chip
-                key={index}
-                icon={sport.icon}
-                label={`${sport.name.charAt(0).toUpperCase() + sport.name.slice(1)} (${sport.level})`}
-                size="small"
-                color={
-                  sport.level === 'Professional' ? 'primary' : 
-                  sport.level === 'Intermediate' ? 'info' : 
-                  'success'
-                }
-                variant={sport.level === 'Professional' ? 'filled' : 'outlined'}
-              />
-            ))}
-          </Box>
-          
-          <Divider sx={{ my: 1 }} />
-          
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <PeopleIcon fontSize="small" color="action" sx={{ mr: 0.5 }} />
-              <Typography variant="body2" color="text.secondary">
-                {player.mutual_friends} mutual {player.mutual_friends === 1 ? 'friend' : 'friends'}
-              </Typography>
-            </Box>
-            <Typography variant="body2" color="text.secondary">
-              {player.achievements} {player.achievements === 1 ? 'achievement' : 'achievements'}
-            </Typography>
-          </Box>
-        </CardContent>
+  return sportIcons[sportName] || <i className="fa-solid fa-baseball"></i>;
+};
+
+const FindPlayers = ({ players: propPlayers }) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { showSuccessToast, showErrorToast } = useToast();
+  const [players, setPlayers] = useState(propPlayers || []);
+  const [filteredPlayers, setFilteredPlayers] = useState(propPlayers || []);
+  const [loading, setLoading] = useState(!propPlayers);
+  const [friendships, setFriendships] = useState({});
+  const [actionInProgress, setActionInProgress] = useState(null);
+  const [sportFilter, setSportFilter] = useState('all');
+  const [availableSports, setAvailableSports] = useState([]);
+
+  useEffect(() => {
+    if (user) {
+      // Only fetch players if propPlayers is not provided
+      if (!propPlayers) {
+        fetchPlayers();
+      } else {
+        setPlayers(propPlayers);
+        setFilteredPlayers(propPlayers);
+        setLoading(false);
+      }
+      fetchSports();
+    }
+  }, [user, propPlayers]);
+
+  // Fetch available sports for filtering
+  const fetchSports = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('sports')
+        .select('*')
+        .order('name');
         
-        <CardActions sx={{ p: 2, pt: 0 }}>
-          <Button 
-            variant="outlined" 
-            color="primary"
-            sx={{ borderRadius: 2, mr: 1 }}
-            fullWidth
-          >
-            View Profile
-          </Button>
+      if (error) throw error;
+      
+      setAvailableSports(data || []);
+    } catch (error) {
+      console.error('Error fetching sports:', error);
+      showErrorToast('Failed to load sports');
+    }
+  };
+
+  const fetchPlayers = async () => {
+    setLoading(true);
+    try {
+      // Fetch all users except current user
+      const { data, error } = await supabase
+        .from('profiles')  // Using the correct table name 'profiles'
+        .select(`
+          id,
+          username,
+          full_name,
+          avatar_url,
+          bio,
+          faculty,
+          campus,
+          sport_preferences,
+          skill_levels
+        `)
+        .neq('id', user.id); // Exclude current user
+        
+      if (error) throw error;
+      
+      // Fetch friendship statuses for all users
+      if (data && data.length > 0) {
+        const friendshipData = {};
+        
+        for (const player of data) {
+          const { status, data: friendshipInfo } = await friendshipService.getFriendshipStatus(player.id);
+          friendshipData[player.id] = { status, data: friendshipInfo };
+        }
+        
+        setFriendships(friendshipData);
+      }
+      
+      setPlayers(data || []);
+      setFilteredPlayers(data || []);
+    } catch (error) {
+      console.error('Error fetching players:', error);
+      showErrorToast('Failed to load players');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewProfile = (userId) => {
+    navigate(`/profile/${userId}`);
+  };
+
+  const handleSendFriendRequest = async (userId) => {
+    setActionInProgress(userId);
+    try {
+      const { success, message, error } = await friendshipService.sendFriendRequest(userId);
+      
+      if (success) {
+        showSuccessToast('Friend request sent');
+        
+        // Update local friendship status
+        setFriendships(prev => ({
+          ...prev,
+          [userId]: { 
+            status: 'request-sent',
+            data: { requester_id: user.id, addressee_id: userId, status: 'pending' }
+          }
+        }));
+      } else {
+        showErrorToast(message || 'Failed to send friend request');
+      }
+    } catch (error) {
+      console.error('Error sending friend request:', error);
+      showErrorToast('Failed to send friend request');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const handleCancelFriendRequest = async (userId) => {
+    setActionInProgress(userId);
+    try {
+      // Get the friendship ID
+      const friendshipId = friendships[userId]?.data?.id;
+      
+      if (!friendshipId) {
+        showErrorToast('Friendship not found');
+        return;
+      }
+      
+      const { success, error } = await friendshipService.removeFriend(friendshipId);
+      
+      if (success) {
+        showSuccessToast('Friend request cancelled');
+        
+        // Update local friendship status
+        setFriendships(prev => ({
+          ...prev,
+          [userId]: { status: 'not-friends', data: null }
+        }));
+      } else {
+        showErrorToast('Failed to cancel friend request');
+      }
+    } catch (error) {
+      console.error('Error cancelling friend request:', error);
+      showErrorToast('Failed to cancel friend request');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const handleRemoveFriend = async (userId) => {
+    setActionInProgress(userId);
+    try {
+      // Get the friendship ID
+      const friendshipId = friendships[userId]?.data?.id;
+      
+      if (!friendshipId) {
+        showErrorToast('Friendship not found');
+        return;
+      }
+      
+      const { success, error } = await friendshipService.removeFriend(friendshipId);
+      
+      if (success) {
+        showSuccessToast('Friend removed');
+        
+        // Update local friendship status
+        setFriendships(prev => ({
+          ...prev,
+          [userId]: { status: 'not-friends', data: null }
+        }));
+      } else {
+        showErrorToast('Failed to remove friend');
+      }
+    } catch (error) {
+      console.error('Error removing friend:', error);
+      showErrorToast('Failed to remove friend');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const handleAcceptFriendRequest = async (userId) => {
+    setActionInProgress(userId);
+    try {
+      // Get the friendship ID
+      const friendshipId = friendships[userId]?.data?.id;
+      
+      if (!friendshipId) {
+        showErrorToast('Friendship not found');
+        return;
+      }
+      
+      const { success, error } = await friendshipService.acceptFriendRequest(friendshipId);
+      
+      if (success) {
+        showSuccessToast('Friend request accepted');
+        
+        // Update local friendship status
+        setFriendships(prev => ({
+          ...prev,
+          [userId]: { 
+            status: 'friends',
+            data: { 
+              ...prev[userId].data,
+              status: 'accepted'
+            }
+          }
+        }));
+      } else {
+        showErrorToast('Failed to accept friend request');
+      }
+    } catch (error) {
+      console.error('Error accepting friend request:', error);
+      showErrorToast('Failed to accept friend request');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const handleDeclineFriendRequest = async (userId) => {
+    setActionInProgress(userId);
+    try {
+      // Get the friendship ID
+      const friendshipId = friendships[userId]?.data?.id;
+      
+      if (!friendshipId) {
+        showErrorToast('Friendship not found');
+        return;
+      }
+      
+      const { success, error } = await friendshipService.declineFriendRequest(friendshipId);
+      
+      if (success) {
+        showSuccessToast('Friend request declined');
+        
+        // Update local friendship status
+        setFriendships(prev => ({
+          ...prev,
+          [userId]: { status: 'not-friends', data: null }
+        }));
+      } else {
+        showErrorToast('Failed to decline friend request');
+      }
+    } catch (error) {
+      console.error('Error declining friend request:', error);
+      showErrorToast('Failed to decline friend request');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const renderFriendshipButton = (userId) => {
+    const isActionDisabled = actionInProgress !== null;
+    const isCurrentAction = actionInProgress === userId;
+    const friendshipStatus = friendships[userId]?.status || 'not-friends';
+    
+    switch (friendshipStatus) {
+      case 'not-friends':
+        return (
           <Button 
             variant="contained" 
             color="primary"
-            sx={{ borderRadius: 2 }}
+            startIcon={<PersonAddIcon />}
+            onClick={() => handleSendFriendRequest(userId)}
+            disabled={isActionDisabled}
+            fullWidth
+          >
+            {isCurrentAction ? 'Sending...' : 'Add Friend'}
+          </Button>
+        );
+        
+      case 'friends':
+        return (
+          <Button 
+            variant="outlined" 
+            color="primary"
+            startIcon={<PeopleIcon />}
+            onClick={() => handleRemoveFriend(userId)}
+            disabled={isActionDisabled}
+            fullWidth
+          >
+            {isCurrentAction ? 'Removing...' : 'Friends'}
+          </Button>
+        );
+        
+      case 'request-sent':
+        return (
+          <Button 
+            variant="outlined" 
+            color="secondary"
+            startIcon={<HourglassEmptyIcon />}
+            onClick={() => handleCancelFriendRequest(userId)}
+            disabled={isActionDisabled}
+            fullWidth
+          >
+            {isCurrentAction ? 'Cancelling...' : 'Cancel Request'}
+          </Button>
+        );
+        
+      case 'request-received':
+        return (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button 
+              variant="contained" 
+              color="primary"
+              startIcon={<CheckIcon />}
+              onClick={() => handleAcceptFriendRequest(userId)}
+              disabled={isActionDisabled}
+              sx={{ flex: 1 }}
+            >
+              {isCurrentAction ? '...' : 'Accept'}
+            </Button>
+            <Button 
+              variant="outlined" 
+              color="error"
+              startIcon={<CancelIcon />}
+              onClick={() => handleDeclineFriendRequest(userId)}
+              disabled={isActionDisabled}
+              sx={{ flex: 1 }}
+            >
+              {isCurrentAction ? '...' : 'Decline'}
+            </Button>
+          </Box>
+        );
+        
+      case 'blocked-by-me':
+        return (
+          <Button 
+            variant="outlined" 
+            color="error"
+            startIcon={<BlockIcon />}
+            disabled={true}
+            fullWidth
+          >
+            Blocked
+          </Button>
+        );
+        
+      default:
+        return (
+          <Button 
+            variant="outlined" 
+            color="primary"
+            startIcon={<PersonAddIcon />}
+            onClick={() => handleSendFriendRequest(userId)}
+            disabled={isActionDisabled}
             fullWidth
           >
             Add Friend
           </Button>
-        </CardActions>
-      </Card>
-    );
+        );
+    }
   };
-  
-  return (
-    <Box>
-      {/* Sport Filters */}
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          overflowX: 'auto', 
-          pb: 1, 
-          mb: 3,
-          '&::-webkit-scrollbar': {
-            height: 6
-          },
-          '&::-webkit-scrollbar-track': {
-            background: 'transparent'
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'divider',
-            borderRadius: 3
+
+  // Update players when propPlayers changes
+  useEffect(() => {
+    if (propPlayers) {
+      setPlayers(propPlayers);
+      filterPlayers('', sportFilter);
+    }
+  }, [propPlayers]);
+
+  // Filter players based on sport filter only (search handled by parent)
+  const filterPlayers = (search, sport) => {
+    if (!players || players.length === 0) return;
+    
+    let filtered = [...players];
+    
+    // Apply sport filter
+    if (sport && sport !== 'all') {
+      filtered = filtered.filter(player => 
+        player.sport_preferences && 
+        Array.isArray(player.sport_preferences) && 
+        player.sport_preferences.some(playerSport => {
+          // Handle case where playerSport might be an object or string
+          if (typeof playerSport === 'object' && playerSport.name) {
+            return playerSport.name === sport;
           }
-        }}
-      >
-        {sportFilters.map((sport) => (
-          <Chip
-            key={sport.id}
-            icon={sport.icon}
-            label={sport.name}
-            color={selectedSportFilter === sport.id ? 'primary' : 'default'}
-            variant={selectedSportFilter === sport.id ? 'filled' : 'outlined'}
-            onClick={() => handleSportFilterChange(sport.id)}
-            sx={{ 
-              mr: 1, 
-              p: 0.5,
-              '&:last-child': { mr: 0 }
-            }}
-          />
-        ))}
-      </Box>
-      
-      {/* Players Section */}
-      <Box>
-        <Typography variant="h2" gutterBottom>
-          Players ({players.length})
+          return playerSport === sport;
+        })
+      );
+    }
+    
+    setFilteredPlayers(filtered);
+  };
+
+  const handleSportFilterChange = (e) => {
+    setSportFilter(e.target.value);
+    filterPlayers('', e.target.value);
+  };
+
+  // Render player's sport preferences as chips
+  const renderSportPreferences = (preferences) => {
+    if (!preferences || !Array.isArray(preferences) || preferences.length === 0) {
+      return (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          No sport preferences
         </Typography>
-        {loading ? (
-          <Grid container spacing={2}>
-            {Array(4).fill().map((_, index) => (
-              <Grid item xs={12} sm={6} md={4} key={`skeleton-${index}`}>
-                <Skeleton 
-                  variant="rectangular" 
-                  height={300} 
-                  sx={{ borderRadius: 3 }} 
-                />
-              </Grid>
-            ))}
-          </Grid>
-        ) : players.length === 0 ? (
-          <Paper 
-            sx={{ 
-              p: 4, 
-              textAlign: 'center',
-              borderRadius: 3
-            }}
-          >
-            <PeopleIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h3" gutterBottom>
-              No players found
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Try adjusting your filters or complete your profile to match with more players!
-            </Typography>
-            <Button 
-              variant="contained" 
-              sx={{ mt: 2 }}
-            >
-              Update Profile
-            </Button>
-          </Paper>
-        ) : (
-          <Grid container spacing={2}>
-            {players.map(player => (
-              <Grid item xs={12} sm={6} md={4} key={player.id}>
-                {renderPlayerCard(player)}
-              </Grid>
-            ))}
-          </Grid>
+      );
+    }
+
+    return (
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
+        {preferences.slice(0, 3).map((sport, index) => {
+          // Ensure sport is a string, not an object
+          const sportName = typeof sport === 'object' ? sport.name : sport;
+          return (
+            <Chip 
+              key={index}
+              icon={getSportIcon(sportName)}
+              label={sportName}
+              size="small"
+              variant="outlined"
+            />
+          );
+        })}
+        {preferences.length > 3 && (
+          <Chip 
+            label={`+${preferences.length - 3} more`}
+            size="small"
+            variant="outlined"
+          />
         )}
       </Box>
+    );
+  };
+
+  const renderSkillLevel = (skillLevels, sport) => {
+    // Handle case where sport might be an object
+    const sportName = typeof sport === 'object' ? sport.name : sport;
+    
+    if (!skillLevels || !sportName || !skillLevels[sportName]) {
+      return null;
+    }
+    
+    const level = skillLevels[sportName];
+    return (
+      <Tooltip title={`${sportName} skill level: ${level}/5`}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+            {sportName}:
+          </Typography>
+          <Rating 
+            value={parseInt(level) || 0} 
+            readOnly 
+            size="small" 
+          />
+        </Box>
+      </Tooltip>
+    );
+  };
+
+  return (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" gutterBottom>
+        Find Players
+      </Typography>
+      
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12}>
+            <FormControl fullWidth>
+              <InputLabel id="sport-filter-label">
+                <FilterListIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Filter by Sport
+              </InputLabel>
+              <Select
+                labelId="sport-filter-label"
+                value={sportFilter}
+                onChange={handleSportFilterChange}
+                label="Filter by Sport"
+              >
+                <MenuItem value="all">All Sports</MenuItem>
+                {availableSports.map(sport => (
+                  <MenuItem key={sport.id} value={sport.name}>
+                    {getSportIcon(sport.name)}
+                    <span style={{ marginLeft: '8px' }}>{sport.name}</span>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {loading ? (
+        <Grid container spacing={3}>
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <Grid item xs={12} sm={6} md={4} key={i}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Skeleton variant="circular" width={50} height={50} />
+                    <Box sx={{ ml: 2 }}>
+                      <Skeleton variant="text" width={120} />
+                      <Skeleton variant="text" width={80} />
+                    </Box>
+                  </Box>
+                  <Skeleton variant="text" />
+                  <Skeleton variant="rectangular" height={60} sx={{ mt: 1 }} />
+                </CardContent>
+                <CardActions>
+                  <Skeleton variant="rectangular" height={36} width="100%" />
+                </CardActions>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      ) : (
+        <>
+          {filteredPlayers.length === 0 ? (
+            <Paper sx={{ p: 4, textAlign: 'center' }}>
+              <Typography variant="h6" color="text.secondary">
+                No players found matching your criteria
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
+                Try adjusting your search or filters
+              </Typography>
+            </Paper>
+          ) : (
+            <Grid container spacing={3}>
+              {filteredPlayers.map(player => (
+                <Grid item xs={12} sm={6} md={4} key={player.id}>
+                  <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <Avatar 
+                          src={player.avatar_url} 
+                          alt={player.full_name || player.username}
+                          sx={{ width: 50, height: 50 }}
+                        >
+                          {(player.full_name?.[0] || player.username?.[0] || '?').toUpperCase()}
+                        </Avatar>
+                        <Box sx={{ ml: 2 }}>
+                          <Typography variant="h6" component="div" noWrap>
+                            {player.full_name || player.username || 'Anonymous User'}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" noWrap>
+                            {player.username ? `@${player.username}` : ''}
+                            {player.faculty && player.campus ? ` • ${player.faculty}, ${player.campus}` : 
+                             player.faculty ? ` • ${player.faculty}` : 
+                             player.campus ? ` • ${player.campus}` : ''}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      
+                      {player.bio && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          {player.bio.length > 100 ? `${player.bio.substring(0, 100)}...` : player.bio}
+                        </Typography>
+                      )}
+                      
+                      <Divider sx={{ my: 1 }} />
+                      
+                      {renderSportPreferences(player.sport_preferences)}
+                      
+                      {player.sport_preferences && 
+                       player.sport_preferences.length > 0 && 
+                       player.skill_levels && 
+                       renderSkillLevel(player.skill_levels, player.sport_preferences[0])}
+                    </CardContent>
+                    
+                    <CardActions sx={{ p: 2, pt: 0 }}>
+                      <Grid container spacing={1}>
+                        <Grid item xs={7}>
+                          {renderFriendshipButton(player.id)}
+                        </Grid>
+                        <Grid item xs={5}>
+                          <Button 
+                            variant="outlined"
+                            onClick={() => handleViewProfile(player.id)}
+                            fullWidth
+                          >
+                            View Profile
+                          </Button>
+                        </Grid>
+                      </Grid>
+                    </CardActions>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </>
+      )}
     </Box>
   );
 };
