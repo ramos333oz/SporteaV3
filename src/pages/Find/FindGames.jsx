@@ -181,16 +181,22 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
   // Generate sport filters from real data
   const sportFilters = [
     { id: "all", name: "All Sports", icon: <SportsIcon /> },
-    ...(propSports || []).map((sport) => {
-      // Map sport names to appropriate icons using the SportIcon component
-      const sportName = sport.name || "Unknown Sport";
+    ...(propSports || [])
+      .filter(sport => {
+        // Filter out table tennis since it's not available yet
+        const sportName = (sport.name || "").toLowerCase();
+        return !sportName.includes("table tennis") && !sportName.includes("ping pong");
+      })
+      .map((sport) => {
+        // Map sport names to appropriate icons using the SportIcon component
+        const sportName = sport.name || "Unknown Sport";
 
-      return {
-        id: sport.id?.toString() || "",
-        name: sportName,
-        icon: <SportIcon sportName={sportName} />,
-      };
-    }),
+        return {
+          id: sport.id?.toString() || "",
+          name: sportName,
+          icon: <SportIcon sportName={sportName} />,
+        };
+      }),
   ];
 
   // Load personalized recommendations when component mounts or user changes
@@ -404,9 +410,9 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           <>
             {/* Recommended Matches Section - Only shown in List View */}
             {recommendedMatches.length > 0 && (
-              <Box sx={{ mb: 4 }}>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <Typography variant="h2" component="h2">
+              <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                  <Typography variant="h5" component="h2" fontWeight="600">
                     Recommended for You
                   </Typography>
                   <Tooltip title="These matches are selected based on your preferences and past activity">
@@ -444,17 +450,67 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                         </Grid>
                       ))}
                 </Grid>
-              </Box>
+              </Paper>
             )}
 
-            {/* List of all matches */}
-            <Grid container spacing={2}>
-              {filteredMatches.map((match) => (
-                <Grid item xs={12} sm={6} md={4} key={match.id}>
-                  {renderMatchCard(match)}
+            {/* Available Matches Section */}
+            <Paper sx={{ p: 3, borderRadius: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                <Typography variant="h5" component="h2" fontWeight="600">
+                  Available Matches
+                </Typography>
+                <Chip
+                  label={`${filteredMatches.length} found`}
+                  size="small"
+                  color="default"
+                  variant="outlined"
+                  sx={{ ml: 2 }}
+                />
+              </Box>
+
+              {loading ? (
+                <Grid container spacing={2}>
+                  {Array(6)
+                    .fill()
+                    .map((_, index) => (
+                      <Grid item xs={12} sm={6} md={4} key={`skeleton-${index}`}>
+                        <Skeleton
+                          variant="rectangular"
+                          height={320}
+                          sx={{ borderRadius: 3 }}
+                        />
+                      </Grid>
+                    ))}
                 </Grid>
-              ))}
-            </Grid>
+              ) : filteredMatches.length === 0 ? (
+                <Paper
+                  sx={{
+                    p: 4,
+                    textAlign: "center",
+                    borderRadius: 3,
+                  }}
+                >
+                  <SportsIcon sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
+                  <Typography variant="h3" gutterBottom>
+                    No matches found
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary">
+                    Try adjusting your filters or create your own match!
+                  </Typography>
+                  <Button variant="contained" sx={{ mt: 2 }}>
+                    Host a Match
+                  </Button>
+                </Paper>
+              ) : (
+                <Grid container spacing={2}>
+                  {filteredMatches.map((match) => (
+                    <Grid item xs={12} sm={6} md={4} key={match.id}>
+                      {renderMatchCard(match)}
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
+            </Paper>
           </>
         );
       case 1: // Map View
