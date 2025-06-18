@@ -11,7 +11,8 @@ import {
   Divider,
   Chip,
   Paper,
-  Skeleton
+  Skeleton,
+  CircularProgress
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -20,6 +21,10 @@ import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import SportsBasketballIcon from '@mui/icons-material/SportsBasketball';
 import SportsTennisIcon from '@mui/icons-material/SportsTennis';
 import SportsVolleyballIcon from '@mui/icons-material/SportsVolleyball';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+import SportsRugbyIcon from '@mui/icons-material/SportsRugby';
+import SportsHockeyIcon from '@mui/icons-material/SportsHockey';
+import ErrorIcon from '@mui/icons-material/Error';
 import { useAuth } from '../../hooks/useAuth';
 
 const LocationSelection = ({ matchData, onUpdateMatchData }) => {
@@ -28,85 +33,98 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
   const [filteredLocations, setFilteredLocations] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [sports, setSports] = useState({});
   
-  // Mock data for locations
-  const mockLocations = [
-    {
-      id: 1,
-      name: 'Padang Pusat Sukan A',
-      address: 'UiTM Shah Alam, Kompleks Sukan, Level 1',
-      sportTypes: ['football', 'futsal'],
-      sportIcons: [<SportsSoccerIcon key="football" />],
-      capacity: 30,
-      facilities: ['Changing Rooms', 'Showers', 'Water Cooler'],
-      courtCount: 2,
-      availableCourts: ['Court A1', 'Court A2']
-    },
-    {
-      id: 2,
-      name: 'Court Pusat Sukan B',
-      address: 'UiTM Shah Alam, Kompleks Sukan, Level 2',
-      sportTypes: ['basketball', 'volleyball'],
-      sportIcons: [<SportsBasketballIcon key="basketball" />, <SportsVolleyballIcon key="volleyball" />],
-      capacity: 20,
-      facilities: ['Changing Rooms', 'Water Cooler'],
-      courtCount: 3,
-      availableCourts: ['Court B1', 'Court B2', 'Court B3']
-    },
-    {
-      id: 3,
-      name: 'Court Pusat Sukan C',
-      address: 'UiTM Shah Alam, Kompleks Sukan, Level 1',
-      sportTypes: ['badminton'],
-      sportIcons: [<SportsTennisIcon key="badminton" />],
-      capacity: 16,
-      facilities: ['Changing Rooms', 'Showers', 'Water Cooler', 'Equipment Rental'],
-      courtCount: 8,
-      availableCourts: ['Court C1', 'Court C2', 'Court C3', 'Court C4', 'Court C5', 'Court C6', 'Court C7', 'Court C8']
-    },
-    {
-      id: 4,
-      name: 'Court Perindu A',
-      address: 'UiTM Shah Alam, Kolej Perindu, Block A',
-      sportTypes: ['basketball', 'volleyball'],
-      sportIcons: [<SportsBasketballIcon key="basketball" />, <SportsVolleyballIcon key="volleyball" />],
-      capacity: 15,
-      facilities: ['Water Cooler'],
-      courtCount: 1,
-      availableCourts: ['Main Court']
-    },
-    {
-      id: 5,
-      name: 'Court Perindu B',
-      address: 'UiTM Shah Alam, Kolej Perindu, Block B',
-      sportTypes: ['futsal'],
-      sportIcons: [<SportsSoccerIcon key="futsal" />],
-      capacity: 14,
-      facilities: ['Water Cooler', 'Seating Area'],
-      courtCount: 1,
-      availableCourts: ['Main Court']
-    },
-    {
-      id: 6,
-      name: 'UiTM Running Track',
-      address: 'UiTM Shah Alam, Pusat Sukan',
-      sportTypes: ['running'],
-      sportIcons: [],
-      capacity: 50,
-      facilities: ['Water Station', 'Changing Rooms', 'Lockers'],
-      courtCount: 1,
-      availableCourts: ['Main Track']
+  // Get appropriate sport icon based on sport name
+  const getSportIcon = (sportName) => {
+    if (!sportName) return <FitnessCenterIcon />;
+    
+    const name = sportName.toLowerCase();
+    if (name.includes('football') || name.includes('soccer')) {
+      return <SportsSoccerIcon />;
+    } else if (name.includes('futsal')) {
+      return <SportsSoccerIcon />;
+    } else if (name.includes('basketball')) {
+      return <SportsBasketballIcon />;
+    } else if (name.includes('volleyball')) {
+      return <SportsVolleyballIcon />;
+    } else if (name.includes('tennis') || name.includes('badminton')) {
+      return <SportsTennisIcon />;
+    } else if (name.includes('rugby')) {
+      return <SportsRugbyIcon />;
+    } else if (name.includes('hockey')) {
+      return <SportsHockeyIcon />;
+    } else if (name.includes('frisbee')) {
+      return <FitnessCenterIcon />;
     }
-  ];
+    
+    return <FitnessCenterIcon />;
+  };
   
   // Function to fetch real locations from Supabase
   const fetchLocations = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const { data, error } = await supabase
+      // First, fetch all sports to get their names and IDs
+      const { data: sportsData, error: sportsError } = await supabase
+        .from('sports')
+        .select('id, name');
+        
+      if (sportsError) {
+        console.error('Error fetching sports:', sportsError);
+        throw sportsError;
+      }
+      
+      // Create a map of sport IDs to names for quick lookup
+      const sportsMap = {};
+      if (sportsData && sportsData.length > 0) {
+        sportsData.forEach(sport => {
+          sportsMap[sport.id] = sport.name;
+        });
+        setSports(sportsMap);
+      }
+
+      // Get the sport ID based on matchData.sport (could be name or ID)
+      let sportId = matchData.sport;
+      let sportName = '';
+      
+      // If matchData.sport is not a UUID, try to find its ID from the sports map
+      if (matchData.sport && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matchData.sport)) {
+        // Find the sport ID by comparing names
+        const foundSportEntry = Object.entries(sportsMap).find(([id, name]) => 
+          name.toLowerCase() === matchData.sport.toLowerCase() ||
+          name.toLowerCase().includes(matchData.sport.toLowerCase()) ||
+          matchData.sport.toLowerCase().includes(name.toLowerCase())
+        );
+        
+        if (foundSportEntry) {
+          sportId = foundSportEntry[0]; // The ID
+          sportName = foundSportEntry[1]; // The name
+        } else {
+          sportName = matchData.sport;
+        }
+      } else if (sportsMap[matchData.sport]) {
+        // If it's already a UUID, get the name
+        sportName = sportsMap[matchData.sport];
+      }
+
+      console.log(`Fetching locations for sport: ${sportName} (ID: ${sportId})`);
+
+      // Query locations with the sport ID in supported_sports
+      let query = supabase
         .from('locations')
         .select('*')
         .order('name', { ascending: true });
+      
+      // If we have a valid sport ID, filter by it
+      if (sportId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sportId)) {
+        // Filter locations with the sportId in the supported_sports array
+        query = query.contains('supported_sports', [sportId]);
+      }
+      
+      const { data, error } = await query;
       
       if (error) {
         throw error;
@@ -115,37 +133,24 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
       if (data && data.length > 0) {
         // Transform database locations to match our UI format
         const formattedLocations = data.map(location => {
-          // Determine sport types from the facilities or other data
-          // This is a simplified approach - you may need to adjust based on your schema
+          // Determine sport types from supported_sports field
           const sportTypes = [];
           const sportIcons = [];
           
-          // For simplicity, we'll make some assumptions based on the location name
-          if (location.name.toLowerCase().includes('basketball')) {
-            sportTypes.push('basketball');
-            sportIcons.push(<SportsBasketballIcon key="basketball" />);
-          }
-          if (location.name.toLowerCase().includes('badminton')) {
-            sportTypes.push('badminton');
-            sportIcons.push(<SportsTennisIcon key="badminton" />);
-          }
-          if (location.name.toLowerCase().includes('futsal') || location.name.toLowerCase().includes('football')) {
-            sportTypes.push('futsal', 'football');
-            sportIcons.push(<SportsSoccerIcon key="futsal" />);
-          }
-          if (location.name.toLowerCase().includes('volleyball')) {
-            sportTypes.push('volleyball');
-            sportIcons.push(<SportsVolleyballIcon key="volleyball" />);
-          }
-          
-          // If no specific sports found, assume it supports all sports
-          if (sportTypes.length === 0) {
-            sportTypes.push('football', 'futsal', 'basketball', 'badminton', 'volleyball', 'running');
-            sportIcons.push(<SportsSoccerIcon key="general" />);
+          // Check if location has supported_sports field
+          if (location.supported_sports && Array.isArray(location.supported_sports) && location.supported_sports.length > 0) {
+            // Map sport IDs to sport names
+            location.supported_sports.forEach(sportId => {
+              const sportName = sportsMap[sportId];
+              if (sportName) {
+                sportTypes.push(sportName);
+                sportIcons.push(getSportIcon(sportName));
+              }
+            });
           }
           
           // Generate courts based on facilities data or defaults
-          const courtCount = location.facilities?.courts || 2;
+          const courtCount = location.facilities?.courts || 1;
           const availableCourts = Array(courtCount).fill(0).map((_, i) => `Court ${String.fromCharCode(65 + Math.floor(i/8))}${i % 8 + 1}`);
           
           // Extract facilities into an array
@@ -158,10 +163,16 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
             if (location.facilities.equipment_rental) facilities.push('Equipment Rental');
           }
           
-          // Use sensible defaults if no facilities data
+          // Use campus name as a basic facility if none specified
           if (facilities.length === 0) {
-            facilities.push('Basic Facilities');
+            facilities.push(location.campus || 'UiTM Campus');
           }
+
+          // Extract coordinates for map display
+          const coordinates = location.coordinates ? {
+            lat: location.coordinates.lat,
+            lng: location.coordinates.lng
+          } : null;
           
           return {
             id: location.id, // Use the UUID from the database
@@ -172,39 +183,41 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
             capacity: location.capacity || 20,
             facilities,
             courtCount,
-            availableCourts
+            availableCourts,
+            coordinates,
+            raw: location // Store the raw location data for debugging if needed
           };
         });
         
         console.log('Fetched real locations from Supabase:', formattedLocations);
         setLocations(formattedLocations);
         
-        // Filter by sport if needed
-        if (matchData.sport) {
-          const sportSpecificLocations = formattedLocations.filter(location => 
-            location.sportTypes.includes(matchData.sport)
-          );
+        // If we don't have a valid UUID but we have a sport name, filter by name
+        if ((!sportId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sportId)) && sportName) {
+          // Filter locations by sport name
+          const sportSpecificLocations = formattedLocations.filter(location => {
+            // Check if any of the sportTypes match the sport name
+            return location.sportTypes.some(type => 
+              type.toLowerCase().includes(sportName.toLowerCase()) || 
+              sportName.toLowerCase().includes(type.toLowerCase())
+            );
+          });
+          
           setFilteredLocations(sportSpecificLocations);
         } else {
+          // If we have a valid UUID, the query already filtered by supported_sports
           setFilteredLocations(formattedLocations);
         }
       } else {
-        console.warn('No locations found in database, falling back to mock data');
-        // Fallback to mock data if no locations found
-        const sportSpecificLocations = mockLocations.filter(location => 
-          !matchData.sport || location.sportTypes.includes(matchData.sport)
-        );
-        setLocations(sportSpecificLocations);
-        setFilteredLocations(sportSpecificLocations);
+        console.warn('No locations found in database for this sport');
+        setLocations([]);
+        setFilteredLocations([]);
       }
     } catch (error) {
       console.error('Error fetching locations:', error);
-      // Fallback to mock data on error
-      const sportSpecificLocations = mockLocations.filter(location => 
-        !matchData.sport || location.sportTypes.includes(matchData.sport)
-      );
-      setLocations(sportSpecificLocations);
-      setFilteredLocations(sportSpecificLocations);
+      setError('Failed to load locations. Please try again later.');
+      setLocations([]);
+      setFilteredLocations([]);
     } finally {
       setLoading(false);
     }
@@ -236,6 +249,7 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
   const handleSelectLocation = (location) => {
     onUpdateMatchData({ 
       location: location,
+      location_id: location.id, // Make sure to include the location_id
       courtName: location.availableCourts[0] // Default to first court
     });
   };
@@ -270,6 +284,16 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
           ),
         }}
       />
+      
+      {/* Error message */}
+      {error && (
+        <Paper sx={{ p: 3, mb: 3, bgcolor: 'error.light', borderRadius: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <ErrorIcon sx={{ mr: 1, color: 'error.main' }} />
+            <Typography color="error.main">{error}</Typography>
+          </Box>
+        </Paper>
+      )}
       
       {/* Locations Grid */}
       <Grid container spacing={2}>
@@ -321,6 +345,67 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
                 >
                   <CardContent>
                     <Grid container spacing={2}>
+                      <Grid item xs={12} sm={4}>
+                        {/* Venue Image */}
+                        <Box 
+                          sx={{ 
+                            width: '100%', 
+                            height: '150px', 
+                            borderRadius: 1, 
+                            overflow: 'hidden',
+                            mb: 1,
+                            bgcolor: 'action.hover'
+                          }}
+                        >
+                          <img 
+                            src={location.raw.image_url || `https://placehold.co/500x300/e0e0e0/7a7a7a?text=${encodeURIComponent(location.name)}`} 
+                            alt={location.name}
+                            style={{ 
+                              width: '100%', 
+                              height: '100%', 
+                              objectFit: 'cover',
+                              objectPosition: 'center'
+                            }}
+                            loading="lazy"
+                          />
+                        </Box>
+                        
+                        {/* Sport types */}
+                        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                          <Typography variant="body2" fontWeight={500} gutterBottom>
+                            Available for:
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                            {location.sportTypes.map((sport, index) => (
+                              <Chip 
+                                key={index}
+                                icon={location.sportIcons[index]}
+                                label={sport.charAt(0).toUpperCase() + sport.slice(1)}
+                                size="small"
+                                color={
+                                  sport.toLowerCase() === matchData.sport?.toLowerCase() ||
+                                  sport.toLowerCase().includes(matchData.sport?.toLowerCase()) ||
+                                  matchData.sport?.toLowerCase().includes(sport.toLowerCase())
+                                    ? 'primary' 
+                                    : 'default'
+                                }
+                                variant={
+                                  sport.toLowerCase() === matchData.sport?.toLowerCase() ||
+                                  sport.toLowerCase().includes(matchData.sport?.toLowerCase()) ||
+                                  matchData.sport?.toLowerCase().includes(sport.toLowerCase())
+                                    ? 'filled' 
+                                    : 'outlined'
+                                }
+                              />
+                            ))}
+                          </Box>
+                          
+                          <Typography variant="body2" fontWeight={500} gutterBottom>
+                            {location.courtCount} {location.courtCount === 1 ? 'Court' : 'Courts'} Available
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      
                       <Grid item xs={12} sm={8}>
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                           <Typography variant="h3" component="h3" sx={{ flexGrow: 1 }}>
@@ -338,6 +423,41 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
                           </Typography>
                         </Box>
                         
+                        {/* Mini map preview if coordinates available */}
+                        {location.coordinates && (
+                          <Box 
+                            sx={{ 
+                              mb: 2,
+                              height: '80px',
+                              borderRadius: 1,
+                              overflow: 'hidden',
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              position: 'relative',
+                              '&::after': {
+                                content: '""',
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                width: '12px',
+                                height: '12px',
+                                borderRadius: '50%',
+                                backgroundColor: 'primary.main',
+                                border: '2px solid white',
+                                zIndex: 10
+                              }
+                            }}
+                          >
+                            <img 
+                              src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s+1976d2(${location.coordinates.lng},${location.coordinates.lat})/${location.coordinates.lng},${location.coordinates.lat},15,0/300x100?access_token=pk.eyJ1IjoiZXhhbXBsZXVzZXIiLCJhIjoiY2xoOGF5cHpiMWJvbzNlbnV6NWw3Z2s5dSJ9.3MXKwQOfEuICLqZ8w8kJkw`}
+                              alt="Location Map"
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          </Box>
+                        )}
+                        
+                        {/* Facility chips */}
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
                           {location.facilities.map((facility, index) => (
                             <Chip 
@@ -352,30 +472,6 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
                         <Typography variant="body2">
                           <strong>Capacity:</strong> Up to {location.capacity} participants
                         </Typography>
-                      </Grid>
-                      
-                      <Grid item xs={12} sm={4}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                          <Typography variant="body2" fontWeight={500} gutterBottom>
-                            Available for:
-                          </Typography>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 'auto' }}>
-                            {location.sportTypes.map((sport, index) => (
-                              <Chip 
-                                key={index}
-                                icon={location.sportIcons[index]}
-                                label={sport.charAt(0).toUpperCase() + sport.slice(1)}
-                                size="small"
-                                color={sport === matchData.sport ? 'primary' : 'default'}
-                                variant={sport === matchData.sport ? 'filled' : 'outlined'}
-                              />
-                            ))}
-                          </Box>
-                          
-                          <Typography variant="body2" fontWeight={500} sx={{ mt: 2, mb: 1 }}>
-                            {location.courtCount} {location.courtCount === 1 ? 'Court' : 'Courts'} Available
-                          </Typography>
-                        </Box>
                       </Grid>
                     </Grid>
                   </CardContent>
@@ -410,14 +506,71 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
       </Grid>
       
       {matchData.location && (
-        <Box sx={{ mt: 3, bgcolor: 'secondary.light', p: 2, borderRadius: 2 }}>
-          <Typography variant="body1" color="text.secondary">
-            <strong>Selected Location:</strong> {matchData.location.name}
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            <strong>Selected Court:</strong> {matchData.courtName}
-          </Typography>
-        </Box>
+        <Paper sx={{ mt: 4, p: 3, borderRadius: 2 }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Box sx={{ textAlign: 'left' }}>
+                <Typography variant="h3" gutterBottom>
+                  Selected Location: {matchData.location.name}
+                </Typography>
+                
+                <Typography variant="body1" sx={{ mb: 2, fontWeight: 500, color: 'primary.main' }}>
+                  {matchData.courtName ? `Selected court: ${matchData.courtName}` : 'No specific court selected'}
+                </Typography>
+                
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <LocationOnIcon fontSize="small" color="action" sx={{ mr: 1 }} />
+                    <Typography variant="body1">{matchData.location.address}</Typography>
+                  </Box>
+                  
+                  {matchData.location.sportTypes.length > 0 && (
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <SportsSoccerIcon fontSize="small" color="action" sx={{ mr: 1 }} />
+                      <Typography variant="body1">
+                        Sports: {matchData.location.sportTypes.join(', ')}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+                
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                  {matchData.location.facilities.map((facility, index) => (
+                    <Chip 
+                      key={index} 
+                      label={facility} 
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                  ))}
+                </Box>
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              {/* Larger map view for the selected location */}
+              {matchData.location.coordinates && (
+                <Box 
+                  sx={{ 
+                    width: '100%',
+                    height: '200px',
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <img 
+                    src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-l+1976d2(${matchData.location.coordinates.lng},${matchData.location.coordinates.lat})/${matchData.location.coordinates.lng},${matchData.location.coordinates.lat},15,0/600x300?access_token=pk.eyJ1IjoiZXhhbXBsZXVzZXIiLCJhIjoiY2xoOGF5cHpiMWJvbzNlbnV6NWw3Z2s5dSJ9.3MXKwQOfEuICLqZ8w8kJkw`}
+                    alt="Selected Location Map"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </Box>
+              )}
+            </Grid>
+          </Grid>
+        </Paper>
       )}
     </Box>
   );

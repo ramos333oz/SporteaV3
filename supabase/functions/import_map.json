@@ -3,6 +3,7 @@
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.24.0",
     "@xenova/transformers": "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.8.0",
     "https://esm.sh/@supabase/supabase-js@2.24.0": "https://esm.sh/@supabase/supabase-js@2.24.0",
-    "std/": "https://deno.land/std@0.168.0/"
+    "std/": "https://deno.land/std@0.168.0/",
+    "deno/": "https://deno.land/api@v1.34.0/"
   }
 }

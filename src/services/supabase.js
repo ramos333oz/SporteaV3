@@ -1387,6 +1387,11 @@ export const locationService = {
     return data;
   },
   
+  // Alias for getAllLocations for API consistency
+  getLocations: async () => {
+    return await locationService.getAllLocations();
+  },
+  
   // Get locations by campus
   getLocationsByCampus: async (campus) => {
     const { data, error } = await supabase

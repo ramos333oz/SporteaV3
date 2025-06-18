@@ -19,10 +19,8 @@ import Admin from './pages/Admin';
 import NotFound from './pages/NotFound';
 import AuthCallback from './pages/Auth/AuthCallback';
 import ErrorDebug from './pages/ErrorDebug';
-import EmergencyAccess from './pages/EmergencyAccess';
 import AuthDebug from './pages/AuthDebug';
 import DirectHome from './pages/DirectHome';
-import TestRecommendations from './pages/Find/TestRecommendations';
 import Friends from './pages/Friends';
 import FindPlayers from './pages/Find/FindPlayers';
 
@@ -328,7 +326,6 @@ function App() {
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/not-found" element={<NotFound />} />
                 <Route path="/debug" element={<ErrorDebug />} />
-                <Route path="/emergency" element={<EmergencyAccess />} />
                 <Route path="/auth-debug" element={<AuthDebug />} />
                 <Route path="/direct-home" element={<DirectHome />} />
                 
@@ -351,7 +348,6 @@ function App() {
                   <Route path="/match/:matchId" element={<MatchDetail />} />
                   <Route path="/edit-match/:matchId" element={<EditMatch />} />
                   <Route path="/admin" element={<Admin />} />
-                  <Route path="/test-recommendations" element={<TestRecommendations />} />
                   <Route path="/friends" element={<Friends />} />
                 </Route>
                 

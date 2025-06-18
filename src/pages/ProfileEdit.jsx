@@ -23,7 +23,8 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { userService } from '../services/supabase';
+import { userService, locationService } from '../services/supabase';
+import recommendationService from '../services/recommendationService';
 import { useToast } from '../contexts/ToastContext';
 import PhotoCamera from '@mui/icons-material/PhotoCamera';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -36,6 +37,7 @@ import SportsBaseballIcon from '@mui/icons-material/SportsBaseball';
 import SportsMmaIcon from '@mui/icons-material/SportsMma';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
+import ProfilePreferences from '../components/ProfilePreferences';
 
 // Map sport names to their respective icons (same as in Profile.jsx)
 const getSportIcon = (sportName) => {
@@ -67,11 +69,12 @@ const skillLevels = ['Beginner', 'Intermediate', 'Advanced', 'Professional'];
 const ProfileEdit = () => {
   const { user, supabase } = useAuth();
   const navigate = useNavigate();
-  const { showSuccessToast, showErrorToast } = useToast();
+  const { showSuccessToast, showErrorToast, showWarningToast } = useToast();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [locations, setLocations] = useState([]);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -81,7 +84,17 @@ const ProfileEdit = () => {
     avatarUrl: null,
     faculty: '',
     campus: '',
-    sports: []
+    state: '',
+    sports: [],
+    // New preference fields
+    available_days: [],
+    available_hours: {},
+    preferred_facilities: [],
+    home_location: null,
+    play_style: 'casual',
+    gender: '',
+    age: '',
+    duration_preference: '',
   });
   
   // New sport state
@@ -94,6 +107,72 @@ const ProfileEdit = () => {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   
+  // Faculty options
+  const facultyOptions = [
+    "COMPUTER SCIENCES",
+    "ENGINEERING",
+    "ARTS",
+    "MASSCOM",
+    "SPORT SCIENCES AND RECREATION",
+    "LANGUAGE",
+    "APB"
+  ];
+  
+  // State options (replacing campus)
+  const stateOptions = [
+    "SELANGOR",
+    "SARAWAK",
+    "SABAH",
+    "JOHOR",
+    "PAHANG",
+    "PERAK",
+    "NEGERI SEMBILAN",
+    "KEDAH",
+    "PERLIS",
+    "KELANTAN",
+    "MELAKA",
+    "TERENGGANU",
+    "PENANG"
+  ];
+  
+  // Gender options
+  const genderOptions = [
+    "Male",
+    "Female",
+    "Other",
+    "Prefer not to say"
+  ];
+  
+  // Age range preferences
+  const ageRangeOptions = [
+    "18-21",
+    "21-25",
+    "25-30",
+    "30+"
+  ];
+  
+  // Duration preferences
+  const durationOptions = [
+    "Less than 1 hour",
+    "1 hour",
+    "2 hours",
+    "2+ hours"
+  ];
+  
+  // Fetch locations for facility selection
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const locationsData = await locationService.getLocations();
+        setLocations(locationsData || []);
+      } catch (error) {
+        console.error('Error fetching locations:', error);
+      }
+    };
+    
+    fetchLocations();
+  }, []);
+  
   // Fetch user profile data on component mount
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -103,22 +182,71 @@ const ProfileEdit = () => {
         setLoading(true);
         setError(null);
         
+        // Get profile data from userService
         const profileData = await userService.getProfile(user.id);
         
+        // Get user data from the users table (all valid columns only)
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('available_days, available_hours, preferred_facilities, faculty, campus, home_location, play_style, gender')
+          .eq('id', user.id)
+          .single();
+        
+        if (userError) {
+          console.error('Error fetching user data:', userError);
+        }
+        
+        // Also fetch user preferences from user_preferences table
+        const { data: userPreferences, error: preferencesError } = await supabase
+          .from('user_preferences')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (preferencesError && preferencesError.code !== 'PGRST116') {
+          console.error('Error fetching user preferences:', preferencesError);
+        }
+        
+        // Log values to see what's happening
+        console.log('Profile Data:', profileData);
+        console.log('User Data:', userData);
+        console.log('User Preferences:', userPreferences);
+        
+        // Prepare combined data from all sources
         setFormData({
           username: profileData.username || '',
           fullName: profileData.full_name || '',
           bio: profileData.bio || '',
           avatarUrl: profileData.avatar_url || null,
-          faculty: profileData.faculty || '',
-          campus: profileData.campus || '',
+          faculty: userData?.faculty || '',
+          campus: userData?.campus || '', 
+          state: userData?.campus || '', // Map campus to state for the form
+          gender: userData?.gender || '',
+          age: userPreferences?.age || '',
+          duration_preference: userPreferences?.duration_preference || '',
           sports: Array.isArray(profileData.sport_preferences) 
             ? profileData.sport_preferences.map((sport, index) => ({
                 id: index + 1,
                 name: sport.name,
                 level: sport.level || 'Beginner'
               }))
-            : []
+            : userPreferences?.sport_preferences 
+              ? userPreferences.sport_preferences.map((sport, index) => ({
+                  id: index + 1,
+                  name: sport.name,
+                  level: sport.level || 'Beginner'
+                }))
+              : [],
+          // Add new preference fields from user data and user_preferences
+          available_days: userData?.available_days || userPreferences?.time_preferences?.days || [],
+          available_hours: {
+            ...(userData?.available_hours || {}),
+            available_times: userData?.available_hours?.available_times || 
+                          userPreferences?.time_preferences?.hours || []
+          },
+          preferred_facilities: userData?.preferred_facilities || userPreferences?.location_preferences || [],
+          home_location: userData?.home_location || null,
+          play_style: userData?.play_style || 'casual'
         });
         
         if (profileData.avatar_url) {
@@ -133,7 +261,7 @@ const ProfileEdit = () => {
     };
     
     fetchUserProfile();
-  }, [user]);
+  }, [user, supabase]);
   
   // Handle form field changes
   const handleChange = (e) => {
@@ -220,36 +348,30 @@ const ProfileEdit = () => {
   
   // Add a new sport to the list
   const handleAddSport = () => {
-    if (!newSport) {
-      showErrorToast('Please select a sport');
+    if (!newSport || !newSkillLevel) {
       return;
     }
     
-    // Check if sport already exists
-    const sportExists = formData.sports.some(sport => 
-      sport.name.toLowerCase() === newSport.toLowerCase()
-    );
+    // Generate a unique ID for the new sport
+    const sportId = Date.now().toString();
     
-    if (sportExists) {
-      showErrorToast('This sport is already in your preferences');
-      return;
-    }
+    const updatedSports = [
+      ...formData.sports,
+      {
+        id: sportId,
+        name: newSport,
+        level: newSkillLevel
+      }
+    ];
     
-    setFormData(prev => ({
-      ...prev,
-      sports: [
-        ...prev.sports,
-        {
-          id: Date.now(), // Use timestamp as temporary ID
-          name: newSport,
-          level: newSkillLevel
-        }
-      ]
-    }));
+    setFormData({
+      ...formData,
+      sports: updatedSports
+    });
     
-    // Reset sport form
+    // Reset form
     setNewSport('');
-    setNewSkillLevel('Beginner');
+    setNewSkillLevel('');
     setShowSportForm(false);
   };
   
@@ -261,44 +383,172 @@ const ProfileEdit = () => {
     }));
   };
   
+  // Handle preference changes from ProfilePreferences component
+  const handlePreferenceChange = (preferences) => {
+    setFormData(prev => {
+      // Make sure we preserve the structure needed for the database
+      const updatedPreferences = {
+        ...prev,
+        ...preferences,
+        // Ensure available_hours has the right structure with available_times
+        available_hours: {
+          ...preferences.available_hours,
+          available_times: extractAvailableTimes(preferences.available_hours)
+        }
+      };
+      return updatedPreferences;
+    });
+  };
+  
+  // Extract available times from the available_hours object structure
+  const extractAvailableTimes = (availableHours) => {
+    if (!availableHours) return [];
+    
+    // Skip if it's already in the right format
+    if (availableHours.available_times) return availableHours.available_times;
+    
+    const availableTimes = [];
+    // Process each day's time slots
+    Object.keys(availableHours).forEach(day => {
+      if (Array.isArray(availableHours[day])) {
+        availableHours[day].forEach(timeSlot => {
+          if (timeSlot.start && timeSlot.end) {
+            availableTimes.push({
+              day,
+              start: timeSlot.start,
+              end: timeSlot.end
+            });
+          }
+        });
+      }
+    });
+    
+    return availableTimes;
+  };
+  
+  // Process available hours from database format to component format
+  const processAvailableHours = (availableHours) => {
+    if (!availableHours) return {};
+    
+    console.log("Processing available hours:", availableHours);
+    
+    // If there are no available_times, return as is
+    if (!availableHours.available_times || !Array.isArray(availableHours.available_times) || availableHours.available_times.length === 0) {
+      return availableHours;
+    }
+    
+    // Convert from array format to day-based object format
+    const processedHours = {};
+    
+    availableHours.available_times.forEach(timeSlot => {
+      const { day, start, end } = timeSlot;
+      
+      if (!day || !start || !end) return;
+      
+      if (!processedHours[day]) {
+        processedHours[day] = [];
+      }
+      
+      processedHours[day].push({ start, end });
+    });
+    
+    console.log("Processed hours:", processedHours);
+    return processedHours;
+  };
+  
   // Submit form data
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setSaving(true);
     
     try {
-      setSaving(true);
-      setError(null);
+      // Update user profile in users table
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          username: formData.username,
+          full_name: formData.fullName,
+          bio: formData.bio,
+          faculty: formData.faculty,
+          campus: formData.state, // Store state in the campus field
+          gender: formData.gender,
+          available_days: formData.available_days,
+          available_hours: formData.available_hours,
+          preferred_facilities: formData.preferred_facilities,
+          home_location: formData.home_location,
+          play_style: formData.play_style,
+          sport_preferences: formData.sports
+        })
+        .eq('id', user.id);
+        
+      if (updateError) throw new Error(updateError.message);
       
-      // Upload avatar if a new one is selected
-      let avatarUrl = formData.avatarUrl;
-      if (avatarFile) {
-        avatarUrl = await uploadAvatar();
-      }
-      
-      // Prepare data for update
-      const updateData = {
-        username: formData.username,
-        full_name: formData.fullName,
-        bio: formData.bio,
-        avatar_url: avatarUrl,
-        faculty: formData.faculty,
-        campus: formData.campus,
-        sport_preferences: formData.sports.map(sport => ({
-          name: sport.name,
-          level: sport.level
+      // Now also update the user_preferences table for the recommendation system
+      const preferenceData = {
+        user_id: user.id,
+        sport_preferences: formData.sports.map(sport => ({ 
+          name: sport.name, 
+          level: sport.level 
         })),
-        updated_at: new Date().toISOString()
+        skill_level_preferences: {
+          default: formData.sports.length > 0 ? formData.sports[0].level : 'intermediate'
+        },
+        time_preferences: {
+          days: formData.available_days,
+          hours: formData.available_hours.available_times || []
+        },
+        location_preferences: formData.preferred_facilities,
+        age: formData.age,
+        duration_preference: formData.duration_preference
       };
       
-      // Update user profile
-      await userService.updateProfile(user.id, updateData);
+      // Check if user_preferences entry exists
+      const { data: existingPrefs, error: checkError } = await supabase
+        .from('user_preferences')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+        
+      if (checkError) throw new Error(checkError.message);
       
-      showSuccessToast('Profile updated successfully');
-      navigate(`/profile`);
+      // Update or insert user_preferences
+      if (existingPrefs) {
+        // Update existing preferences
+        const { error: prefUpdateError } = await supabase
+          .from('user_preferences')
+          .update(preferenceData)
+          .eq('user_id', user.id);
+          
+        if (prefUpdateError) throw new Error(prefUpdateError.message);
+      } else {
+        // Insert new preferences
+        const { error: prefInsertError } = await supabase
+          .from('user_preferences')
+          .insert(preferenceData);
+          
+        if (prefInsertError) throw new Error(prefInsertError.message);
+      }
+      
+      // Handle avatar update if needed
+      if (avatarFile) {
+        const avatarUrl = await uploadAvatar();
+        // Update avatar_url in the database
+        if (avatarUrl) {
+          const { error: avatarUpdateError } = await supabase
+            .from('users')
+            .update({ avatar_url: avatarUrl })
+            .eq('id', user.id);
+            
+          if (avatarUpdateError) throw new Error(avatarUpdateError.message);
+        }
+      }
+      
+      showSuccessToast('Profile Updated', 'Your profile has been updated successfully');
+      navigate('/profile');
     } catch (error) {
       console.error('Error updating profile:', error);
-      setError('Failed to update profile. Please try again.');
-      showErrorToast('Error updating profile');
+      setError(error.message || 'Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -425,33 +675,113 @@ const ProfileEdit = () => {
                 multiline
                 rows={3}
                 helperText="Tell others about yourself"
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    '& textarea': {
+                      padding: '14px'
+                    }
+                  }
+                }}
               />
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth margin="normal" variant="outlined">
+                <InputLabel id="faculty-label">Faculty</InputLabel>
+                <Select
+                  labelId="faculty-label"
+                  id="faculty"
+                  name="faculty"
+                  value={formData.faculty}
+                  onChange={handleChange}
+                  label="Faculty"
+                >
+                  <MenuItem value="">Select Faculty</MenuItem>
+                  {facultyOptions.map((faculty) => (
+                    <MenuItem key={faculty} value={faculty}>
+                      {faculty}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth margin="normal" variant="outlined">
+                <InputLabel id="state-label">State</InputLabel>
+                <Select
+                  labelId="state-label"
+                  id="state"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleChange}
+                  label="State"
+                >
+                  <MenuItem value="">Select State</MenuItem>
+                  {stateOptions.map((state) => (
+                    <MenuItem key={state} value={state}>
+                      {state}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth margin="normal" variant="outlined">
+                <InputLabel id="gender-label">Gender</InputLabel>
+                <Select
+                  labelId="gender-label"
+                  id="gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  label="Gender"
+                >
+                  <MenuItem value="">Select Gender</MenuItem>
+                  {genderOptions.map((gender) => (
+                    <MenuItem key={gender} value={gender}>
+                      {gender}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
             
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Faculty"
-                name="faculty"
-                value={formData.faculty}
-                onChange={handleChange}
+                label="Age"
+                name="age"
+                type="number"
+                inputProps={{ min: 18, max: 100 }}
+                value={formData.age}
+                  onChange={handleChange}
                 margin="normal"
                 variant="outlined"
-                helperText="Your faculty at UiTM"
+                helperText="Your age (must be at least 18)"
               />
             </Grid>
             
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Campus"
-                name="campus"
-                value={formData.campus}
-                onChange={handleChange}
-                margin="normal"
-                variant="outlined"
-                helperText="Your campus location"
-              />
+              <FormControl fullWidth margin="normal" variant="outlined">
+                <InputLabel id="duration-label">Preferred Duration</InputLabel>
+                <Select
+                  labelId="duration-label"
+                  id="duration_preference"
+                  name="duration_preference"
+                  value={formData.duration_preference}
+                  onChange={handleChange}
+                  label="Preferred Duration"
+                >
+                  <MenuItem value="">Select Duration</MenuItem>
+                  {durationOptions.map((duration) => (
+                    <MenuItem key={duration} value={duration}>
+                      {duration}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
             
             {/* Sports Preferences */}
@@ -566,6 +896,30 @@ const ProfileEdit = () => {
                   ))}
                 </Grid>
               )}
+            </Grid>
+            
+            {/* Recommendation Preferences Section */}
+            <Grid item xs={12}>
+              <Divider sx={{ my: 3 }} />
+              <Typography variant="h5" sx={{ mb: 3 }}>
+                Match Recommendation Preferences
+              </Typography>
+              
+              <Card variant="outlined" sx={{ mb: 3 }}>
+                <CardContent>
+                  <ProfilePreferences 
+                    value={{
+                      available_days: formData.available_days,
+                      available_hours: processAvailableHours(formData.available_hours),
+                      preferred_facilities: formData.preferred_facilities,
+                      home_location: formData.home_location,
+                      play_style: formData.play_style
+                    }}
+                    onChange={handlePreferenceChange}
+                    facilities={locations}
+                  />
+                </CardContent>
+              </Card>
             </Grid>
             
             {/* Submit Buttons */}

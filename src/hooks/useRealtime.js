@@ -3,7 +3,7 @@ import realtimeService from '../services/realtime';
 import { supabase } from '../services/supabase';
 
 // Enhanced debug logging for real-time connections
-const DEBUG_MODE = true;
+const DEBUG_MODE = false; // Set to false to reduce logging in production
 const LOG_PREFIX = '[Sportea Realtime]';
 
 /**
@@ -80,7 +80,6 @@ const useRealtime = () => {
       // Method 1: First check for socket in transport.conn
       if (supabase.realtime?.transport?.conn) {
         const conn = supabase.realtime.transport.conn;
-        log(`Transport conn found:`, !!conn);
         
         if (conn.transport && conn.transport.ws) {
           // Phoenix transport's WebSocket
@@ -113,7 +112,6 @@ const useRealtime = () => {
           typeof supabase.realtime.transport.connectionState === 'string') {
         
         const internalState = supabase.realtime.transport.connectionState;
-        log(`Internal transport connection state: ${internalState}`);
         const transportConnected = internalState === 'open' || internalState === 'connected';
         
         if (transportConnected) {
@@ -122,48 +120,17 @@ const useRealtime = () => {
         }
       }
       
-      // Method 4: Check alternative socket paths (v2.x structures)
-      const alternativePaths = [
-        'connection.socket',
-        '_socket',
-        'conn.socket',
-        'conn.transport.ws',
-        'connection.conn.transport.ws'
-      ];
-      
-      for (const path of alternativePaths) {
-        try {
-          const parts = path.split('.');
-          let obj = supabase.realtime;
-          
-          for (const part of parts) {
-            obj = obj?.[part];
-            if (!obj) break;
-          }
-          
-          if (obj && typeof obj.readyState === 'number') {
-            const socketState = obj.readyState;
-            const connected = socketState === 1; // WebSocket.OPEN
-            log(`Found WebSocket at path: ${path}, state: ${socketState}, connected: ${connected}`);
-            return connected;
-          }
-        } catch (e) {
-          // Just try next path
-        }
-      }
-      
       // Method 4: Last resort - check channel state but ONLY if we haven't determined socket is closed
       if (supabase.realtime.channels && Array.isArray(supabase.realtime.channels) && 
           supabase.realtime.channels.length > 0) {
           
         const channelStates = supabase.realtime.channels.map(ch => ch.state || 'unknown');
-        log('Channel states:', channelStates.join(', '));
         
         const anyChannelConnected = channelStates.some(state => 
           state === 'joined' || state === 'joining');
         
         if (anyChannelConnected) {
-          log('WARNING: At least one channel is connected/joining but socket status unclear');
+          log('At least one channel is connected/joining');
           // This is risky but might work for some clients
           return true;
         }
@@ -200,16 +167,29 @@ const useRealtime = () => {
       try {
         log(`Attempting reconnection (attempt ${connectionState.connectionAttempts})`);
         
-        // Reset subscriptions instead of trying to force reconnect which causes errors
-        if (realtimeService && typeof realtimeService.resetSubscriptions === 'function') {
-          realtimeService.resetSubscriptions();
-          log('Reset all subscriptions via realtimeService');
-        } else if (realtimeService && typeof realtimeService.resetChannels === 'function') {
-          // Fallback to resetChannels if available
-          realtimeService.resetChannels();
-          log('Reset all channels via realtimeService');
+        // Check if realtimeService is available
+        if (!realtimeService) {
+          log('RealtimeService not available');
         } else {
-          log('RealtimeService reset methods not available');
+          // First try the primary method name
+          if (typeof realtimeService.resetSubscriptions === 'function') {
+            realtimeService.resetSubscriptions();
+            log('Reset all subscriptions via realtimeService.resetSubscriptions()');
+          } 
+          // Only as a last resort, try the alias method
+          else if (typeof realtimeService.resetChannels === 'function') {
+            realtimeService.resetChannels();
+            log('Reset all channels via realtimeService.resetChannels()');
+          } 
+          else {
+            log('Neither resetSubscriptions nor resetChannels methods available on realtimeService');
+            
+            // Fallback to direct reconnection if we have no other options
+            if (supabase.realtime && typeof supabase.realtime.connect === 'function') {
+              log('Attempting direct supabase.realtime.connect() as fallback');
+              supabase.realtime.connect();
+            }
+          }
         }
         
         // Check connection after a delay
@@ -287,141 +267,68 @@ const useRealtime = () => {
     }, delay);
   }, [checkConnectionStatus, getBackoffDelay, connectionState.connectionAttempts]);
 
-  // Setup the connection state monitoring
+  // Set up heartbeat check to periodically verify connection
   useEffect(() => {
-    const projectRef = 'fcwwuiitsghknsvnsrxp'; // Sporteav2 project ref
-    const fallbackWsUrl = `wss://${projectRef}.supabase.co/realtime/v1/websocket`;
-    
-    // Log the initial connection status
-    log('Initiating connection to Supabase real-time...');
-    let connected = checkConnectionStatus();
-    log('Initial connection status:', connected ? 'Connected' : 'Disconnected');
-    
-    // Force connect on initial load
-    if (supabase.realtime && typeof supabase.realtime.connect === 'function') {
-      try {
-        // Proactively connect on initial load
-        supabase.realtime.connect();
-        log('Proactively initiated connection');
-      } catch (err) {
-        logError('Error during proactive connection:', err);
-      }
-    }
-    
-    // Force disconnect/reconnect if initial connection is not established
-    if (!connected) {
-      log('Initial connection not established, will try connect automatically');
-      
-      // Check connection after a short delay
-      setTimeout(() => {
-        connected = checkConnectionStatus();
-        log('Connection status check:', connected ? 'Connected' : 'Disconnected');
-        if (!connected) {
-          log('Connection failed, starting reconnection process');
-          // Schedule first reconnection attempt
-          scheduleReconnect();
-        }
-      }, 2000);
-      
-      // Try an additional connection attempt with increased delay
-      // This helps in cases where the first attempt might fail due to timing issues
-      setTimeout(() => {
-        connected = checkConnectionStatus();
-        if (!connected) {
-          log('Additional connection attempt after delay');
-          if (supabase.realtime && typeof supabase.realtime.connect === 'function') {
-            try {
-              supabase.realtime.connect();
-            } catch (err) {
-              logError('Error during additional connection attempt:', err);
-            }
-          }
-        }
-      }, 5000);
-    }
-    
-    // Set up direct socket monitoring rather than using potentially unavailable onStateChange
-    const heartbeatCheckInterval = 15000; // 15 seconds (increased for stability)
-    heartbeatInterval.current = setInterval(() => {
-      // Get the current connection status using our improved detector
+    // Function to check connection health
+    const checkHeartbeat = () => {
       const connected = checkConnectionStatus();
-      
-      // Log periodically for debugging
-      if (DEBUG_MODE) {
         log('Heartbeat check - Connected:', connected);
-      }
       
-      // Reset failure counter if connected
       if (connected) {
-        if (heartbeatFailureCounter.current > 0) {
-          log(`Resetting failure counter (was ${heartbeatFailureCounter.current})`);
-        }
+        // Reset failure counter on successful connection
         heartbeatFailureCounter.current = 0;
         
-        // Make sure our internal state matches reality
-        if (!connectionState.isConnected) {
-          log('✅ Socket is connected but state doesn\'t match - updating state');
-          setConnectionState(prev => ({
+        // Update connection state if it's different
+        setConnectionState(prev => {
+          if (!prev.isConnected) {
+            return {
             ...prev,
             isConnected: true,
             reconnecting: false,
             lastConnected: new Date()
-          }));
+            };
         }
-        return; // Exit early if connected
-      }
-      
-      // If we reach here, we're not connected
-      // Increment failure counter
-      heartbeatFailureCounter.current++;
-      
-      // Log details about the realtime client to help diagnose issues
-      if (supabase.realtime) {
-        // Check for the most common WebSocket location in v2.39.0
-        const phoenixSocket = supabase.realtime?.transport?.conn?.transport?.ws;
-        if (phoenixSocket) {
-          const stateNames = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
-          log(`Phoenix WebSocket state: ${phoenixSocket.readyState} (${stateNames[phoenixSocket.readyState] || 'UNKNOWN'})`);
+          return prev; // No change needed
+        });
         } else {
-          log('Phoenix WebSocket not found');
-        }
-      }
-      
-      // Multiple failed heartbeats should trigger a reconnection attempt
-      if (heartbeatFailureCounter.current >= 3) {
-        log(`⚠️ Multiple consecutive failures (${heartbeatFailureCounter.current}), triggering reconnect`);
+        // Count consecutive failures
+        heartbeatFailureCounter.current += 1;
         
-        // Update connection state to show we're disconnected and attempting reconnection
+        // If we have multiple consecutive failures, try to reconnect
+      if (heartbeatFailureCounter.current >= 3) {
+          log('⚠️ Multiple consecutive failures ('+ heartbeatFailureCounter.current +'), triggering reconnect');
+        
+          // Only update state and attempt reconnect if not already reconnecting
         setConnectionState(prev => {
-          if (prev.isConnected) {
+            if (prev.isConnected || !prev.reconnecting) {
             return {
               ...prev,
               isConnected: false,
-              reconnecting: true,
-              connectionAttempts: prev.connectionAttempts + 1
+                reconnecting: true
             };
           }
           return prev;
         });
         
-        // Trigger a reconnect attempt
+          // Schedule reconnection with backoff
         scheduleReconnect();
       }
-    }, heartbeatCheckInterval);
+      }
+    };
     
+    // Start heartbeat checks (every 30 seconds)
+    heartbeatInterval.current = setInterval(checkHeartbeat, 30000);
+    
+    // Initial check
+    checkHeartbeat();
+    
+    // Cleanup on unmount
     return () => {
-      console.log('Cleaning up real-time connection monitoring');
-      
-      // Clear intervals and timeouts
       if (heartbeatInterval.current) {
         clearInterval(heartbeatInterval.current);
       }
-      
-      if (reconnectTimeout.current) {
-        clearTimeout(reconnectTimeout.current);
-      }
     };
-  }, [checkConnectionStatus, scheduleReconnect, connectionState.isConnected]);
+  }, [checkConnectionStatus, scheduleReconnect]);
 
   // Cleanup subscriptions when component unmounts
   useEffect(() => {

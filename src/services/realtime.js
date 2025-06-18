@@ -1,7 +1,8 @@
 import { supabase } from './supabase';
 
 // Debug mode flag for enhanced logging
-const DEBUG_MODE = true;
+const DEBUG_MODE = false; // Set to false to reduce logging in production
+const VERBOSE_DEBUG = false; // Set to true only when actively debugging realtime issues
 const LOG_PREFIX = '[Sportea Realtime Service]';
 
 /**
@@ -9,6 +10,13 @@ const LOG_PREFIX = '[Sportea Realtime Service]';
  */
 function log(...args) {
   if (DEBUG_MODE) {
+    console.log(LOG_PREFIX, ...args);
+  }
+}
+
+// For verbose logs (frequent status updates)
+function logVerbose(...args) {
+  if (DEBUG_MODE && VERBOSE_DEBUG) {
     console.log(LOG_PREFIX, ...args);
   }
 }
@@ -26,10 +34,18 @@ class RealtimeService {
     this.subscriptions = new Map();
     this.channels = new Map();
     this.connectionStatus = 'disconnected';
+    this.connectionMonitoringInterval = null;
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 10;
+    this.lastResetTime = 0;
     
     // Initialize event tracking
     log('Realtime service initialized');
     this.setupGlobalErrorHandling();
+    
+    // Start connection monitoring
+    this.connectionMonitoringInterval = this.monitorConnection();
+    log('Auto connection monitoring started');
   }
   
   /**
@@ -105,7 +121,7 @@ class RealtimeService {
           table: 'matches',
           filter: `id=eq.${matchId}`
         }, (payload) => {
-          log(`Received match update for match ${matchId}:`, payload.eventType);
+          logVerbose(`Received match update for match ${matchId}:`, payload.eventType);
           callback({
             type: 'match_update',
             data: payload.new,
@@ -119,7 +135,7 @@ class RealtimeService {
           table: 'participants',
           filter: `match_id=eq.${matchId}`
         }, (payload) => {
-          log(`Received participant update for match ${matchId}:`, payload.eventType);
+          logVerbose(`Received participant update for match ${matchId}:`, payload.eventType);
           callback({
             type: 'participant_update',
             data: payload.new,
@@ -153,7 +169,7 @@ class RealtimeService {
         
       // Track subscription status
       channel.on('status', (status) => {
-        log(`Channel status for match:${matchId}:`, status);
+        logVerbose(`Channel status for match:${matchId}:`, status);
         if (status === 'SUBSCRIBED') {
           log(`Successfully subscribed to match:${matchId}`);
         }
@@ -161,7 +177,7 @@ class RealtimeService {
       
       // Subscribe to the channel
       channel.subscribe((status) => {
-        log(`Subscription status for match:${matchId}:`, status);
+        logVerbose(`Subscription status for match:${matchId}:`, status);
       });
       
       // Generate a subscription ID
@@ -418,41 +434,215 @@ class RealtimeService {
    * Useful for recovering from persistent connection issues
    */
   resetSubscriptions() {
-    log('Resetting all realtime subscriptions...');
+    // Implement rate limiting to prevent too many resets
+    const now = Date.now();
+    const timeSinceLastReset = now - this.lastResetTime;
+    
+    // Don't allow resets more often than every 30 seconds
+    if (timeSinceLastReset < 30000) {
+      log(`Reset suppressed - too soon after last reset (${Math.round(timeSinceLastReset/1000)}s ago)`);
+      return false;
+    }
+    
+    this.lastResetTime = now;
+    this.reconnectAttempts++;
+    
+    log(`Resetting all realtime subscriptions... (attempt ${this.reconnectAttempts} of ${this.maxReconnectAttempts})`);
     
     try {
+      // Implement exponential backoff for reconnection timing
+      const backoffDelay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 60000);
+      log(`Using exponential backoff delay of ${backoffDelay}ms before reconnection`);
+      
       // Store current subscriptions in a new array to avoid modification during iteration
       const currentSubscriptions = [...this.subscriptions.entries()];
+      log(`Found ${currentSubscriptions.length} active subscriptions to reset`);
+      
+      // Attempt to reconnect the base supabase realtime connection first
+      if (supabase?.realtime?.connect && typeof supabase.realtime.connect === 'function') {
+        try {
+          log('Attempting to reconnect Supabase realtime base connection...');
+          supabase.realtime.connect();
+        } catch (connError) {
+          logError('Error reconnecting base realtime connection:', connError);
+          // Continue with reset process regardless
+        }
+      }
       
       // Unsubscribe from all channels
-      this.channels.forEach((channel, channelName) => {
+      let unsubscribed = 0;
+      this.channels.forEach((channel, channelId) => {
+        try {
         if (channel && typeof channel.unsubscribe === 'function') {
           channel.unsubscribe();
-          log(`Unsubscribed from channel during reset: ${channelName}`);
+            unsubscribed++;
+          }
+        } catch (e) {
+          logError(`Error unsubscribing from channel ${channelId}:`, e);
         }
       });
+      log(`Unsubscribed from ${unsubscribed} channels during reset`);
       
-      // Clear all channels
+      // Clear all channels and subscriptions
       this.channels.clear();
+      this.subscriptions.clear();
       
-      // Wait a small amount of time before resubscribing
+      // Wait with exponential backoff before resubscribing
       setTimeout(() => {
+        let resubscribed = 0;
         // Resubscribe based on stored subscription info
         currentSubscriptions.forEach(([subscriptionId, details]) => {
-          if (details.type === 'match') {
-            this.subscribeToMatch(details.id, details.callback);
-            log(`Resubscribed to match: ${details.id}`);
-          } else if (details.type === 'user_notifications') {
-            this.subscribeToUserNotifications(details.id, details.callback);
-            log(`Resubscribed to user notifications: ${details.id}`);
+          try {
+            if (details.matchId && details.matchId !== 'all') {
+              this.subscribeToMatch(details.matchId, details.callback);
+              resubscribed++;
+            } else if (details.matchId === 'all') {
+              this.subscribeToAllMatches(details.callback);
+              resubscribed++;
+            } else if (details.userId && details.type === 'notifications') {
+              this.subscribeToUserNotifications(details.userId, details.callback);
+              resubscribed++;
+            } else if (details.userId && details.type === 'user_matches') {
+              this.subscribeToUserMatches(details.userId, details.callback);
+              resubscribed++;
+            }
+          } catch (e) {
+            logError(`Error resubscribing to ${subscriptionId}:`, e);
           }
         });
         
-        log('All subscriptions have been reset and reestablished.');
-      }, 500); // Wait 500ms before resubscribing
+        log(`Successfully resubscribed to ${resubscribed} out of ${currentSubscriptions.length} subscriptions.`);
+        
+        // Reset reconnection attempt counter if we succeeded
+        if (resubscribed > 0) {
+          this.reconnectAttempts = 0;
+        }
+      }, backoffDelay); // Wait with exponential backoff before resubscribing
+      
+      return true;
     } catch (error) {
       logError('Error resetting subscriptions:', error);
+      return false;
     }
+  }
+
+  /**
+   * Start monitoring connection status
+   * Will automatically try to recover the connection when issues are detected
+   * @returns {Object} The monitoring interval object
+   */
+  monitorConnection() {
+    log('Starting realtime connection monitoring');
+    
+    // Store the last log time to reduce spam
+    let lastLogTime = 0;
+    let recoveryAttempts = 0;
+    let consecutiveErrorsDetected = 0;
+    
+    // Monitor every 30 seconds
+    const monitorInterval = setInterval(() => {
+      // Only log detailed information every 5 minutes (reduced from 2 minutes)
+      const now = Date.now();
+      const shouldLog = now - lastLogTime > 300000;
+      
+      if (shouldLog) {
+        log('Checking realtime connection health');
+        lastLogTime = now;
+      }
+      
+      try {
+        // Check if client exists and channels are active
+        if (!supabase?.realtime) {
+          if (shouldLog) logError('Realtime client not available during monitoring');
+          return;
+        }
+        
+        // Check connection status using different approaches based on Supabase version
+        let isConnected = false;
+        
+        // Check Phoenix transport's WebSocket (v2.39.0+ structure)
+        if (supabase.realtime?.transport?.conn?.transport?.ws) {
+          const ws = supabase.realtime.transport.conn.transport.ws;
+          isConnected = ws.readyState === 1; // WebSocket.OPEN
+        } 
+        // Check transport connection state as fallback
+        else if (supabase.realtime.transport && 
+                typeof supabase.realtime.transport.connectionState === 'string') {
+          const internalState = supabase.realtime.transport.connectionState;
+          isConnected = internalState === 'open' || internalState === 'connected';
+        }
+        // Legacy getState method as final fallback
+        else if (typeof supabase.realtime.getState === 'function') {
+          const state = supabase.realtime.getState();
+          isConnected = state === 'CONNECTED';
+        }
+        
+        // Check if any channels are connected
+        const channels = supabase.realtime.channels || [];
+        const activeChannels = channels.filter(ch => 
+          ch.state === 'joined' || ch.state === 'joining'
+        ).length;
+        
+        const haveChannels = channels.length > 0;
+        const channelsActive = activeChannels > 0;
+        
+        if (shouldLog) {
+          log('Connection state:', {
+            isConnected,
+            haveChannels,
+            channelsActive,
+            channelCount: channels.length,
+            activeChannelCount: activeChannels
+          });
+        }
+        
+        // Auto-recovery logic with improved error detection
+        if ((haveChannels && !channelsActive) || (!isConnected && haveChannels)) {
+          consecutiveErrorsDetected++;
+          
+          // Only attempt recovery after multiple consecutive issues to avoid false positives
+          if (consecutiveErrorsDetected >= 3) {
+            // Don't attempt more reconnections than our limit
+            if (this.reconnectAttempts < this.maxReconnectAttempts) {
+              log('Connection issues detected - attempting recovery');
+              this.resetSubscriptions();
+            } else {
+              logError(`Maximum reconnection attempts (${this.maxReconnectAttempts}) reached. Manual intervention may be required.`);
+            }
+            
+            // Reset consecutive error counter after attempting recovery
+            consecutiveErrorsDetected = 0;
+          }
+        } else if (isConnected && channelsActive) {
+          // Reset error counters when everything looks good
+          consecutiveErrorsDetected = 0;
+        }
+      } catch (error) {
+        logError('Error in connection monitoring:', error);
+      }
+    }, 30000); // Check every 30 seconds
+    
+    return monitorInterval;
+  }
+  
+  /**
+   * Stop connection monitoring
+   * @param {Object} monitorInterval - The interval to clear
+   */
+  stopConnectionMonitoring(monitorInterval) {
+    if (monitorInterval) {
+      clearInterval(monitorInterval);
+      log('Stopped connection monitoring');
+    }
+  }
+
+  /**
+   * Alias for resetSubscriptions to maintain backward compatibility
+   * @deprecated Use resetSubscriptions() instead
+   */
+  resetChannels() {
+    log('resetChannels called (alias for resetSubscriptions)');
+    return this.resetSubscriptions();
   }
 }
 

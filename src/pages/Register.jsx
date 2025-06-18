@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -13,11 +13,26 @@ import {
   Checkbox,
   LinearProgress,
   FormHelperText,
-  Divider
+  Divider,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
+  Chip,
+  OutlinedInput,
+  ListItemText,
+  Grid,
+  Radio,
+  RadioGroup,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import ResendConfirmation from '../components/ResendConfirmation';
+import { ExpandMore, SportsBasketball, AccessTime, LocationOn } from '@mui/icons-material';
+import { sportService, locationService } from '../services/supabase';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -26,7 +41,22 @@ const Register = () => {
     username: '',
     studentId: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    // New preference fields
+    sport_preferences: [],
+    available_days: [],
+    preferred_facilities: [],
+    faculty: '',
+    play_style: 'casual',
+    gender: '',
+    age_range_preference: '',
+    duration_preference: '',
+    sports: [],
+    skillLevels: {},
+    campus: '',
+    state: '',
+    avatar: null,
+    avatarUrl: null
   });
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [error, setError] = useState('');
@@ -35,14 +65,67 @@ const Register = () => {
   const [needsVerification, setNeedsVerification] = useState(false);
   const [existingEmail, setExistingEmail] = useState('');
   
+  // Data for dropdown options
+  const [sports, setSports] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+  
   const { signUp } = useAuth();
   const navigate = useNavigate();
+  
+  // Load sports and locations data
+  useEffect(() => {
+    const loadOptions = async () => {
+      setIsLoadingOptions(true);
+      try {
+        // Load sports
+        const sportsData = await sportService.getAllSports();
+        setSports(sportsData || []);
+        
+        // Load locations for facilities
+        const locationsData = await locationService.getAllLocations();
+        setLocations(locationsData || []);
+      } catch (error) {
+        console.error('Error loading options:', error);
+      } finally {
+        setIsLoadingOptions(false);
+      }
+    };
+    
+    loadOptions();
+  }, []);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
       [name]: value
+    });
+  };
+  
+  // Handle multi-select changes
+  const handleMultiSelectChange = (event, fieldName) => {
+    const { value } = event.target;
+    setFormData({
+      ...formData,
+      [fieldName]: typeof value === 'string' ? value.split(',') : value
+    });
+  };
+  
+  // Handle checkbox array changes
+  const handleCheckboxChange = (item, fieldName) => {
+    const currentItems = [...formData[fieldName]];
+    const currentIndex = currentItems.indexOf(item);
+    
+    if (currentIndex === -1) {
+      currentItems.push(item);
+    } else {
+      currentItems.splice(currentIndex, 1);
+    }
+    
+    setFormData({
+      ...formData,
+      [fieldName]: currentItems
     });
   };
   
@@ -99,6 +182,64 @@ const Register = () => {
     return true;
   };
   
+  // Add a handler for adding sports with skill levels
+  const handleAddSport = (sportId) => {
+    if (formData.sports.includes(sportId)) {
+      return; // Sport already added
+    }
+    
+    // Find the sport by ID
+    const sport = sports.find(s => s.id === sportId);
+    if (!sport) return;
+    
+    // Default skill level is "Beginner"
+    const skillLevel = formData.skillLevels[sportId] || "Beginner";
+    
+    // Add to sports array for UI tracking
+    setFormData({
+      ...formData,
+      sports: [...formData.sports, sportId],
+      // Update sport_preferences array with proper format
+      sport_preferences: [
+        ...formData.sport_preferences,
+        { name: sport.name, level: skillLevel, id: sportId }
+      ]
+    });
+  };
+
+  // Handle removing a sport
+  const handleRemoveSport = (sportId) => {
+    setFormData({
+      ...formData,
+      sports: formData.sports.filter(id => id !== sportId),
+      // Also remove from sport_preferences
+      sport_preferences: formData.sport_preferences.filter(sp => sp.id !== sportId)
+    });
+  };
+
+  // Handle skill level change
+  const handleSkillLevelChange = (sportId, level) => {
+    // Update skill levels map
+    const updatedSkillLevels = {
+      ...formData.skillLevels,
+      [sportId]: level
+    };
+    
+    // Also update the sport_preferences array to keep it in sync
+    const updatedPreferences = formData.sport_preferences.map(sport => {
+      if (sport.id === sportId) {
+        return { ...sport, level };
+      }
+      return sport;
+    });
+    
+    setFormData({
+      ...formData,
+      skillLevels: updatedSkillLevels,
+      sport_preferences: updatedPreferences
+    });
+  };
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -111,10 +252,27 @@ const Register = () => {
     setIsLoading(true);
     
     try {
+      // Format the sport preferences data properly
+      const sport_preferences = formData.sport_preferences.map(sport => ({
+        name: sport.name,
+        level: sport.level
+      }));
+      
       const userData = {
         full_name: formData.fullName,
         username: formData.username,
-        student_id: formData.studentId
+        student_id: formData.studentId,
+        faculty: formData.faculty,
+        campus: formData.state, // Use state field for campus value
+        gender: formData.gender,
+        age_range_preference: formData.age_range_preference,
+        duration_preference: formData.duration_preference,
+        sport_preferences: sport_preferences,
+        available_days: formData.available_days,
+        preferred_facilities: formData.preferred_facilities,
+        play_style: formData.play_style,
+        avatar: formData.avatar,
+        avatarUrl: formData.avatarUrl
       };
       
       const { data, error } = await signUp(formData.email, formData.password, userData);
@@ -208,6 +366,50 @@ const Register = () => {
     );
   }
   
+  // Age range options
+  const ageRangeOptions = [
+    "18-21",
+    "21-25",
+    "25-30",
+    "30+"
+  ];
+  
+  // Duration preferences
+  const durationOptions = [
+    "Less than 1 hour",
+    "1 hour",
+    "2 hours",
+    "2+ hours"
+  ];
+  
+  // Faculty options
+  const facultyOptions = [
+    "COMPUTER SCIENCES",
+    "ENGINEERING",
+    "ARTS",
+    "MASSCOM",
+    "SPORT SCIENCES AND RECREATION",
+    "LANGUAGE",
+    "APB"
+  ];
+  
+  // State options (replacing campus)
+  const stateOptions = [
+    "SELANGOR",
+    "SARAWAK",
+    "SABAH",
+    "JOHOR",
+    "PAHANG",
+    "PERAK",
+    "NEGERI SEMBILAN",
+    "KEDAH",
+    "PERLIS",
+    "KELANTAN",
+    "MELAKA",
+    "TERENGGANU",
+    "PENANG"
+  ];
+  
   return (
     <Container component="main" maxWidth="sm" sx={{ py: 4 }}>
       <Paper 
@@ -248,6 +450,9 @@ const Register = () => {
         )}
         
         <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+          {/* Personal Information Section */}
+          <Typography variant="h6" sx={{ mt: 2, mb: 2 }}>Personal Information</Typography>
+          
           <TextField
             margin="normal"
             required
@@ -302,6 +507,306 @@ const Register = () => {
             onChange={handleChange}
             sx={{ mb: 2 }}
           />
+          
+          <FormControl fullWidth margin="normal" sx={{ mb: 2 }}>
+            <InputLabel id="faculty-label">Faculty</InputLabel>
+            <Select
+              labelId="faculty-label"
+              id="faculty"
+              name="faculty"
+              value={formData.faculty}
+              onChange={handleChange}
+              label="Faculty"
+            >
+              <MenuItem value="">Select Faculty</MenuItem>
+              {facultyOptions.map((faculty) => (
+                <MenuItem key={faculty} value={faculty}>
+                  {faculty}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
+          <FormControl fullWidth margin="normal" sx={{ mb: 2 }}>
+            <InputLabel id="state-label">State</InputLabel>
+            <Select
+              labelId="state-label"
+              id="state"
+              name="state"
+              value={formData.state}
+              onChange={handleChange}
+              label="State"
+            >
+              <MenuItem value="">Select State</MenuItem>
+              {stateOptions.map((state) => (
+                <MenuItem key={state} value={state}>
+                  {state}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
+          <FormControl fullWidth margin="normal" sx={{ mb: 2 }}>
+            <InputLabel id="gender-label">Gender</InputLabel>
+            <Select
+              labelId="gender-label"
+              id="gender"
+              name="gender"
+              value={formData.gender}
+              onChange={handleChange}
+              label="Gender"
+            >
+              <MenuItem value="">Select Gender</MenuItem>
+              <MenuItem value="Male">Male</MenuItem>
+              <MenuItem value="Female">Female</MenuItem>
+              <MenuItem value="Other">Other</MenuItem>
+              <MenuItem value="Prefer not to say">Prefer not to say</MenuItem>
+            </Select>
+          </FormControl>
+          
+          <FormControl fullWidth margin="normal" sx={{ mb: 2 }}>
+            <InputLabel id="age-range-label">Age Range Preference</InputLabel>
+            <Select
+              labelId="age-range-label"
+              id="age_range_preference"
+              name="age_range_preference"
+              value={formData.age_range_preference}
+              onChange={handleChange}
+              label="Age Range Preference"
+            >
+              <MenuItem value="">Select Age Range</MenuItem>
+              {ageRangeOptions.map((range) => (
+                <MenuItem key={range} value={range}>
+                  {range}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
+          <FormControl fullWidth margin="normal" sx={{ mb: 2 }}>
+            <InputLabel id="duration-label">Preferred Duration</InputLabel>
+            <Select
+              labelId="duration-label"
+              id="duration_preference"
+              name="duration_preference"
+              value={formData.duration_preference}
+              onChange={handleChange}
+              label="Preferred Duration"
+            >
+              <MenuItem value="">Select Duration</MenuItem>
+              {durationOptions.map((duration) => (
+                <MenuItem key={duration} value={duration}>
+                  {duration}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
+          {/* Preferences Section */}
+          <Accordion defaultExpanded sx={{ mt: 3, mb: 3 }}>
+            <AccordionSummary expandIcon={<ExpandMore />}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <SportsBasketball sx={{ mr: 1, color: 'primary.main' }} />
+                <Typography variant="h6">Sports Preferences</Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="sports-preferences-label">Sports You Enjoy</InputLabel>
+                <Select
+                  labelId="sports-preferences-label"
+                  id="sport_preferences"
+                  multiple
+                  value={formData.sport_preferences}
+                  onChange={(e) => handleMultiSelectChange(e, 'sport_preferences')}
+                  input={<OutlinedInput label="Sports You Enjoy" />}
+                  renderValue={(selected) => (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {selected.map((value) => {
+                        const sport = sports.find(s => s.id === value) || { name: value };
+                        return <Chip key={value} label={sport.name} />;
+                      })}
+                    </Box>
+                  )}
+                >
+                  {isLoadingOptions ? (
+                    <MenuItem disabled>Loading sports...</MenuItem>
+                  ) : (
+                    sports.map((sport) => (
+                      <MenuItem key={sport.id} value={sport.id}>
+                        <Checkbox checked={formData.sport_preferences.indexOf(sport.id) > -1} />
+                        <ListItemText primary={sport.name} />
+                      </MenuItem>
+                    ))
+                  )}
+                </Select>
+                <FormHelperText>Select sports you're interested in playing</FormHelperText>
+              </FormControl>
+              
+              <FormControl component="fieldset" sx={{ mb: 2, width: '100%' }}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>Play Style</Typography>
+                <RadioGroup
+                  row
+                  name="play_style"
+                  value={formData.play_style}
+                  onChange={handleChange}
+                >
+                  <FormControlLabel value="casual" control={<Radio />} label="Casual" />
+                  <FormControlLabel value="competitive" control={<Radio />} label="Competitive" />
+                </RadioGroup>
+                <FormHelperText>How do you prefer to play?</FormHelperText>
+              </FormControl>
+            </AccordionDetails>
+          </Accordion>
+          
+          <Accordion sx={{ mb: 3 }}>
+            <AccordionSummary expandIcon={<ExpandMore />}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <AccessTime sx={{ mr: 1, color: 'primary.main' }} />
+                <Typography variant="h6">Availability</Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Days Available</Typography>
+              <Grid container spacing={1} sx={{ mb: 2 }}>
+                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
+                  <Grid item key={day}>
+                    <Chip
+                      label={day.charAt(0).toUpperCase() + day.slice(1, 3)}
+                      onClick={() => handleCheckboxChange(day, 'available_days')}
+                      color={formData.available_days.includes(day) ? 'primary' : 'default'}
+                      variant={formData.available_days.includes(day) ? 'filled' : 'outlined'}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+              <FormHelperText>Select days when you're typically available to play</FormHelperText>
+            </AccordionDetails>
+          </Accordion>
+          
+          <Accordion sx={{ mb: 3 }}>
+            <AccordionSummary expandIcon={<ExpandMore />}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <LocationOn sx={{ mr: 1, color: 'primary.main' }} />
+                <Typography variant="h6">Preferred Facilities</Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="facilities-label">Preferred Facilities</InputLabel>
+                <Select
+                  labelId="facilities-label"
+                  id="preferred_facilities"
+                  multiple
+                  value={formData.preferred_facilities}
+                  onChange={(e) => handleMultiSelectChange(e, 'preferred_facilities')}
+                  input={<OutlinedInput label="Preferred Facilities" />}
+                  renderValue={(selected) => (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {selected.map((value) => {
+                        const location = locations.find(l => l.id === value) || { name: value };
+                        return <Chip key={value} label={location.name} />;
+                      })}
+                    </Box>
+                  )}
+                >
+                  {isLoadingOptions ? (
+                    <MenuItem disabled>Loading facilities...</MenuItem>
+                  ) : (
+                    locations.map((location) => (
+                      <MenuItem key={location.id} value={location.id}>
+                        <Checkbox checked={formData.preferred_facilities.indexOf(location.id) > -1} />
+                        <ListItemText primary={location.name} secondary={location.campus} />
+                      </MenuItem>
+                    ))
+                  )}
+                </Select>
+                <FormHelperText>Select facilities where you prefer to play</FormHelperText>
+              </FormControl>
+            </AccordionDetails>
+          </Accordion>
+          
+          {/* Sports Selection */}
+          <Accordion defaultExpanded sx={{ mb: 3, borderRadius: 2, overflow: 'hidden' }}>
+            <AccordionSummary
+              expandIcon={<ExpandMore />}
+              aria-controls="sports-content"
+              id="sports-header"
+              sx={{ backgroundColor: 'background.light' }}
+            >
+              <Typography sx={{ display: 'flex', alignItems: 'center' }}>
+                <SportsBasketball sx={{ mr: 1 }} />
+                Sports Preferences
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="add-sport-label">Add Sport</InputLabel>
+                <Select
+                  labelId="add-sport-label"
+                  id="add-sport"
+                  value=""
+                  onChange={(e) => handleAddSport(e.target.value)}
+                  label="Add Sport"
+                >
+                  {sports
+                    .filter(sport => !formData.sports.includes(sport.id))
+                    .map(sport => (
+                      <MenuItem key={sport.id} value={sport.id}>
+                        {sport.name}
+                      </MenuItem>
+                    ))
+                  }
+                </Select>
+              </FormControl>
+              
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Selected Sports:</Typography>
+              
+              {formData.sports.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  No sports selected
+                </Typography>
+              ) : (
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                  {formData.sports.map(sportId => {
+                    const sport = sports.find(s => s.id === sportId);
+                    return sport ? (
+                      <Grid item xs={12} key={sport.id}>
+                        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="subtitle1">{sport.name}</Typography>
+                            <Button 
+                              size="small" 
+                              color="error" 
+                              onClick={() => handleRemoveSport(sport.id)}
+                            >
+                              Remove
+                            </Button>
+                          </Box>
+                          
+                          <FormControl component="fieldset">
+                            <Typography variant="subtitle2" gutterBottom>Skill Level:</Typography>
+                            <RadioGroup
+                              row
+                              value={formData.skillLevels[sport.id] || 'Beginner'}
+                              onChange={(e) => handleSkillLevelChange(sport.id, e.target.value)}
+                            >
+                              <FormControlLabel value="Beginner" control={<Radio size="small" />} label="Beginner" />
+                              <FormControlLabel value="Intermediate" control={<Radio size="small" />} label="Intermediate" />
+                              <FormControlLabel value="Advanced" control={<Radio size="small" />} label="Advanced" />
+                            </RadioGroup>
+                          </FormControl>
+                        </Paper>
+                      </Grid>
+                    ) : null;
+                  })}
+                </Grid>
+              )}
+            </AccordionDetails>
+          </Accordion>
+          
+          {/* Password Section */}
+          <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>Security</Typography>
           
           <TextField
             margin="normal"

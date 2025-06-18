@@ -75,9 +75,16 @@ const FindPlayers = ({ players: propPlayers }) => {
       if (!propPlayers) {
         fetchPlayers();
       } else {
-        setPlayers(propPlayers);
-        setFilteredPlayers(propPlayers);
+        // Set players and initial filtered players
+        const initialPlayers = propPlayers.filter(player => player.id !== user.id);
+        setPlayers(initialPlayers);  // Use filtered players here instead of raw propPlayers
+        setFilteredPlayers(initialPlayers);
         setLoading(false);
+        
+        // Re-fetch friendship statuses for all players in props
+        if (initialPlayers.length > 0) {
+          refreshFriendshipStatuses(initialPlayers.map(player => player.id));
+        }
       }
       fetchSports();
     }
@@ -97,6 +104,25 @@ const FindPlayers = ({ players: propPlayers }) => {
     } catch (error) {
       console.error('Error fetching sports:', error);
       showErrorToast('Failed to load sports');
+    }
+  };
+
+  // Helper to refresh friendship statuses for specific users
+  const refreshFriendshipStatuses = async (userIds) => {
+    try {
+      const friendshipData = { ...friendships };
+      
+      for (const userId of userIds) {
+        if (userId !== user.id) { // Skip current user
+          const { status, data: friendshipInfo } = await friendshipService.getFriendshipStatus(userId);
+          console.log(`Friendship with ${userId}: ${status}`, friendshipInfo);
+          friendshipData[userId] = { status, data: friendshipInfo };
+        }
+      }
+      
+      setFriendships(friendshipData);
+    } catch (error) {
+      console.error('Error refreshing friendship statuses:', error);
     }
   };
 
@@ -121,20 +147,17 @@ const FindPlayers = ({ players: propPlayers }) => {
         
       if (error) throw error;
       
+      // Double check to ensure current user is not in the results
+      const filteredData = data ? data.filter(player => player.id !== user.id) : [];
+      
       // Fetch friendship statuses for all users
-      if (data && data.length > 0) {
-        const friendshipData = {};
-        
-        for (const player of data) {
-          const { status, data: friendshipInfo } = await friendshipService.getFriendshipStatus(player.id);
-          friendshipData[player.id] = { status, data: friendshipInfo };
-        }
-        
-        setFriendships(friendshipData);
+      if (filteredData && filteredData.length > 0) {
+        const userIds = filteredData.map(player => player.id);
+        await refreshFriendshipStatuses(userIds);
       }
       
-      setPlayers(data || []);
-      setFilteredPlayers(data || []);
+      setPlayers(filteredData);
+      setFilteredPlayers(filteredData);
     } catch (error) {
       console.error('Error fetching players:', error);
       showErrorToast('Failed to load players');
@@ -311,7 +334,26 @@ const FindPlayers = ({ players: propPlayers }) => {
   const renderFriendshipButton = (userId) => {
     const isActionDisabled = actionInProgress !== null;
     const isCurrentAction = actionInProgress === userId;
+    
+    // Check if this is current user (shouldn't happen, but just in case)
+    if (userId === user.id) {
+      return (
+        <Button 
+          variant="outlined"
+          color="primary"
+          disabled={true}
+          fullWidth
+        >
+          This is you
+        </Button>
+      );
+    }
+    
+    // Get friendship status and handle missing data safely
     const friendshipStatus = friendships[userId]?.status || 'not-friends';
+    
+    // Log friendship status for debugging - can be removed after fixing the issue
+    console.log(`Rendering button for user ${userId} with status: ${friendshipStatus}`, friendships[userId]);
     
     switch (friendshipStatus) {
       case 'not-friends':
@@ -414,16 +456,30 @@ const FindPlayers = ({ players: propPlayers }) => {
   // Update players when propPlayers changes
   useEffect(() => {
     if (propPlayers) {
-      setPlayers(propPlayers);
+      // Filter out current user first
+      const filteredPropPlayers = propPlayers.filter(player => player.id !== user.id);
+      
+      // Set players from props
+      setPlayers(filteredPropPlayers);
+      // Apply filters
       filterPlayers('', sportFilter);
+      
+      // Refresh friendship statuses for players from props
+      if (filteredPropPlayers.length > 0) {
+        const userIds = filteredPropPlayers.map(player => player.id);
+        refreshFriendshipStatuses(userIds);
+      }
     }
-  }, [propPlayers]);
+  }, [propPlayers, sportFilter, user?.id]);
 
   // Filter players based on sport filter only (search handled by parent)
   const filterPlayers = (search, sport) => {
     if (!players || players.length === 0) return;
     
     let filtered = [...players];
+    
+    // Filter out current user in case they're in the data
+    filtered = filtered.filter(player => player.id !== user.id);
     
     // Apply sport filter
     if (sport && sport !== 'all') {

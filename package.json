@@ -2,20 +2,34 @@
   "name": "sportea",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
+    "@changey/react-leaflet-markercluster": "^4.0.0-rc1",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.14.18",
     "@mui/material": "^5.14.18",
     "@mui/x-date-pickers": "^6.18.2",
-    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/auth-helpers-react": "^0.5.0",
+    "@supabase/supabase-js": "^2.50.0",
     "date-fns": "^2.30.0",
+    "leaflet": "^1.9.4",
+    "leaflet-providers": "^2.0.0",
+    "leaflet.locatecontrol": "^0.84.2",
+    "leaflet.markercluster": "^1.5.3",
+    "moment": "^2.30.1",
+    "node-fetch": "^2.7.0",
     "react": "^18.2.0",
+    "react-big-calendar": "^1.19.2",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.0"
+    "react-leaflet": "^4.2.1",
+    "react-router-dom": "^6.20.0",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",
+    "chalk": "^5.4.1",
+    "dotenv": "^16.5.0",
     "eslint": "^8.54.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
@@ -25,7 +39,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "test:e2e": "node test-recommendation-e2e.js",
+    "test:performance": "node test-recommendation-performance.js",
+    "test:db": "node test-recommendation-db-functions.js",
+    "test:all": "npm run test:db && npm run test:e2e && npm run test:performance"
   },
   "browserslist": {
     "production": [
@@ -38,5 +56,18 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "main": "test-edge-functions.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ramos333oz/SporteaV3.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ramos333oz/SporteaV3/issues"
+  },
+  "homepage": "https://github.com/ramos333oz/SporteaV3#readme",
+  "description": "This repository contains the code for Sportea's recommendation system, which helps users find sports matches and players that align with their preferences."
 }

@@ -109,3 +109,187 @@ a {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-maroon);
 }
+
+/* Leaflet Map Styles */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 1 !important;
+}
+
+/* Fix marker icon issues */
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+  transition: transform 0.3s ease;
+}
+
+/* Fix popup styling */
+.leaflet-popup-content {
+  margin: 8px;
+  line-height: 1.4;
+}
+
+/* Fix z-index issues with Material UI */
+.leaflet-pane {
+  z-index: 400 !important;
+}
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 401 !important;
+}
+
+/* Ensure controls stay on top of other elements */
+.leaflet-control {
+  z-index: 402 !important;
+}
+
+/* Make sure the map popup has proper z-index */
+.leaflet-popup {
+  z-index: 500 !important;
+}
+
+/* Make the map markers appear above other elements */
+.leaflet-marker-icon {
+  z-index: 450 !important;
+}
+
+/* Map filter bar */
+.map-filter-bar {
+  position: fixed !important;
+  top: 70px !important; /* Adjust based on your app's header height */
+  left: 10px !important;
+  right: 10px !important;
+  z-index: 9999 !important; /* Even higher to ensure it stays on top of everything */
+  pointer-events: auto !important;
+  max-width: 100% !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important; /* Better shadow for visibility */
+  transform: translateZ(0) !important; /* Force hardware acceleration */
+  will-change: transform !important; /* Hint to browser for optimization */
+}
+
+/* Map container wrapper */
+.map-container-wrapper {
+  position: relative !important;
+  height: 100% !important;
+  width: 100% !important;
+  z-index: 1 !important;
+}
+
+/* Ensure Leaflet container doesn't interfere with filter bar */
+.leaflet-container {
+  z-index: 1 !important;
+}
+
+/* Ensure all Leaflet elements are below our custom filter bar */
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom,
+.leaflet-control,
+.leaflet-marker-icon,
+.leaflet-popup {
+  z-index: 800 !important; /* Lower than our map-filter-bar */
+}
+
+/* Map marker styles */
+.map-marker-icon {
+  text-align: center;
+}
+
+/* Pulsing animation for highlighted markers */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+/* Pin-style map markers */
+.venue-marker {
+  width: 36px;
+  height: 36px;
+  border-radius: 50% 50% 50% 0;
+  background-color: #3f51b5;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  pointer-events: auto !important;
+}
+
+/* Selected venue marker styles */
+.selected-venue .marker-container {
+  z-index: 500 !important;
+  filter: brightness(1.1) contrast(1.05);
+}
+
+/* Define the pulse animation for selected venues */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 6px rgba(255, 255, 255, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+/* Make sure markers are clickable */
+.leaflet-interactive {
+  cursor: pointer !important;
+}
+
+/* Sport-specific colors */
+.marker-icon.football, .marker-icon.soccer, .marker-icon.futsal {
+  color: #4caf50;
+}
+
+.marker-icon.basketball {
+  color: #ff5722;
+}
+
+.marker-icon.volleyball {
+  color: #9c27b0;
+}
+
+.marker-icon.tennis {
+  color: #cddc39;
+}
+
+.marker-icon.badminton {
+  color: #8bc34a;
+}
+
+.marker-icon.hockey {
+  color: #e91e63;
+}
+
+.marker-icon.rugby {
+  color: #795548;
+}
+
+.marker-icon.frisbee {
+  color: #2196f3;
+}
+
+.marker-icon.squash {
+  color: #ff9800;
+}
+
+.marker-icon.multi-sport {
+  color: #3f51b5;
+}
+
+.marker-icon i {
+  line-height: 1;
+}

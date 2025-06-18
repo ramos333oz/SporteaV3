@@ -105,11 +105,21 @@ const ConnectionStatus = () => {
     setStatusMessage('Resetting connection...');
     
     try {
-      // Use our enhanced realtime service to reset all channels
-      realtimeService.resetChannels();
+      // Check which method is available and use the appropriate one
+      if (realtimeService && typeof realtimeService.resetSubscriptions === 'function') {
+        // Use the primary method name
+        const success = realtimeService.resetSubscriptions();
+        console.log(`Manual reset via resetSubscriptions() ${success ? 'successful' : 'failed'}`);
+      } else if (realtimeService && typeof realtimeService.resetChannels === 'function') {
+        // Use the alias method as fallback
+        const success = realtimeService.resetChannels();
+        console.log(`Manual reset via resetChannels() ${success ? 'successful' : 'failed'}`);
+      } else {
+        console.error('No reset method available on realtimeService');
+      }
       
       // Force reconnect the Supabase realtime client
-      if (supabase.realtime && typeof supabase.realtime.connect === 'function') {
+      if (supabase?.realtime && typeof supabase.realtime.connect === 'function') {
         // Small delay to ensure clean disconnection before reconnecting
         setTimeout(() => {
           try {
@@ -141,9 +151,19 @@ const ConnectionStatus = () => {
     }
   }, [checkConnectionStatus, setIsResetting, setStatusMessage, setConnectionAttempts]);
 
-  // Initial connection status check
+  // Run checkConnectionStatus periodically to update the UI
   useEffect(() => {
+    // Initial check
     checkConnectionStatus();
+    
+    // Update the status display every 5 seconds
+    const statusRefreshInterval = setInterval(() => {
+      checkConnectionStatus();
+    }, 5000);
+    
+    return () => {
+      clearInterval(statusRefreshInterval);
+    };
   }, [checkConnectionStatus]);
 
   // Connect to Supabase real-time with logging
@@ -185,6 +205,7 @@ const ConnectionStatus = () => {
     }, delay);
   }, [connectionAttempts, getBackoffDelay, connectToRealtime]);
 
+  // Initial connection and state change listener
   useEffect(() => {
     // Initial connection attempt
     connectToRealtime();
@@ -223,30 +244,13 @@ const ConnectionStatus = () => {
       'supabase.realtime.connection-state-change',
       handleConnectionStateChange
     );
-    
-    // Heartbeat check every 15 seconds to detect stale connections
-    heartbeatInterval.current = setInterval(() => {
-      if (supabase.realtime && typeof supabase.realtime.getState === 'function') {
-        const state = supabase.realtime.getState();
-        if (state !== 'CONNECTED' && isConnected) {
-          console.log('Connection lost during heartbeat check');
-          setIsConnected(false);
-          setStatusMessage('Reconnecting...');
-          scheduleReconnect();
-        }
-      }
-    }, 15000);
 
     return () => {
-      // Clean up event listeners, intervals, and timeouts
+      // Clean up event listeners and timeouts
       document.removeEventListener(
         'supabase.realtime.connection-state-change',
         handleConnectionStateChange
       );
-      
-      if (heartbeatInterval.current) {
-        clearInterval(heartbeatInterval.current);
-      }
       
       if (reconnectTimeout.current) {
         clearTimeout(reconnectTimeout.current);
@@ -254,81 +258,114 @@ const ConnectionStatus = () => {
     };
   }, [connectToRealtime, scheduleReconnect]);
 
+  // Heartbeat check every 15 seconds to detect stale connections
+  useEffect(() => {
+    heartbeatInterval.current = setInterval(() => {
+      try {
+        checkConnectionStatus(); // Check status first
+        
+        // Enhanced connection monitoring logic
+        const channelsExist = supabase?.realtime?.channels?.length > 0;
+        let channelsActive = false;
+        
+        if (channelsExist) {
+          // Check if any channels are in a good state
+          channelsActive = supabase.realtime.channels.some(
+            ch => ch.state === 'joined' || ch.socket?.isConnected?.()
+          );
+        }
+        
+        // Get realtime state if available
+        let realtimeState = 'unknown';
+        if (supabase?.realtime?.getState) {
+          realtimeState = supabase.realtime.getState();
+        }
+        
+        const needsReconnect = (
+          // If we think we're connected but no channels are active
+          (isConnected && channelsExist && !channelsActive) ||
+          // Or if realtime explicitly reports not connected
+          (realtimeState !== 'CONNECTED' && isConnected)
+        );
+        
+        if (needsReconnect) {
+          console.log('Connection issue detected during heartbeat, attempting auto-reconnect');
+          setIsConnected(false);
+          setStatusMessage('Auto-reconnecting...');
+          
+          // Attempt to reset subscriptions and reconnect
+          try {
+            if (realtimeService && typeof realtimeService.resetSubscriptions === 'function') {
+              realtimeService.resetSubscriptions();
+            }
+            
+            if (supabase.realtime && typeof supabase.realtime.connect === 'function') {
+              supabase.realtime.connect();
+            }
+          } catch (reconnectError) {
+            console.error('Auto-reconnect attempt failed:', reconnectError);
+            // If auto-reconnect fails, schedule normal reconnect
+            scheduleReconnect();
+          }
+        }
+      } catch (error) {
+        console.error('Error in heartbeat check:', error);
+        // If heartbeat check fails, mark as disconnected
+        if (isConnected) {
+          setIsConnected(false);
+          setStatusMessage('Connection monitoring error');
+          scheduleReconnect();
+        }
+      }
+    }, 15000);
+    
+    return () => {
+      if (heartbeatInterval.current) {
+        clearInterval(heartbeatInterval.current);
+      }
+    };
+  }, [checkConnectionStatus, isConnected, scheduleReconnect]);
+
   return (
     <Box
       sx={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'flex-end',
-        padding: '4px 8px',
+        p: 0.5,
+        pl: 1,
+        borderRadius: 1,
+        bgcolor: isConnected ? 'success.lighter' : 'warning.lighter',
+        color: isConnected ? 'success.darker' : 'warning.darker',
+        transition: 'background-color 0.3s ease'
       }}
     >
-      {/* Reset button shown when connection attempts are high or connection is stuck */}
-      {(connectionAttempts > 0 || statusMessage === 'Connection failed. Please refresh the page.' || statusMessage === 'Reset failed' || !isConnected) && (
-        <Tooltip title="Reset real-time connection" arrow placement="bottom">
+      <CircleIcon 
+        sx={{ 
+          fontSize: '0.75rem', 
+          mr: 1, 
+          color: isConnected ? 'success.main' : 'warning.main',
+          animation: isConnected ? 'none' : 'pulse 1.5s infinite ease-in-out'
+        }} 
+      />
+      <Tooltip title={isResetting ? 'Resetting connection...' : 'Reset connection'}>
           <IconButton 
             size="small" 
             onClick={resetConnection} 
             disabled={isResetting}
-            color={!isConnected ? "error" : "default"}
-            sx={{ 
-              mr: 1, 
-              opacity: isResetting ? 0.5 : 1,
-              border: !isConnected ? '1px solid' : 'none',
-              borderColor: 'error.main',
-              animation: !isConnected ? 'pulse 1.5s infinite' : 'none',
-              '@keyframes pulse': {
-                '0%': { opacity: 1 },
-                '50%': { opacity: 0.6 },
-                '100%': { opacity: 1 }
-              }
-            }}
-            aria-label="Reset connection"
+          sx={{ ml: 0.5, opacity: isResetting ? 0.5 : 1 }}
           >
-            <RefreshIcon 
-              fontSize="small" 
-              sx={{ 
+          <RefreshIcon fontSize="small" sx={{ 
                 animation: isResetting ? 'spin 1s infinite linear' : 'none',
                 '@keyframes spin': {
                   '0%': { transform: 'rotate(0deg)' },
                   '100%': { transform: 'rotate(360deg)' }
                 }
-              }} 
-            />
+          }} />
           </IconButton>
         </Tooltip>
-      )}
-      
-      <Tooltip title={`Status: ${isConnected ? 'Connected' : 'Disconnected'} • Attempts: ${connectionAttempts}/${maxReconnectAttempts}`} arrow placement="bottom-end">
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            cursor: 'default',
-          }}
-        >
-          <CircleIcon
-            sx={{
-              fontSize: '12px',
-              color: isConnected ? '#4CAF50' : connectionAttempts >= maxReconnectAttempts ? '#FF9800' : '#F44336',
-              marginRight: '8px',
-              animation: isConnected ? 'none' : 'pulse 1.5s infinite',
-              '@keyframes pulse': {
-                '0%': { opacity: 1 },
-                '50%': { opacity: 0.5 },
-                '100%': { opacity: 1 }
-              }
-            }}
-          />
-          <Typography 
-            variant="caption" 
-            color={isConnected ? 'success.main' : connectionAttempts >= maxReconnectAttempts ? 'warning.main' : 'error.main'}
-          >
+      <Typography variant="caption" sx={{ ml: 0.5 }}>
             {statusMessage}
           </Typography>
-        </Box>
-      </Tooltip>
     </Box>
   );
 };
