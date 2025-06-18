@@ -9,7 +9,38 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <title>Sportea</title>
+    <!-- Improve font loading performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Preload Material Icons for map markers -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://fonts.gstatic.com/s/materialicons/v140/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2" as="font" type="font/woff2" crossorigin>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Fix map display issues -->
+    <style>
+      .leaflet-container {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Ensure dark theme is applied to map popups */
+      .dark-map .leaflet-popup-content-wrapper {
+        background-color: #333 !important;
+        color: #fff !important;
+      }
+      
+      .dark-map .leaflet-popup-tip {
+        background-color: #333 !important;
+      }
+      
+      /* Ensure consistent font size for Material Icons */
+      .material-icons {
+        font-size: 18px !important;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

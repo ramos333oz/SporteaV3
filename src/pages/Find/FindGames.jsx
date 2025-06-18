@@ -2054,94 +2054,111 @@ const MapView = ({
   sportFilters,
   supabase,
 }) => {
-  // Add custom CSS for map markers
+  // Add custom CSS for map markers with modern styling
   const markerStyles = `
     @keyframes pulse {
       0% {
-        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+        box-shadow: 0 0 0 0 rgba(63, 81, 181, 0.7);
         transform: scale(1) translateY(0);
       }
       50% {
-        box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+        box-shadow: 0 0 0 10px rgba(63, 81, 181, 0);
         transform: scale(1.05) translateY(-3px);
       }
       100% {
-        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+        box-shadow: 0 0 0 0 rgba(63, 81, 181, 0);
         transform: scale(1) translateY(0);
       }
     }
     
     @keyframes ripple {
       0% {
-        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.5);
+        box-shadow: 0 0 0 0 rgba(63, 81, 181, 0.5);
         transform: scale(0.8);
         opacity: 1;
       }
       100% {
-        box-shadow: 0 0 0 20px rgba(255, 255, 255, 0);
+        box-shadow: 0 0 0 20px rgba(63, 81, 181, 0);
         transform: scale(1.8);
         opacity: 0;
       }
     }
     
+    @keyframes float {
+      0% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-5px);
+      }
+      100% {
+        transform: translateY(0px);
+      }
+    }
+    
     .gps-marker {
       position: relative;
+      filter: drop-shadow(0 3px 2px rgba(0,0,0,0.2));
+      transition: all 0.3s ease;
+    }
+    
+    .gps-marker.selected {
+      z-index: 1001 !important;
+      filter: drop-shadow(0 5px 5px rgba(0,0,0,0.3));
     }
     
     .gps-marker.selected .pin {
       animation: pulse 1.5s infinite;
-      z-index: 1000 !important;
+    }
+    
+    .leaflet-marker-icon:active .pin, .leaflet-popup-target .pin {
+      animation: pulse 1.5s infinite;
     }
     
     .gps-marker .pin {
-      width: 30px;
-      height: 40px;
+      width: 22px;
+      height: 30px;
       background-color: #3f51b5;
       border-radius: 50% 50% 50% 0;
       transform: rotate(-45deg);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
       position: relative;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border: 1.5px solid rgba(255, 255, 255, 0.9);
     }
     
     .gps-marker .pin::after {
       content: '';
-      width: 14px;
-      height: 14px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
-      background: white;
+      background: rgba(255, 255, 255, 0.9);
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
+      box-shadow: inset 0 0 2px rgba(0,0,0,0.15);
     }
     
-    .gps-marker .icon {
-      transform: rotate(45deg);
-      position: relative;
-      font-size: 16px;
-      color: #333;
-      z-index: 10;
+    .gps-marker .material-icons {
+      font-family: 'Material Icons';
+      font-weight: normal;
+      font-style: normal;
+      display: inline-block;
+      line-height: 1;
+      text-transform: none;
+      letter-spacing: normal;
+      word-wrap: normal;
+      white-space: nowrap;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
     }
     
-    .gps-marker .ripple {
-      position: absolute;
-      bottom: -5px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background-color: rgba(255, 255, 255, 0.4);
-      z-index: -1;
-    }
-    
-    .gps-marker.selected .ripple {
-      animation: ripple 2s infinite;
-    }
-    
+    /* Styles for multi-sport markers */
     .gps-marker.multi-sport .pin {
       overflow: hidden;
     }
@@ -2150,23 +2167,41 @@ const MapView = ({
       position: absolute;
       width: 50%;
       height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
     .gps-marker.multi-sport .half:first-child {
       left: 0;
+      border-right: 1px solid rgba(255, 255, 255, 0.5);
     }
     
     .gps-marker.multi-sport .half:last-child {
       right: 0;
     }
     
-    .gps-marker.multi-sport .half .icon {
-      position: absolute;
-      top: 40%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(45deg);
-      font-size: 14px;
-      color: #333;
+    /* Map customizations */
+    .leaflet-container {
+      background-color: #f8f8f8 !important;
+      font-family: 'Inter', sans-serif !important;
+    }
+    
+    .leaflet-popup-content-wrapper {
+      border-radius: 8px !important;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.2) !important;
+    }
+    
+    .leaflet-popup-tip {
+      box-shadow: 0 3px 14px rgba(0,0,0,0.2) !important;
+    }
+    
+    /* Ensure Material Icons load properly */
+    @font-face {
+      font-family: 'Material Icons';
+      font-style: normal;
+      font-weight: 400;
+      src: url(https://fonts.gstatic.com/s/materialicons/v140/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2) format('woff2');
     }
   `;
   
@@ -2266,8 +2301,9 @@ const MapView = ({
   };
   
   // Map style options with direct URLs - just using standard OSM
-  const tileProviderUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-  const tileProviderAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+  // Use CartoDB modern tile style (Voyager - brighter but not too bright)
+  const tileProviderUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const tileProviderAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>';
 
   // Filter venues and facilities based on search query and sport
   const [filteredVenues, setFilteredVenues] = useState([]);
@@ -2541,14 +2577,14 @@ const MapView = ({
     };
 
     // Create a smaller, cleaner marker using divIcon
-    const iconSize = 24; // Smaller size (was 28)
+    const iconSize = 22; // Smaller size (was 28)
     const iconAnchor = iconSize / 2;
 
     // Check if this venue matches the current sport filter
     const isSelectedVenue = isSelectedSportVenue();
     
     // Adjust icon size if this venue matches the selected sport filter
-    const finalIconSize = isSelectedVenue ? iconSize * 1.3 : iconSize;
+    const finalIconSize = isSelectedVenue ? iconSize * 1.2 : iconSize;
     
     // Get sport names for the venue
     let sportNames = [];
@@ -2593,7 +2629,7 @@ const MapView = ({
 
     let html;
     let className;
-
+    
     if (sportNames.length === 1) {
       // Single sport marker - Use GPS marker style
       const sport = getSportIconInfo(sportNames[0]);
@@ -2601,9 +2637,8 @@ const MapView = ({
       html = `
         <div class="gps-marker ${isSelectedVenue ? 'selected' : ''}">
           <div class="pin" style="background-color: ${sport.color};">
-            <i class="material-icons icon">${sport.icon}</i>
+            <span class="material-icons" aria-hidden="true" style="font-size: 12px; color: white; transform: rotate(45deg); display: block; text-align: center;">${sport.icon}</span>
           </div>
-          <div class="ripple"></div>
         </div>
       `;
       
@@ -2617,13 +2652,12 @@ const MapView = ({
         <div class="gps-marker multi-sport ${isSelectedVenue ? 'selected' : ''}">
           <div class="pin" style="background-color: ${sport1.color};">
             <div class="half" style="background-color: ${sport1.color};">
-              <i class="material-icons icon">${sport1.icon}</i>
+              <span class="material-icons" aria-hidden="true" style="font-size: 10px; color: white; transform: rotate(45deg); display: block; text-align: center;">${sport1.icon}</span>
             </div>
             <div class="half" style="background-color: ${sport2.color};">
-              <i class="material-icons icon">${sport2.icon}</i>
+              <span class="material-icons" aria-hidden="true" style="font-size: 10px; color: white; transform: rotate(45deg); display: block; text-align: center;">${sport2.icon}</span>
             </div>
           </div>
-          <div class="ripple"></div>
         </div>
       `;
       className = "";
@@ -2634,11 +2668,11 @@ const MapView = ({
       className: className,
       iconSize:
         sportNames.length > 1
-          ? [finalIconSize * 1.4, finalIconSize]
+          ? [finalIconSize * 1.2, finalIconSize]
           : [finalIconSize, finalIconSize],
       iconAnchor:
         sportNames.length > 1
-          ? [finalIconSize * 0.7, finalIconSize / 2]
+          ? [finalIconSize * 0.6, finalIconSize / 2]
           : [finalIconSize / 2, finalIconSize / 2],
       popupAnchor: [0, -finalIconSize / 2],
     });
@@ -2647,8 +2681,16 @@ const MapView = ({
   // Render map component with properly structured elements
   return (
     <Box sx={{ height: '70vh', width: '100%', borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
-      {/* Add marker styles */}
-      <Box component="style">{markerStyles}</Box>
+      {/* Add marker styles and map customizations */}
+      <Box component="style">{`
+        .leaflet-container {
+          width: 100% !important;
+          height: 100% !important;
+          z-index: 1 !important;
+          font-family: 'Inter', sans-serif;
+        }
+        ${markerStyles}
+      `}</Box>
       
       {/* Navigation Notification */}
       {notification && (
@@ -2801,6 +2843,7 @@ const MapView = ({
           zoom={13}
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
+          className="dark-map"
         >
           <TileLayer
             url={tileProviderUrl}
