@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 // Import Leaflet CSS directly
 import "leaflet/dist/leaflet.css";
 // Make sure the CSS is imported before any other related imports
@@ -156,10 +156,23 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
   const [joinLoading, setJoinLoading] = useState({});
   const [viewMode, setViewMode] = useState(0); // 0: List, 1: Map, 2: Calendar
   
-  // Single shared filter state for all views
-  const [selectedSportFilter, setSelectedSportFilter] = useState("all");
+  // Separate filter states for each view
+  const [listViewSportFilter, setListViewSportFilter] = useState("all");
+  const [mapViewSportFilter, setMapViewSportFilter] = useState("all");
+  const [calendarViewSportFilter, setCalendarViewSportFilter] = useState("all");
   
-  // Remove the separate filter states and getActiveSportFilter function
+  // Helper function to get the active sport filter based on current view
+  const getActiveSportFilter = () => {
+    switch (viewMode) {
+      case 0: return listViewSportFilter;
+      case 1: return mapViewSportFilter;
+      case 2: return calendarViewSportFilter;
+      default: return "all";
+    }
+  };
+  
+  // For backward compatibility with existing code
+  const selectedSportFilter = getActiveSportFilter();
   
   const [recommendedMatches, setRecommendedMatches] = useState([]);
   const [error, setError] = useState(null);
@@ -399,9 +412,22 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
     setViewMode(newValue);
   };
 
-  // Sport filter click handler
+  // Sport filter click handler with view-specific behavior
   const handleSportFilterChange = (sportId) => {
-    setSelectedSportFilter(sportId);
+    // Update the appropriate filter based on current view mode
+    switch (viewMode) {
+      case 0:
+        setListViewSportFilter(sportId);
+        break;
+      case 1:
+        setMapViewSportFilter(sportId);
+        break;
+      case 2:
+        setCalendarViewSportFilter(sportId);
+        break;
+      default:
+        break;
+    }
   };
 
   // Render view based on selected view mode
@@ -1479,17 +1505,6 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                 }}
               />
             </Box>
-
-            <AvatarGroup max={5} sx={{ justifyContent: "flex-start" }}>
-              {/* This would be populated with actual participant data */}
-              {Array(Math.min(currentParticipants, 5))
-                .fill()
-                .map((_, i) => (
-                  <Avatar key={i} sx={{ width: 32, height: 32 }}>
-                    {String.fromCharCode(65 + i)}
-                  </Avatar>
-                ))}
-            </AvatarGroup>
           </Box>
 
           {/* Description (truncated) */}
@@ -2177,18 +2192,35 @@ const MapView = ({
   
   // Handle next venue navigation
   const handleNextVenue = () => {
-    if (sportVenues.length <= 1) return;
+    if (!sportVenues || sportVenues.length <= 1) {
+      console.log("No venues to navigate to");
+      return;
+    }
+    
+    // Make sure we have a valid current index
+    let currentIdx = currentVenueIndex;
+    if (currentIdx < 0 || currentIdx >= sportVenues.length) {
+      currentIdx = 0; // Reset to first venue if out of bounds
+    }
     
     // Calculate next index (loop back to 0 if at the end)
-    const nextIndex = (currentVenueIndex + 1) % sportVenues.length;
+    const nextIndex = (currentIdx + 1) % sportVenues.length;
+    
+    // Get the next venue with validation
+    const nextVenue = sportVenues[nextIndex];
+    if (!nextVenue) {
+      console.error("Next venue is undefined");
+      return;
+    }
+    
+    console.log(`Navigating from venue ${currentIdx + 1} to venue ${nextIndex + 1} of ${sportVenues.length}`);
+    
+    // Update state only after validation
     setCurrentVenueIndex(nextIndex);
     
-    // Get the next venue
-    const nextVenue = sportVenues[nextIndex];
-    
-    // Show notification
+    // Show notification with safe access
     setNotification({
-      message: `Navigating to ${nextVenue.name} (${nextIndex + 1} of ${sportVenues.length})`,
+      message: `Navigating to ${nextVenue.name || 'next venue'} (${nextIndex + 1} of ${sportVenues.length})`,
       type: 'info'
     });
     
@@ -2228,15 +2260,9 @@ const MapView = ({
       setNotification(null);
     }
     
-    if (typeof onSportFilterChange === 'function') {
-      // Update the shared filter state in the parent component but stay in map view
-      // We're doing this in a setTimeout to ensure it happens after our local state changes
-      setTimeout(() => {
-        onSportFilterChange(sportId);
-      }, 0);
-    } else {
-      console.log('Map view filter changed to:', sportId);
-    }
+    // Don't propagate filter changes to parent component anymore
+    // This keeps map view filters isolated from other views
+    console.log('Map view filter changed to:', sportId);
   };
   
   // Map style options with direct URLs - just using standard OSM
@@ -2900,18 +2926,22 @@ const MapView = ({
 // Component to set the map view based on center/bounds and handle navigation
 const SetViewOnLocation = ({ center, bounds, selectedSportId, venueCoordinates, currentVenueIndex, sportVenues }) => {
   const map = useMap();
+  // Keep track of the last animation timestamp to debounce rapid changes
+  const lastAnimationRef = useRef(0);
 
   // Initial map view setup based on center or bounds
   useEffect(() => {
     if (center && center.length === 2) {
-      map.setView(center, map.getZoom());
+      // Simple setView without animation for initial positioning
+      map.setView(center, map.getZoom(), { animate: false });
     }
   }, [center, map]);
 
   useEffect(() => {
     if (bounds) {
       try {
-        map.fitBounds(bounds, { padding: [50, 50] });
+        // Fit bounds without animation for initial view
+        map.fitBounds(bounds, { padding: [50, 50], animate: false });
       } catch (error) {
         console.error("Error setting map bounds:", error);
       }
@@ -2920,18 +2950,31 @@ const SetViewOnLocation = ({ center, bounds, selectedSportId, venueCoordinates, 
   
   // Handle navigation to venue when sport is selected or current venue index changes
   useEffect(() => {
+    // Debounce rapid animations (prevent shakiness)
+    const now = Date.now();
+    if (now - lastAnimationRef.current < 500) {
+      return; // Skip if less than 500ms since last animation
+    }
+    
     // If we have specific venues for this sport and a valid index
     if (selectedSportId && selectedSportId !== 'all' && sportVenues && sportVenues.length > 0 && currentVenueIndex >= 0) {
-      const venue = sportVenues[currentVenueIndex];
+      // Make sure we're within bounds of the array
+      const safeIndex = Math.min(currentVenueIndex, sportVenues.length - 1);
+      const venue = sportVenues[safeIndex];
       
-      if (venue && venue.latitude && venue.longitude) {
-        // Fly to the selected venue with animation
+      if (venue && venue.latitude && venue.longitude && 
+          !isNaN(venue.latitude) && !isNaN(venue.longitude)) {
+        
+        lastAnimationRef.current = now;
+        
+        // Use smoother animation with slightly longer duration
         map.flyTo([venue.latitude, venue.longitude], 17, {
           animate: true,
-          duration: 1.5
+          duration: 2.0, // Slightly longer duration for smoother animation
+          easeLinearity: 0.25 // More natural easing
         });
         
-        console.log(`Navigated to venue ${venue.name} for ${selectedSportId} (${currentVenueIndex + 1}/${sportVenues.length})`);
+        console.log(`Navigated to venue ${venue.name} for ${selectedSportId} (${safeIndex + 1}/${sportVenues.length})`);
         return;
       }
     }
@@ -2942,15 +2985,21 @@ const SetViewOnLocation = ({ center, bounds, selectedSportId, venueCoordinates, 
       if (venueCoordinates[selectedSportId] && 
           venueCoordinates[selectedSportId].lat && 
           venueCoordinates[selectedSportId].lng) {
+        
         const { lat, lng } = venueCoordinates[selectedSportId];
         
-        // Fly to the selected venue with animation
-        map.flyTo([lat, lng], 17, {
-          animate: true,
-          duration: 1.5
-        });
-        
-        console.log(`Navigated to sport facility for ${selectedSportId} at ${lat},${lng}`);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          lastAnimationRef.current = now;
+          
+          // Use smoother animation with slightly longer duration
+          map.flyTo([lat, lng], 17, {
+            animate: true,
+            duration: 2.0,
+            easeLinearity: 0.25
+          });
+          
+          console.log(`Navigated to sport facility for ${selectedSportId} at ${lat},${lng}`);
+        }
       }
     }
   }, [selectedSportId, venueCoordinates, currentVenueIndex, sportVenues, map]);
