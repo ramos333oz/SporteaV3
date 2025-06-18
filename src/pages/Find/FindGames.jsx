@@ -78,6 +78,7 @@ import SportsIcon from "@mui/icons-material/Sports";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import SportsBasketballIcon from "@mui/icons-material/SportsBasketball";
 import SportsTennisIcon from "@mui/icons-material/SportsTennis";
+import ImageIcon from "@mui/icons-material/Image";
 import SportsVolleyballIcon from "@mui/icons-material/SportsVolleyball";
 import SportsRugbyIcon from "@mui/icons-material/SportsRugby";
 import SportsHockeyIcon from "@mui/icons-material/SportsHockey";
@@ -2297,13 +2298,57 @@ const MapView = ({
     
     // Don't propagate filter changes to parent component anymore
     // This keeps map view filters isolated from other views
-    console.log('Map view filter changed to:', sportId);
+      console.log('Map view filter changed to:', sportId);
   };
   
-  // Map style options with direct URLs - just using standard OSM
+  // Map style options with direct URLs
   // Use CartoDB modern tile style (Voyager - brighter but not too bright)
   const tileProviderUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
   const tileProviderAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>';
+
+  // Additional tile providers for terrain and satellite views
+  // Using ESRI World Imagery as the main terrain view (as requested by user)
+  const terrainTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+  const terrainAttribution = 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community';
+  
+  // ESRI World Imagery for satellite view (same as terrain in this case)
+  const satelliteTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+  const satelliteAttribution = 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community';
+  
+  // ESRI Topographic map for detailed terrain
+  const topoTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}';
+  const topoAttribution = 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community';
+
+  // Select which tile provider to use - default to terrain for better visualization
+  const [selectedTileProvider, setSelectedTileProvider] = useState('terrain'); // Options: 'default', 'terrain', 'satellite', 'topo'
+  
+  // Get the active tile provider based on selection
+  const getActiveTileProvider = () => {
+    switch(selectedTileProvider) {
+      case 'terrain':
+        return {
+          url: terrainTileUrl,
+          attribution: terrainAttribution
+        };
+      case 'satellite':
+        return {
+          url: satelliteTileUrl,
+          attribution: satelliteAttribution
+        };
+      case 'topo':
+        return {
+          url: topoTileUrl,
+          attribution: topoAttribution
+        };
+      default:
+        return {
+          url: tileProviderUrl,
+          attribution: tileProviderAttribution
+        };
+    }
+  };
+  
+  const activeTileProvider = getActiveTileProvider();
 
   // Filter venues and facilities based on search query and sport
   const [filteredVenues, setFilteredVenues] = useState([]);
@@ -2629,7 +2674,7 @@ const MapView = ({
 
     let html;
     let className;
-    
+
     if (sportNames.length === 1) {
       // Single sport marker - Use GPS marker style
       const sport = getSportIconInfo(sportNames[0]);
@@ -2647,13 +2692,13 @@ const MapView = ({
       // Multiple sports marker (max 2) - Use GPS marker with split colors
       const sport1 = getSportIconInfo(sportNames[0]);
       const sport2 = getSportIconInfo(sportNames[1]);
-      
+
       html = `
         <div class="gps-marker multi-sport ${isSelectedVenue ? 'selected' : ''}">
           <div class="pin" style="background-color: ${sport1.color};">
             <div class="half" style="background-color: ${sport1.color};">
               <span class="material-icons" aria-hidden="true" style="font-size: 10px; color: white; transform: rotate(45deg); display: block; text-align: center;">${sport1.icon}</span>
-            </div>
+          </div>
             <div class="half" style="background-color: ${sport2.color};">
               <span class="material-icons" aria-hidden="true" style="font-size: 10px; color: white; transform: rotate(45deg); display: block; text-align: center;">${sport2.icon}</span>
             </div>
@@ -2846,10 +2891,56 @@ const MapView = ({
           className="dark-map"
         >
           <TileLayer
-            url={tileProviderUrl}
-            attribution={tileProviderAttribution}
+            url={activeTileProvider.url}
+            attribution={activeTileProvider.attribution}
           />
           <ZoomControl position="bottomright" />
+          
+          {/* Map Tile Selector */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 10,
+              right: 10,
+              zIndex: 1000,
+              backgroundColor: 'rgba(255, 255, 255, 0.8)',
+              borderRadius: 1,
+              p: 0.5,
+              boxShadow: 1,
+            }}
+          >
+            <ButtonGroup size="small" variant="outlined">
+              <Button 
+                onClick={() => setSelectedTileProvider('default')}
+                variant={selectedTileProvider === 'default' ? 'contained' : 'outlined'}
+                size="small"
+              >
+                Standard
+              </Button>
+              <Button 
+                onClick={() => setSelectedTileProvider('terrain')}
+                variant={selectedTileProvider === 'terrain' ? 'contained' : 'outlined'}
+                size="small"
+              >
+                Terrain
+              </Button>
+              <Button 
+                onClick={() => setSelectedTileProvider('topo')}
+                variant={selectedTileProvider === 'topo' ? 'contained' : 'outlined'}
+                size="small"
+              >
+                Topo
+              </Button>
+              <Button 
+                onClick={() => setSelectedTileProvider('satellite')}
+                variant={selectedTileProvider === 'satellite' ? 'contained' : 'outlined'}
+                size="small"
+              >
+                Satellite
+              </Button>
+            </ButtonGroup>
+          </Box>
+          
           <SetViewOnLocation 
             center={mapCenter} 
             bounds={mapBounds} 
@@ -2880,6 +2971,36 @@ const MapView = ({
                     <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
                       {venue.name}
                     </Typography>
+                    
+                    {/* Venue Image Placeholder */}
+                    <Box 
+                      sx={{ 
+                        width: '100%', 
+                        height: 120, 
+                        backgroundColor: 'rgba(0,0,0,0.05)', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        borderRadius: 1,
+                        mb: 1,
+                        overflow: 'hidden'
+                      }}
+                    >
+                      {venue.image_url ? (
+                        <img 
+                          src={venue.image_url} 
+                          alt={venue.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <Box sx={{ textAlign: 'center', p: 1 }}>
+                          <ImageIcon sx={{ fontSize: '2rem', color: 'text.secondary', opacity: 0.5 }} />
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Venue Image
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
                     
                     {venue.description && (
                       <Typography variant="body2" sx={{ mb: 1 }}>
@@ -3035,13 +3156,13 @@ const SetViewOnLocation = ({ center, bounds, selectedSportId, venueCoordinates, 
           lastAnimationRef.current = now;
           
           // Use smoother animation with slightly longer duration
-          map.flyTo([lat, lng], 17, {
-            animate: true,
+        map.flyTo([lat, lng], 17, {
+          animate: true,
             duration: 2.0,
             easeLinearity: 0.25
-          });
-          
-          console.log(`Navigated to sport facility for ${selectedSportId} at ${lat},${lng}`);
+        });
+        
+        console.log(`Navigated to sport facility for ${selectedSportId} at ${lat},${lng}`);
         }
       }
     }
