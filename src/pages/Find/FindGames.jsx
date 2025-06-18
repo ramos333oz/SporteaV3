@@ -68,6 +68,8 @@ import {
   TextField,
   InputAdornment,
   ButtonGroup,
+  InputBase,
+  Fab,
 } from "@mui/material";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
@@ -1744,18 +1746,6 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
 
       {/* All Matches Section */}
       <Box>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-          <Typography variant="h2" component="h2">
-            Available Matches
-          </Typography>
-          <Chip
-            label={`${matches.length} found`}
-            size="small"
-            color="default"
-            variant="outlined"
-            sx={{ ml: 2 }}
-          />
-        </Box>
         {loading ? (
           <Grid container spacing={2}>
             {Array(6)
@@ -2049,11 +2039,134 @@ const MapView = ({
   sportFilters,
   supabase,
 }) => {
-  // Add search functionality states
-  const [searchQuery, setSearchQuery] = useState("");
+  // Add custom CSS for map markers
+  const markerStyles = `
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+        transform: scale(1) translateY(0);
+      }
+      50% {
+        box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+        transform: scale(1.05) translateY(-3px);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+        transform: scale(1) translateY(0);
+      }
+    }
+    
+    @keyframes ripple {
+      0% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.5);
+        transform: scale(0.8);
+        opacity: 1;
+      }
+      100% {
+        box-shadow: 0 0 0 20px rgba(255, 255, 255, 0);
+        transform: scale(1.8);
+        opacity: 0;
+      }
+    }
+    
+    .gps-marker {
+      position: relative;
+    }
+    
+    .gps-marker.selected .pin {
+      animation: pulse 1.5s infinite;
+      z-index: 1000 !important;
+    }
+    
+    .gps-marker .pin {
+      width: 30px;
+      height: 40px;
+      background-color: #3f51b5;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+      position: relative;
+    }
+    
+    .gps-marker .pin::after {
+      content: '';
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: white;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    
+    .gps-marker .icon {
+      transform: rotate(45deg);
+      position: relative;
+      font-size: 16px;
+      color: #333;
+      z-index: 10;
+    }
+    
+    .gps-marker .ripple {
+      position: absolute;
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.4);
+      z-index: -1;
+    }
+    
+    .gps-marker.selected .ripple {
+      animation: ripple 2s infinite;
+    }
+    
+    .gps-marker.multi-sport .pin {
+      overflow: hidden;
+    }
+    
+    .gps-marker.multi-sport .half {
+      position: absolute;
+      width: 50%;
+      height: 100%;
+    }
+    
+    .gps-marker.multi-sport .half:first-child {
+      left: 0;
+    }
+    
+    .gps-marker.multi-sport .half:last-child {
+      right: 0;
+    }
+    
+    .gps-marker.multi-sport .half .icon {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(45deg);
+      font-size: 14px;
+      color: #333;
+    }
+  `;
   
   // Initialize with the parent's selected sport
   const [mapViewSelectedSport, setMapViewSelectedSport] = useState(selectedSport || "all");
+  
+  // Track coordinates for each sport's venues for navigation
+  const [venueCoordinatesBySport, setVenueCoordinatesBySport] = useState({});
+  
+  // State for navigation notification
+  const [notification, setNotification] = useState(null);
+  
+  // Add state for tracking current venue index and storing sport venues
+  const [currentVenueIndex, setCurrentVenueIndex] = useState(0);
+  const [sportVenues, setSportVenues] = useState([]);
   
   // Keep local state in sync with parent's selectedSport
   useEffect(() => {
@@ -2062,17 +2175,65 @@ const MapView = ({
     }
   }, [selectedSport]);
   
-  // Handle search input changes
-  const handleSearchChange = (event) => {
-    setSearchQuery(event.target.value);
+  // Handle next venue navigation
+  const handleNextVenue = () => {
+    if (sportVenues.length <= 1) return;
+    
+    // Calculate next index (loop back to 0 if at the end)
+    const nextIndex = (currentVenueIndex + 1) % sportVenues.length;
+    setCurrentVenueIndex(nextIndex);
+    
+    // Get the next venue
+    const nextVenue = sportVenues[nextIndex];
+    
+    // Show notification
+    setNotification({
+      message: `Navigating to ${nextVenue.name} (${nextIndex + 1} of ${sportVenues.length})`,
+      type: 'info'
+    });
+    
+    // Clear notification after 3 seconds
+    setTimeout(() => {
+      setNotification(null);
+    }, 3000);
   };
-  
+
   // Handle sport filter change specific to map view
-  const handleSportFilterChange = (sportId) => {
+  const handleSportFilterChange = (sportId, event) => {
+    // Prevent default behavior to avoid any view switching
+    if (event && event.preventDefault) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
     setMapViewSelectedSport(sportId);
+    
+    // Check if we have venue coordinates for this sport
+    if (sportId !== 'all' && venueCoordinatesBySport[sportId]) {
+      const venueName = venueCoordinatesBySport[sportId].venueName || 'a venue';
+      const sportName = sportFilters.find(s => s.id === sportId)?.name || 'this sport';
+      
+      // Show notification about navigation
+      setNotification({
+        message: `Navigating to ${venueName} for ${sportName}`,
+        type: 'info'
+      });
+      
+      // Clear notification after 3 seconds
+      setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+    } else if (sportId === 'all') {
+      // Clear any notification
+      setNotification(null);
+    }
+    
     if (typeof onSportFilterChange === 'function') {
-      // Update the shared filter state in the parent component
-      onSportFilterChange(sportId);
+      // Update the shared filter state in the parent component but stay in map view
+      // We're doing this in a setTimeout to ensure it happens after our local state changes
+      setTimeout(() => {
+        onSportFilterChange(sportId);
+      }, 0);
     } else {
       console.log('Map view filter changed to:', sportId);
     }
@@ -2145,6 +2306,24 @@ const MapView = ({
             };
           });
           
+          // Create bounds for all venues with valid coordinates
+          if (venuesData.length > 0) {
+            const validCoords = venuesData
+              .filter(venue => venue.latitude && venue.longitude && 
+                              !isNaN(venue.latitude) && !isNaN(venue.longitude))
+              .map(venue => [venue.latitude, venue.longitude]);
+            
+            if (validCoords.length > 0) {
+              // Create a Leaflet bounds object from all venue coordinates
+              const bounds = L.latLngBounds(validCoords);
+              setMapBounds(bounds);
+              
+              // Also set map center to the center of all venues
+              const center = bounds.getCenter();
+              setMapCenter([center.lat, center.lng]);
+            }
+          }
+          
           setVenues(venuesData);
           setFilteredVenues(venuesData);
         } else {
@@ -2163,14 +2342,13 @@ const MapView = ({
     loadVenues();
   }, [supabase]);
   
-  // Filter venues when sport selection or search changes
+  // Filter venues when sport selection changes and prepare coordinates for navigation
   useEffect(() => {
     if (!venues || venues.length === 0) return;
     
-    let filtered = [...venues];
     let sportMatches = [];
     
-    // First identify which venues match the selected sport (for highlighting)
+    // Identify venues that match the selected sport
     if (mapViewSelectedSport && mapViewSelectedSport !== 'all') {
       sportMatches = venues.filter(venue => {
         // Primary check: supported_sports array includes the selected sport
@@ -2196,26 +2374,101 @@ const MapView = ({
         return false;
       });
       
-      // Store the matching venues for highlighting - don't filter the venues list itself
+      // Store the matching venues for highlighting
       setSportMatchingVenues(sportMatches.map(venue => venue.id));
+      
+      // CHANGE: Only show venues matching the selected sport
+      setFilteredVenues(sportMatches);
+      
+      // NEW: Store the full venue objects for the selected sport and reset current index
+      setSportVenues(sportMatches);
+      setCurrentVenueIndex(0);
     } else {
       // No sport filter, clear the matching venues list
       setSportMatchingVenues([]);
+      
+      // Show all venues when no sport filter is applied
+      setFilteredVenues(venues);
+      
+      // NEW: Clear sport venues array and reset index
+      setSportVenues([]);
+      setCurrentVenueIndex(0);
     }
     
-    // Apply search filter if provided (but keep all venues for sport filtering)
-    if (searchQuery && searchQuery.trim() !== '') {
-      const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(venue =>
-        venue.name?.toLowerCase().includes(query) ||
-        venue.description?.toLowerCase().includes(query) ||
-        venue.address?.toLowerCase().includes(query) ||
-        venue.campus?.toLowerCase().includes(query)
-      );
+    // Build a mapping of sport IDs to venue coordinates for navigation
+    const sportVenueMap = {};
+    
+    // Process all venues and collect coordinates by sport
+    venues.forEach(venue => {
+      // Skip venues with invalid coordinates
+      if (!venue.latitude || !venue.longitude || 
+          isNaN(venue.latitude) || isNaN(venue.longitude)) {
+        return;
+      }
+      
+      // Add coordinates for each supported sport
+      if (venue.supported_sports && Array.isArray(venue.supported_sports)) {
+        venue.supported_sports.forEach(sportId => {
+          // Only add if we don't already have coordinates for this sport
+          // or randomly decide to update it for variety (10% chance)
+          if (!sportVenueMap[sportId] || Math.random() < 0.1) {
+            sportVenueMap[sportId] = {
+              lat: venue.latitude,
+              lng: venue.longitude,
+              venueName: venue.name
+            };
+          }
+        });
+      }
+      
+      // Also check the older sports array format
+      if (venue.sports && Array.isArray(venue.sports)) {
+        venue.sports.forEach(sport => {
+          const sportId = (typeof sport === 'string') ? 
+            sportFilters.find(s => s.name.toLowerCase() === sport.toLowerCase())?.id : 
+            (sport.id || null);
+            
+          if (sportId && (!sportVenueMap[sportId] || Math.random() < 0.1)) {
+            sportVenueMap[sportId] = {
+              lat: venue.latitude,
+              lng: venue.longitude,
+              venueName: venue.name
+            };
+          }
+        });
+      }
+    });
+    
+    // Ensure all sports have at least one venue with coordinates
+    // Find any venue with valid coordinates to use as default
+    const defaultVenue = venues.find(venue => 
+      venue.latitude && venue.longitude && !isNaN(venue.latitude) && !isNaN(venue.longitude)
+    );
+    
+    // Add default coordinates for sports that don't have any
+    if (defaultVenue) {
+      // Go through all sport filters except 'all'
+      sportFilters.forEach(sport => {
+        if (sport.id !== 'all' && !sportVenueMap[sport.id]) {
+          console.log(`Adding default coordinates for sport: ${sport.name} (${sport.id})`);
+          sportVenueMap[sport.id] = {
+            lat: defaultVenue.latitude,
+            lng: defaultVenue.longitude,
+            venueName: `Default ${sport.name} location`
+          };
+        }
+      });
     }
     
-    setFilteredVenues(filtered);
-  }, [venues, mapViewSelectedSport, searchQuery, sportFilters]);
+    // Log which sports have coordinates for debugging
+    console.log('Sports with coordinates:', Object.keys(sportVenueMap).map(sportId => {
+      const sport = sportFilters.find(s => s.id === sportId);
+      return sport ? sport.name : sportId;
+    }));
+    
+    // Update the coordinates map for use by the navigation component
+    setVenueCoordinatesBySport(sportVenueMap);
+  }, [venues, mapViewSelectedSport, sportFilters]);
 
   // Get sport icon for map markers
   const getSportIcon = (venue) => {
@@ -2316,41 +2569,38 @@ const MapView = ({
     let className;
 
     if (sportNames.length === 1) {
-      // Single sport marker
+      // Single sport marker - Use GPS marker style
       const sport = getSportIconInfo(sportNames[0]);
       
-      // Add animation and highlight effect if it matches the selected sport
-      const animation = isSelectedVenue ? 'animation: pulse 1.5s infinite;' : '';
-      const borderStyle = isSelectedVenue ? `border: 2px solid white; box-shadow: 0 0 8px rgba(255,255,255,0.8);` : 'box-shadow: 0 1px 3px rgba(0,0,0,0.3);';
-      
       html = `
-        <div class="marker-container" style="width: ${finalIconSize}px; height: ${finalIconSize}px; border-radius: 50%; background-color: ${sport.color}; ${borderStyle} display: flex; align-items: center; justify-content: center; ${animation}">
-          <i class="material-icons" style="color: white; font-size: ${isSelectedVenue ? 16 : 14}px;">${sport.icon}</i>
+        <div class="gps-marker ${isSelectedVenue ? 'selected' : ''}">
+          <div class="pin" style="background-color: ${sport.color};">
+            <i class="material-icons icon">${sport.icon}</i>
+          </div>
+          <div class="ripple"></div>
         </div>
       `;
       
-      className = `venue-marker sport-${sportNames[0].toLowerCase().replace(/\s+/g, "-")}`;
+      className = `sport-${sportNames[0].toLowerCase().replace(/\s+/g, "-")}`;
     } else {
-      // Multiple sports marker (max 2)
+      // Multiple sports marker (max 2) - Use GPS marker with split colors
       const sport1 = getSportIconInfo(sportNames[0]);
       const sport2 = getSportIconInfo(sportNames[1]);
-
-      // Add animation and highlight effect if selected
-      const animation = isSelectedVenue ? 'animation: pulse 1.5s infinite;' : '';
-      const borderStyle = isSelectedVenue ? `border: 2px solid white; box-shadow: 0 0 8px rgba(255,255,255,0.8);` : 'box-shadow: 0 1px 3px rgba(0,0,0,0.3);';
       
-      // Create a split marker with two sport icons side by side
       html = `
-        <div class="marker-container" style="width: ${finalIconSize * 1.4}px; height: ${finalIconSize}px; border-radius: ${finalIconSize / 2}px; display: flex; overflow: hidden; ${borderStyle} ${animation}">
-          <div style="width: 50%; height: 100%; background-color: ${sport1.color}; display: flex; align-items: center; justify-content: center;">
-            <i class="material-icons" style="color: white; font-size: ${isSelectedVenue ? 14 : 12}px;">${sport1.icon}</i>
+        <div class="gps-marker multi-sport ${isSelectedVenue ? 'selected' : ''}">
+          <div class="pin" style="background-color: ${sport1.color};">
+            <div class="half" style="background-color: ${sport1.color};">
+              <i class="material-icons icon">${sport1.icon}</i>
+            </div>
+            <div class="half" style="background-color: ${sport2.color};">
+              <i class="material-icons icon">${sport2.icon}</i>
+            </div>
           </div>
-          <div style="width: 50%; height: 100%; background-color: ${sport2.color}; display: flex; align-items: center; justify-content: center;">
-            <i class="material-icons" style="color: white; font-size: ${isSelectedVenue ? 14 : 12}px;">${sport2.icon}</i>
-          </div>
+          <div class="ripple"></div>
         </div>
       `;
-      className = "venue-marker multi-sport";
+      className = "";
     }
 
     return new L.divIcon({
@@ -2371,61 +2621,151 @@ const MapView = ({
   // Render map component with properly structured elements
   return (
     <Box sx={{ height: '70vh', width: '100%', borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
-      {/* Search Box and Sport Filters - positioned as fixed for better z-index behavior */}
+      {/* Add marker styles */}
+      <Box component="style">{markerStyles}</Box>
+      
+      {/* Navigation Notification */}
+      {notification && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 60,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1001,
+            borderRadius: 2,
+            p: 1,
+            px: 2,
+            backgroundColor: notification.type === 'error' ? 'error.main' : 'primary.main',
+            color: 'white',
+            boxShadow: 3,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            maxWidth: '90%'
+          }}
+        >
+          <InfoIcon fontSize="small" />
+          <Typography variant="body2">{notification.message}</Typography>
+        </Box>
+      )}
+      
+      {/* Sport Filter - positioned at the top-left of the map */}
       <Paper
-        elevation={3}
-        className="map-filter-bar"
+        className="map-sport-filter"
         sx={{
-          p: 1.5,
+          position: 'absolute',
+          top: 10,
+          left: 10,
+          zIndex: 1000,
+          p: 1,
           borderRadius: 2,
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          width: 'calc(100% - 20px)',
-          maxWidth: '1200px',
-          margin: '0 auto',
+          maxWidth: '260px',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(4px)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          transition: 'all 0.3s',
+          '&:hover': {
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          }
         }}
       >
-        <Grid container spacing={1}>
-          <Grid item xs={12}>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
-              {sportFilters.map((sport) => (
-                <Chip
-                  key={sport.id}
-                  icon={sport.icon}
-                  label={sport.name}
-                  onClick={() => handleSportFilterChange(sport.id)}
-                  color={sport.id === mapViewSelectedSport ? "primary" : "default"}
-                  variant={sport.id === mapViewSelectedSport ? "filled" : "outlined"}
-                  sx={{ mb: 1 }}
-                />
-              ))}
-            </Box>
-            <TextField
-              fullWidth
-              variant="outlined"
-              placeholder="Search venues by name, address..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-                sx: { borderRadius: 2 }
-              }}
+        <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1, px: 1 }}>
+          Filter by Sport
+        </Typography>
+        
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'nowrap',
+            gap: 0.5,
+            overflowX: 'auto',
+            pb: 1,
+            px: 0.5,
+            '&::-webkit-scrollbar': {
+              height: 6,
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: 'rgba(0,0,0,0.05)',
+              borderRadius: 3,
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: 'rgba(0,0,0,0.2)',
+              borderRadius: 3,
+              '&:hover': {
+                backgroundColor: 'rgba(0,0,0,0.3)',
+              },
+            },
+          }}
+        >
+          <Chip
+            label="All Sports"
+            size="small"
+            color={mapViewSelectedSport === 'all' ? 'primary' : 'default'}
+            onClick={(e) => handleSportFilterChange('all', e)}
+            sx={{ flexShrink: 0 }}
+          />
+          {sportFilters.slice(1).map((sport) => (
+            <Chip
+              key={sport.id}
+              icon={sport.icon}
+              label={sport.name}
               size="small"
+              color={mapViewSelectedSport === sport.id ? 'primary' : 'default'}
+              onClick={(e) => handleSportFilterChange(sport.id, e)}
+              sx={{ flexShrink: 0 }}
             />
-          </Grid>
-        </Grid>
+          ))}
+        </Box>
       </Paper>
+      
+      {/* Next Venue Button - show only when a sport is selected and multiple venues exist */}
+      {mapViewSelectedSport !== 'all' && sportVenues.length > 1 && (
+        <Fab
+          color="primary"
+          size="medium"
+          aria-label="next venue"
+          onClick={handleNextVenue}
+          sx={{
+            position: 'absolute',
+            bottom: 20,
+            right: 20,
+            zIndex: 1000,
+          }}
+        >
+          <NavigateNextIcon />
+        </Fab>
+      )}
+      
+      {/* Venue Counter - show when multiple venues exist */}
+      {mapViewSelectedSport !== 'all' && sportVenues.length > 1 && (
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 25,
+            right: 80, // Position to the left of the Next button
+            zIndex: 1000,
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            borderRadius: 1,
+            px: 1,
+            py: 0.5,
+            display: 'flex',
+            alignItems: 'center',
+            boxShadow: 1,
+          }}
+        >
+          <Typography variant="body2" fontWeight="medium">
+            {currentVenueIndex + 1} / {sportVenues.length}
+          </Typography>
+        </Box>
+      )}
       
       {/* Map Container */}
       <Box 
         className="map-container-wrapper"
         sx={{ 
-          height: '100%', 
+          height: '100%',
           width: '100%',
-          mt: 0, // No margin top needed since filter is fixed position
           borderRadius: 2,
           overflow: 'hidden'
         }}
@@ -2435,26 +2775,20 @@ const MapView = ({
           zoom={13}
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
-          // Add these props to prevent interference with filter bar
-          whenCreated={(mapInstance) => {
-            // Disable dragging when cursor enters the filter bar
-            const filterBar = document.querySelector('.map-filter-bar');
-            if (filterBar) {
-              filterBar.addEventListener('mouseenter', () => {
-                mapInstance.dragging.disable();
-              });
-              filterBar.addEventListener('mouseleave', () => {
-                mapInstance.dragging.enable();
-              });
-            }
-          }}
         >
           <TileLayer
             url={tileProviderUrl}
             attribution={tileProviderAttribution}
           />
           <ZoomControl position="bottomright" />
-          <SetViewOnLocation center={mapCenter} bounds={mapBounds} />
+          <SetViewOnLocation 
+            center={mapCenter} 
+            bounds={mapBounds} 
+            selectedSportId={mapViewSelectedSport}
+            venueCoordinates={venueCoordinatesBySport}
+            currentVenueIndex={currentVenueIndex}
+            sportVenues={sportVenues}
+          />
 
           {/* Render venue markers */}
           {filteredVenues && filteredVenues.map((venue) => {
@@ -2506,9 +2840,9 @@ const MapView = ({
                                 key={sportId}
                                 startIcon={<SportIcon sportName={sportName} />}
                                 size="small"
-                                onClick={() => {
+                                onClick={(e) => {
                                   if (sportId && typeof handleSportFilterChange === 'function') {
-                                    handleSportFilterChange(sportId);
+                                    handleSportFilterChange(sportId, e);
                                   }
                                 }}
                                 color={sportId === mapViewSelectedSport ? "primary" : "inherit"}
@@ -2563,10 +2897,11 @@ const MapView = ({
   );
 };
 
-// Component to set the map view based on center/bounds
-const SetViewOnLocation = ({ center, bounds }) => {
+// Component to set the map view based on center/bounds and handle navigation
+const SetViewOnLocation = ({ center, bounds, selectedSportId, venueCoordinates, currentVenueIndex, sportVenues }) => {
   const map = useMap();
 
+  // Initial map view setup based on center or bounds
   useEffect(() => {
     if (center && center.length === 2) {
       map.setView(center, map.getZoom());
@@ -2582,6 +2917,43 @@ const SetViewOnLocation = ({ center, bounds }) => {
       }
     }
   }, [bounds, map]);
+  
+  // Handle navigation to venue when sport is selected or current venue index changes
+  useEffect(() => {
+    // If we have specific venues for this sport and a valid index
+    if (selectedSportId && selectedSportId !== 'all' && sportVenues && sportVenues.length > 0 && currentVenueIndex >= 0) {
+      const venue = sportVenues[currentVenueIndex];
+      
+      if (venue && venue.latitude && venue.longitude) {
+        // Fly to the selected venue with animation
+        map.flyTo([venue.latitude, venue.longitude], 17, {
+          animate: true,
+          duration: 1.5
+        });
+        
+        console.log(`Navigated to venue ${venue.name} for ${selectedSportId} (${currentVenueIndex + 1}/${sportVenues.length})`);
+        return;
+      }
+    }
+    
+    // Fallback to original behavior if no specific venue
+    if (selectedSportId && selectedSportId !== 'all' && venueCoordinates) {
+      // Check if we have coordinates for the selected sport
+      if (venueCoordinates[selectedSportId] && 
+          venueCoordinates[selectedSportId].lat && 
+          venueCoordinates[selectedSportId].lng) {
+        const { lat, lng } = venueCoordinates[selectedSportId];
+        
+        // Fly to the selected venue with animation
+        map.flyTo([lat, lng], 17, {
+          animate: true,
+          duration: 1.5
+        });
+        
+        console.log(`Navigated to sport facility for ${selectedSportId} at ${lat},${lng}`);
+      }
+    }
+  }, [selectedSportId, venueCoordinates, currentVenueIndex, sportVenues, map]);
 
   return null;
 };
