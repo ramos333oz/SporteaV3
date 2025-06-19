@@ -105,6 +105,12 @@ import { Calendar, momentLocalizer } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import moment from "moment";
 import ErrorIcon from "@mui/icons-material/Error";
+import SportballIcon from "@mui/icons-material/SportsBasketball";
+import SportsScore from "@mui/icons-material/SportsScore";
+import GroupIcon from "@mui/icons-material/Group";
+import EventBusyIcon from "@mui/icons-material/EventBusy";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import { useTheme } from "@mui/material/styles";
 
 /**
  * SportIcon component for displaying sport-specific icons
@@ -3163,6 +3169,7 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
   const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate();
   const open = Boolean(anchorEl);
+  const theme = useTheme();
 
   // Handle dropdown open/close
   const handleSportFilterButtonClick = (event) => {
@@ -3313,15 +3320,22 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
     }
 
     // Add border for private matches
-    const border = event.isPrivate ? "2px dashed #9e9e9e" : "none";
+    const border = event.isPrivate ? "2px dashed rgba(158, 158, 158, 0.6)" : "none";
 
     return {
       style: {
         backgroundColor,
         color: textColor,
-        borderRadius: "4px",
-        border: border,
+        borderRadius: "8px",
+        border,
         fontWeight: 500,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14)",
+        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+        padding: "2px 0",
+        ':hover': {
+          transform: 'translateY(-1px)',
+          boxShadow: "0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23)",
+        }
       },
     };
   };
@@ -3336,26 +3350,56 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
   const EventComponent = ({ event }) => (
     <Tooltip
       title={
-        <Box>
-          <Typography variant="subtitle2">{event.title}</Typography>
-          <Typography variant="body2">Sport: {event.sportName}</Typography>
-          <Typography variant="body2">Level: {event.skillLevel}</Typography>
-          <Typography variant="body2">Location: {event.location}</Typography>
-          <Typography variant="body2">
-            Spots: {event.isFull ? "Full" : `${event.spotsAvailable} available`}
+        <Box sx={{ p: 0.5 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+            {event.title}
           </Typography>
-          {event.isPrivate && (
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+            <SportballIcon fontSize="small" sx={{ mr: 1, color: 'primary.light' }} />
+            <Typography variant="body2">{event.sportName}</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+            <SportsScore fontSize="small" sx={{ mr: 1, color: 'primary.light' }} />
+            <Typography variant="body2">Level: {event.skillLevel}</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+            <LocationOnIcon fontSize="small" sx={{ mr: 1, color: 'primary.light' }} />
+            <Typography variant="body2">{event.location}</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+            <GroupIcon fontSize="small" sx={{ mr: 1, color: event.isFull ? 'error.light' : 'success.light' }} />
             <Typography variant="body2">
-              <LockIcon fontSize="small" /> Private match
+              {event.isFull ? "Full" : `${event.spotsAvailable} spots available`}
             </Typography>
+          </Box>
+          {event.isPrivate && (
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+              <LockIcon fontSize="small" sx={{ mr: 1, color: 'warning.light' }} />
+              <Typography variant="body2">Private match</Typography>
+            </Box>
           )}
-          <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic" }}>
+          <Divider sx={{ my: 1 }} />
+          <Typography variant="body2" sx={{ fontStyle: "italic", textAlign: 'center', color: 'primary.main' }}>
             Click to view details
           </Typography>
         </Box>
       }
       arrow
       placement="top"
+      componentsProps={{
+        tooltip: {
+          sx: {
+            bgcolor: 'background.paper',
+            color: 'text.primary',
+            borderRadius: 2,
+            boxShadow: theme.shadows[3],
+            p: 1.5,
+            '& .MuiTooltip-arrow': {
+              color: 'background.paper',
+            },
+          },
+        },
+      }}
     >
       <Box
         sx={{
@@ -3366,7 +3410,12 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
-          padding: "2px 4px",
+          padding: "4px 8px",
+          cursor: "pointer",
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            opacity: 0.9,
+          }
         }}
       >
         {event.isPrivate && (
@@ -3380,6 +3429,7 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
             flexGrow: 1,
             overflow: "hidden",
             textOverflow: "ellipsis",
+            fontWeight: 500,
           }}
         >
           {event.title}
@@ -3394,9 +3444,41 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
   ) || sportFilters?.[0] || { id: 'all', name: 'All Sports' };
 
   return (
-    <Paper sx={{ p: 2, height: 700, mb: 2 }} elevation={3}>
-      {/* Modern sport filter dropdown in the calendar header */}
-      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-start' }}>
+    <Paper 
+      sx={{ 
+        p: 3, 
+        height: 700, 
+        mb: 3,
+        borderRadius: 3,
+        overflow: 'hidden',
+        boxShadow: '0 4px 20px 0 rgba(0,0,0,0.1)',
+        background: 'linear-gradient(to bottom, rgba(245,247,250,0.95), rgba(255,255,255,1))',
+      }} 
+      elevation={2}
+    >
+      {/* Calendar header section with sport filter */}
+      <Box 
+        sx={{ 
+          mb: 3, 
+          display: 'flex', 
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}
+      >
+        <Typography 
+          variant="h5" 
+          component="h2" 
+          sx={{ 
+            fontWeight: 700,
+            color: 'text.primary',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <EventIcon sx={{ mr: 1, color: 'primary.main' }} />
+          Sports Calendar
+        </Typography>
+        
         <Button
           id="sport-filter-button"
           variant="contained"
@@ -3405,11 +3487,16 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
           startIcon={selectedSportObject.icon || <SportsIcon />}
           endIcon={<FilterListIcon />}
           sx={{ 
-            borderRadius: 2,
+            borderRadius: 3,
+            px: 2,
+            py: 1,
             textTransform: 'none',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+            background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+            transition: 'all 0.3s ease',
             '&:hover': {
-              boxShadow: '0 6px 10px rgba(0,0,0,0.15)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+              transform: 'translateY(-2px)'
             },
           }}
         >
@@ -3425,14 +3512,28 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
             sx: { maxHeight: 300 }
           }}
           PaperProps={{
-            elevation: 3,
+            elevation: 4,
             sx: {
               mt: 1,
-              width: 200,
+              width: 220,
               maxHeight: 400,
               borderRadius: 2,
+              overflow: 'hidden',
+              animation: 'fadeIn 0.3s ease',
+              '@keyframes fadeIn': {
+                '0%': {
+                  opacity: 0,
+                  transform: 'translateY(-10px)'
+                },
+                '100%': {
+                  opacity: 1,
+                  transform: 'translateY(0)'
+                },
+              }
             }
           }}
+          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         >
           {sportFilters?.map((sport) => (
             <MenuItem 
@@ -3442,13 +3543,30 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                py: 1,
+                py: 1.2,
+                px: 2,
+                transition: 'background 0.2s ease',
+                borderLeft: selectedSport === sport.id ? 4 : 0,
+                borderColor: 'primary.main',
               }}
             >
-              <Box component="span" sx={{ mr: 1, display: 'flex' }}>
+              <Box 
+                component="span" 
+                sx={{ 
+                  mr: 1.5, 
+                  display: 'flex',
+                  color: selectedSport === sport.id ? 'primary.main' : 'text.secondary'
+                }}
+              >
                 {sport.icon}
               </Box>
-              <Typography variant="body2">
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontWeight: selectedSport === sport.id ? 600 : 400,
+                  color: selectedSport === sport.id ? 'primary.main' : 'text.primary'
+                }}
+              >
                 {sport.name}
               </Typography>
             </MenuItem>
@@ -3456,8 +3574,67 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
         </Menu>
       </Box>
       
-      {/* Always render the Calendar component with proper error handling */}
-      <Box sx={{ height: "calc(100% - 40px)", position: "relative" }}>
+      {/* Calendar container with enhanced styling */}
+      <Box 
+        sx={{ 
+          height: "calc(100% - 60px)", 
+          position: "relative",
+          '.rbc-calendar': {
+            fontFamily: theme.typography.fontFamily,
+            borderRadius: 2,
+            overflow: 'hidden',
+          },
+          '.rbc-header': {
+            padding: '8px 4px',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            fontSize: '0.8rem',
+            letterSpacing: '0.5px',
+            backgroundColor: 'rgba(25, 118, 210, 0.05)',
+            color: 'text.secondary',
+          },
+          '.rbc-month-view': {
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+            overflow: 'hidden',
+          },
+          '.rbc-day-bg': {
+            transition: 'all 0.2s ease',
+          },
+          '.rbc-today': {
+            backgroundColor: 'rgba(25, 118, 210, 0.08)',
+          },
+          '.rbc-off-range-bg': {
+            backgroundColor: 'rgba(0, 0, 0, 0.02)',
+          },
+          '.rbc-event': {
+            borderRadius: 2,
+            transition: 'transform 0.2s ease',
+            '&:hover': {
+              transform: 'scale(1.01)',
+            }
+          },
+          '.rbc-toolbar button': {
+            color: 'text.primary',
+            borderRadius: 1,
+            '&:hover': {
+              backgroundColor: 'rgba(25, 118, 210, 0.1)',
+              color: 'primary.main',
+            },
+            '&.rbc-active': {
+              backgroundColor: 'rgba(25, 118, 210, 0.2)',
+              color: 'primary.main',
+              boxShadow: 'none',
+            }
+          },
+          '.rbc-toolbar-label': {
+            fontSize: '1.2rem',
+            fontWeight: 600,
+            color: 'text.primary',
+          },
+        }}
+      >
         <Calendar
           key={`calendar-${selectedSport}`} // Add a key that changes with the sport filter
           localizer={localizer}
@@ -3477,7 +3654,7 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
           }}
         />
         
-        {/* Overlay empty state message when no events */}
+        {/* Enhanced empty state overlay */}
         {(!calendarEvents || calendarEvents.length === 0) && (
           <Box
             sx={{
@@ -3490,21 +3667,72 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
               justifyContent: "center",
               alignItems: "center",
               flexDirection: "column",
-              gap: 2,
-              backgroundColor: "rgba(255, 255, 255, 0.95)", // More opaque background
+              gap: 3,
+              backgroundColor: "rgba(255, 255, 255, 0.9)",
+              backdropFilter: "blur(2px)",
               zIndex: 10,
-              pointerEvents: "auto", // Make entire overlay interactive
+              pointerEvents: "auto",
+              borderRadius: 2,
+              transition: 'all 0.3s ease',
+              animation: 'fadeIn 0.5s ease',
+              '@keyframes fadeIn': {
+                '0%': {
+                  opacity: 0,
+                },
+                '100%': {
+                  opacity: 1,
+                },
+              }
             }}
           >
-            <EventIcon sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.6 }} />
-            <Typography variant="h6" color="text.secondary">
-              No matches found for the selected sport.
+            <Box sx={{ 
+              width: 100, 
+              height: 100, 
+              borderRadius: '50%', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              backgroundColor: 'rgba(25, 118, 210, 0.08)',
+            }}>
+              <EventBusyIcon sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
+            </Box>
+            <Typography 
+              variant="h6" 
+              color="text.secondary"
+              sx={{ 
+                fontWeight: 500,
+                textAlign: 'center',
+                maxWidth: 400,
+              }}
+            >
+              No matches found for {selectedSportObject.name}.
+              <Typography 
+                component="span" 
+                display="block" 
+                variant="body1" 
+                sx={{ mt: 1, color: 'text.secondary', opacity: 0.8 }}
+              >
+                Try selecting a different sport or check back later.
+              </Typography>
             </Typography>
             <Button 
-              variant="outlined" 
+              variant="contained" 
               onClick={() => handleSportSelect('all')}
               startIcon={<SportsIcon />}
-              sx={{ zIndex: 20 }} // Ensure button is clickable
+              sx={{ 
+                zIndex: 20,
+                borderRadius: 6,
+                px: 3,
+                py: 1,
+                textTransform: 'none',
+                background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  boxShadow: '0 4px 12px rgba(25, 118, 210, 0.4)',
+                  transform: 'translateY(-2px)',
+                }
+              }}
             >
               Show All Sports
             </Button>
@@ -3548,7 +3776,19 @@ const CalendarToolbar = (toolbar) => {
   const label = () => {
     const date = toolbar.date;
     return (
-      <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>
+      <Typography 
+        variant="h6" 
+        component="span" 
+        sx={{ 
+          fontWeight: 600, 
+          fontSize: { xs: '1rem', md: '1.2rem' },
+          color: 'primary.dark',
+          letterSpacing: '0.5px',
+          display: 'flex',
+          alignItems: 'center',
+        }}
+      >
+        <CalendarMonthIcon sx={{ mr: 1, color: 'primary.main' }} />
         {moment(date).format("MMMM YYYY")}
       </Typography>
     );
@@ -3562,57 +3802,154 @@ const CalendarToolbar = (toolbar) => {
         alignItems: "center",
         justifyContent: "space-between",
         mb: 2,
-        gap: 1,
+        gap: { xs: 2, sm: 1 },
+        px: 1,
+        py: 1,
+        borderRadius: 2,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(5px)',
       }}
     >
       <Box>{label()}</Box>
-      <Box sx={{ display: "flex", gap: 1 }}>
-        <ButtonGroup size="small" variant="outlined" sx={{ borderRadius: 1 }}>
+      <Box sx={{ display: "flex", gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <ButtonGroup 
+          size="small" 
+          variant="outlined" 
+          sx={{ 
+            borderRadius: 3,
+            overflow: 'hidden',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+            '.MuiButton-root': {
+              borderColor: 'divider',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                backgroundColor: 'rgba(25, 118, 210, 0.08)',
+              },
+              '&:not(:last-child)': {
+                borderRight: '1px solid',
+                borderColor: 'divider',
+              },
+            }
+          }}
+        >
           <Button 
             onClick={goToToday} 
-            sx={{ fontWeight: 600, textTransform: 'none' }}
+            sx={{ 
+              fontWeight: 600, 
+              textTransform: 'none',
+              borderRadius: '20px 0 0 20px',
+            }}
           >
             Today
           </Button>
-          <Button onClick={goToBack}>
+          <Button 
+            onClick={goToBack}
+            sx={{ 
+              minWidth: 40,
+              borderRadius: 0,
+            }}
+          >
             <NavigateBeforeIcon />
           </Button>
-          <Button onClick={goToNext}>
+          <Button 
+            onClick={goToNext}
+            sx={{ 
+              minWidth: 40,
+              borderRadius: '0 20px 20px 0',
+            }}
+          >
             <NavigateNextIcon />
           </Button>
         </ButtonGroup>
-      </Box>
-      <Box sx={{ display: "flex", gap: 1 }}>
+        
         <ButtonGroup 
           size="small" 
           variant="contained" 
-          sx={{ borderRadius: 1, boxShadow: '0 2px 4px rgba(0,0,0,0.08)' }}
+          disableElevation
+          sx={{ 
+            borderRadius: 3,
+            overflow: 'hidden',
+            background: 'linear-gradient(45deg, rgba(25, 118, 210, 0.08) 0%, rgba(66, 165, 245, 0.12) 100%)',
+            '.MuiButton-root': {
+              textTransform: 'none',
+              borderRadius: 0,
+              backgroundColor: 'transparent',
+              color: 'text.secondary',
+              fontWeight: 500,
+              border: 'none',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                backgroundColor: 'rgba(25, 118, 210, 0.12)',
+                color: 'primary.main',
+              },
+              '&.active': {
+                backgroundColor: 'primary.main',
+                color: 'white',
+              }
+            }
+          }}
         >
           <Button
             onClick={goToMonth}
+            className={toolbar.view === "month" ? "active" : ""}
             color={toolbar.view === "month" ? "primary" : "inherit"}
-            sx={{ minWidth: '55px', textTransform: 'none' }}
+            sx={{
+              minWidth: '70px',
+              borderTopLeftRadius: '20px',
+              borderBottomLeftRadius: '20px',
+              backgroundColor: toolbar.view === "month" ? 'primary.main' : 'transparent',
+              color: toolbar.view === "month" ? 'white' : 'text.secondary',
+              '&:hover': {
+                color: toolbar.view === "month" ? 'white' : undefined,
+              },
+            }}
           >
             Month
           </Button>
           <Button
             onClick={goToWeek}
+            className={toolbar.view === "week" ? "active" : ""}
             color={toolbar.view === "week" ? "primary" : "inherit"}
-            sx={{ minWidth: '50px', textTransform: 'none' }}
+            sx={{ 
+              minWidth: '60px',
+              backgroundColor: toolbar.view === "week" ? 'primary.main' : 'transparent',
+              color: toolbar.view === "week" ? 'white' : 'text.secondary',
+              '&:hover': {
+                color: toolbar.view === "week" ? 'white' : undefined,
+              },
+            }}
           >
             Week
           </Button>
           <Button
             onClick={goToDay}
+            className={toolbar.view === "day" ? "active" : ""}
             color={toolbar.view === "day" ? "primary" : "inherit"}
-            sx={{ minWidth: '40px', textTransform: 'none' }}
+            sx={{ 
+              minWidth: '50px',
+              backgroundColor: toolbar.view === "day" ? 'primary.main' : 'transparent',
+              color: toolbar.view === "day" ? 'white' : 'text.secondary',
+              '&:hover': {
+                color: toolbar.view === "day" ? 'white' : undefined,
+              },
+            }}
           >
             Day
           </Button>
           <Button
             onClick={goToAgenda}
+            className={toolbar.view === "agenda" ? "active" : ""}
             color={toolbar.view === "agenda" ? "primary" : "inherit"}
-            sx={{ minWidth: '60px', textTransform: 'none' }}
+            sx={{ 
+              minWidth: '70px', 
+              borderTopRightRadius: '20px',
+              borderBottomRightRadius: '20px',
+              backgroundColor: toolbar.view === "agenda" ? 'primary.main' : 'transparent',
+              color: toolbar.view === "agenda" ? 'white' : 'text.secondary',
+              '&:hover': {
+                color: toolbar.view === "agenda" ? 'white' : undefined,
+              },
+            }}
           >
             Agenda
           </Button>
