@@ -329,13 +329,20 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           
           // Apply location filter (only for list view)
           if (viewMode === 0 && locationFilter) {
-            // Filter by venue/location name if available
-            if (match.location?.name && match.location.name !== locationFilter.name) {
+            // Filter by venue/location ID if available
+            if (match.location?.id && locationFilter.id && 
+                match.location.id.toString() !== locationFilter.id.toString()) {
               return false;
             }
             
-            // Could also filter by coordinates if needed
-            // This would require adding coordinates to matches and comparing distance
+            // Filter by venue/location name as fallback
+            else if (match.location?.name && locationFilter.name && 
+                    match.location.name !== locationFilter.name) {
+              return false;
+            }
+            
+            // Could also filter by coordinates if needed using distance calculation
+            // This would be useful for showing matches within X km of the selected location
           }
 
           // Apply skill level filter
@@ -486,6 +493,9 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
     // Set sport filter if provided
     if (sport) {
       setListViewSportFilter([sport]);
+    } else if (location && location.supported_sports && location.supported_sports.length > 0) {
+      // If no specific sport is provided but location has supported sports, use the first one
+      setListViewSportFilter([location.supported_sports[0]]);
     }
   };
 
@@ -3093,30 +3103,39 @@ const MapView = ({
                       </>
                     )}
                     
-                    <Button 
+                                        <Button 
                       variant="contained" 
                       color="primary" 
                       fullWidth
                       startIcon={<EventIcon />}
                       onClick={() => {
                         // Get the selected sport(s) for this venue
-                        const selectedSport = venue.supported_sports && venue.supported_sports.length > 0 
-                          ? venue.supported_sports[0] // Default to first sport
-                          : null;
+                        let selectedSport = null;
+                        
+                        // If user has selected a sport for this venue, use that
+                        if (mapViewSelectedSport && mapViewSelectedSport !== 'all' && 
+                            venue.supported_sports && venue.supported_sports.includes(mapViewSelectedSport)) {
+                          selectedSport = mapViewSelectedSport;
+                        } 
+                        // Otherwise default to first supported sport
+                        else if (venue.supported_sports && venue.supported_sports.length > 0) {
+                          selectedSport = venue.supported_sports[0];
+                        }
                         
                         // If venue has multiple sports and user hasn't selected one yet, 
                         // show a dialog or use the buttons above
                         
                         // Navigate to List view with filters
                         if (typeof onViewModeChange === 'function') {
-                          // Create a location object with the venue's data
+                          // Create a location object with the venue's data and supported sports
                           const locationObj = {
                             name: venue.name,
                             id: venue.id,
                             coordinates: {
                               lat: venue.latitude,
                               lng: venue.longitude
-                            }
+                            },
+                            supported_sports: venue.supported_sports || []
                           };
                           
                           // Call the parent's navigateToListWithFilters function
