@@ -304,17 +304,6 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       console.log('Starting applyFilters with sourceMatches:', sourceMatches.length);
       console.log('Sample match from source:', sourceMatches[0]?.title, sourceMatches[0]?.id);
       
-      // Log any user created matches in source
-      if (user) {
-        const userMatches = sourceMatches.filter(m => m.host_id === user.id || m.isUserCreated);
-        console.log('User matches in source data:', userMatches.length);
-        if (userMatches.length > 0) {
-          userMatches.forEach(m => console.log(`User match in source: ${m.id} - ${m.title || 'no title'}`));
-        } else {
-          console.log('No user matches found in source data - this is the problem');
-        }
-      }
-      
       const filtered = sourceMatches
         .filter((match) => {
           // Always include user created matches in Available Matches tab
@@ -504,20 +493,10 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         console.log('Active user matches after filtering past matches:', activeMatches.length);
         
         // Mark these matches as user created for easier filtering
-        const enhancedMatches = activeMatches.map(match => {
-          // Make sure we have all required fields set
-          return {
-            ...match,
-            isUserCreated: true,
-            // Make sure these values are set to avoid undefined errors
-            title: match.title || `Match on ${new Date(match.start_time).toLocaleDateString()}`,
-            current_participants: match.current_participants || 1,
-            max_participants: match.max_participants || 10
-          };
-        });
-        
-        console.log('Enhanced user matches ready for state:', enhancedMatches.length);
-        enhancedMatches.forEach(m => console.log(`Enhanced user match: ${m.id} - ${m.title}`));
+        const enhancedMatches = activeMatches.map(match => ({
+          ...match,
+          isUserCreated: true
+        }));
         
         // Set to state
         setUserCreatedMatches(enhancedMatches);
@@ -535,41 +514,32 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       console.log("Running match update effect with propMatches:", propMatches.length);
       setLoading(false);
       
-      // Make a fresh copy of prop matches 
+      // Combine prop matches with user created matches to ensure no duplicates
       const allMatches = propMatches.slice();
       console.log('Initial propMatches count:', allMatches.length);
-      
-      // Mark any matches the user has created in the prop matches
-      if (user) {
-        allMatches.forEach(match => {
-          if (match.host_id === user.id) {
-            match.isUserCreated = true;
-            console.log("Marking existing match as user created by host_id:", match.id, match.title || 'untitled');
-          }
-        });
-      }
       
       // Add any user created matches that aren't already in propMatches
       if (userCreatedMatches && userCreatedMatches.length > 0) {
         console.log('User created matches count:', userCreatedMatches.length);
         console.log('User matches IDs:', userCreatedMatches.map(m => m.id).join(', '));
         
+        // First mark any existing matches that the user created
+        allMatches.forEach(match => {
+          if (user && match.host_id === user.id) {
+            match.isUserCreated = true;
+            console.log("Marking existing match as user created:", match.id, match.title);
+          }
+        });
+        
+        // Then add any user matches not already in the list
         userCreatedMatches.forEach(userMatch => {
-          // Ensure the match has required properties
-          userMatch.isUserCreated = true;
-          if (!userMatch.title) userMatch.title = `Match on ${new Date(userMatch.start_time).toLocaleDateString()}`;
+          const existingMatchIndex = allMatches.findIndex(match => match.id === userMatch.id);
           
-          // Check if this match already exists in allMatches
-          const existingIndex = allMatches.findIndex(match => match.id === userMatch.id);
-          
-          if (existingIndex === -1) {
-            // If not found, add it to allMatches
-            console.log("Adding user match to allMatches:", userMatch.id, userMatch.title);
+          if (existingMatchIndex === -1) {
+            // Add user-specific flag to help with debugging
+            console.log("Adding new user match to allMatches:", userMatch.id, userMatch.title);
+            userMatch.isUserCreated = true;
             allMatches.push(userMatch);
-          } else {
-            // If found, make sure it's marked properly
-            console.log("User match already in propMatches, ensuring it's marked:", userMatch.id);
-            allMatches[existingIndex].isUserCreated = true;
           }
         });
       } else {
@@ -578,12 +548,573 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       
       console.log('Combined matches count:', allMatches.length);
       if (allMatches.length > 0) {
-        console.log('Sample match from allMatches:', allMatches[0].id, allMatches[0].title);
+        console.log('Sample match from allMatches:', allMatches[0].title);
       }
       
-      // Set this unfiltered list directly to state
-      // This is a key change - no more filtering at this point!
+      // Set the state with all matches before filtering
       setMatches(allMatches);
+
+      // Register impressions for visible matches to improve recommendations
+      if (user) {
+        const matchesToTrack =
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+// Import Leaflet CSS directly
+import "leaflet/dist/leaflet.css";
+// Make sure the CSS is imported before any other related imports
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMap,
+  ZoomControl,
+} from "react-leaflet";
+import L, { Icon } from "leaflet"; // Import L from leaflet for bounds creation
+// No longer using leaflet-providers
+
+// Fix for Leaflet marker icon issue (add this outside any component)
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
+import {
+  Container,
+  Box,
+  Grid,
+  Typography,
+  Paper,
+  Card,
+  CardContent,
+  CardMedia,
+  CardHeader,
+  CardActionArea,
+  Chip,
+  Button,
+  CardActions,
+  Skeleton,
+  Tabs,
+  Tab,
+  Divider,
+  Avatar,
+  AvatarGroup,
+  Alert,
+  Badge,
+  Tooltip,
+  LinearProgress,
+  Stack,
+  CircularProgress,
+  IconButton,
+  Collapse,
+  FormControl,
+  FormGroup,
+  FormControlLabel,
+  InputLabel,
+  Select,
+  MenuItem,
+  Checkbox,
+  Slider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  TextField,
+  InputAdornment,
+  ButtonGroup,
+  InputBase,
+  Fab,
+  Menu,
+} from "@mui/material";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import PersonIcon from "@mui/icons-material/Person";
+import SportsIcon from "@mui/icons-material/Sports";
+import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
+import SportsBasketballIcon from "@mui/icons-material/SportsBasketball";
+import SportsTennisIcon from "@mui/icons-material/SportsTennis";
+import ImageIcon from "@mui/icons-material/Image";
+import SportsVolleyballIcon from "@mui/icons-material/SportsVolleyball";
+import SportsRugbyIcon from "@mui/icons-material/SportsRugby";
+import SportsHockeyIcon from "@mui/icons-material/SportsHockey";
+import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
+import FiberNewIcon from "@mui/icons-material/FiberNew";
+import PeopleIcon from "@mui/icons-material/People";
+import LockIcon from "@mui/icons-material/Lock";
+import PublicIcon from "@mui/icons-material/Public";
+import RecommendIcon from "@mui/icons-material/Recommend";
+import InfoIcon from "@mui/icons-material/Info";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import FilterListIcon from "@mui/icons-material/FilterList";
+import SearchIcon from "@mui/icons-material/Search";
+import EventIcon from "@mui/icons-material/Event";
+import { useAuth } from "../../hooks/useAuth";
+import { participantService } from "../../services/supabase";
+import recommendationService from "../../services/recommendationService";
+import interactionService from "../../services/interactionService";
+import { useNavigate } from "react-router-dom";
+import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import { Calendar, momentLocalizer } from "react-big-calendar";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import moment from "moment";
+import ErrorIcon from "@mui/icons-material/Error";
+import SportballIcon from "@mui/icons-material/SportsBasketball";
+import SportsScore from "@mui/icons-material/SportsScore";
+import GroupIcon from "@mui/icons-material/Group";
+import EventBusyIcon from "@mui/icons-material/EventBusy";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import { useTheme } from "@mui/material/styles";
+
+/**
+ * SportIcon component for displaying sport-specific icons
+ * @param {string} sportName - The name of the sport
+ */
+const SportIcon = ({ sportName }) => {
+  if (!sportName) return <SportsIcon fontSize="small" />;
+
+  sportName = sportName.toLowerCase();
+
+  // Return appropriate icon based on sport name
+  if (
+    sportName.includes("football") ||
+    sportName.includes("soccer") ||
+    sportName.includes("futsal")
+  ) {
+    return <SportsSoccerIcon fontSize="small" />;
+  } else if (sportName.includes("basketball")) {
+    return <SportsBasketballIcon fontSize="small" />;
+  } else if (sportName.includes("tennis")) {
+    return <SportsTennisIcon fontSize="small" />;
+  } else if (sportName.includes("volleyball")) {
+    return <SportsVolleyballIcon fontSize="small" />;
+  } else if (sportName.includes("badminton")) {
+    return <SportsTennisIcon fontSize="small" />;
+  } else if (sportName.includes("gym") || sportName.includes("fitness")) {
+    return <FitnessCenterIcon fontSize="small" />;
+  } else if (sportName.includes("rugby")) {
+    return <SportsRugbyIcon fontSize="small" />;
+  } else if (sportName.includes("hockey")) {
+    return <SportsHockeyIcon fontSize="small" />;
+  } else if (sportName.includes("frisbee")) {
+    return <SportsIcon fontSize="small" />;
+  } else if (sportName.includes("squash")) {
+    return <SportsTennisIcon fontSize="small" />;
+  }
+
+  // Default sports icon for unknown sports
+  return <SportsIcon fontSize="small" />;
+};
+
+/**
+ * FindGames component for displaying available sport matches
+ * Uses real data from Supabase passed via props
+ */
+const FindGames = ({ matches: propMatches, sports: propSports }) => {
+  // State management
+  const { user, supabase } = useAuth();
+  const [matches, setMatches] = useState(propMatches || []);
+  const [userCreatedMatches, setUserCreatedMatches] = useState([]);
+  const [loading, setLoading] = useState(!propMatches);
+  const [joinLoading, setJoinLoading] = useState({});
+  const [viewMode, setViewMode] = useState(0); // 0: List, 1: Map, 2: Calendar
+  
+  // Separate filter states for each view
+  const [listViewSportFilter, setListViewSportFilter] = useState([]);
+  const [mapViewSportFilter, setMapViewSportFilter] = useState("all");
+  const [calendarViewSportFilter, setCalendarViewSportFilter] = useState("all");
+  // Location filter for list view
+  const [locationFilter, setLocationFilter] = useState(null);
+  
+  // Helper function to get the active sport filter based on current view
+  const getActiveSportFilter = () => {
+    switch (viewMode) {
+      case 0: return listViewSportFilter.length > 0 ? listViewSportFilter : ["all"];
+      case 1: return mapViewSportFilter;
+      case 2: return calendarViewSportFilter;
+      default: return "all";
+    }
+  };
+  
+  // For backward compatibility with existing code
+  const selectedSportFilter = getActiveSportFilter();
+  
+  const [recommendedMatches, setRecommendedMatches] = useState([]);
+  const [error, setError] = useState(null);
+  const [notification, setNotification] = useState(null);
+  const navigate = useNavigate();
+
+  // New state for advanced filters
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    skillLevel: "all",
+    minSpots: 1,
+    maxDistance: 50, // in km
+    showPrivate: true,
+    showFull: false,
+    dateRange: "all", // 'today', 'tomorrow', 'week', 'all'
+  });
+
+  const [joinDialogOpen, setJoinDialogOpen] = useState(false);
+  const [selectedMatchToJoin, setSelectedMatchToJoin] = useState(null);
+
+  // Generate sport filters from real data
+  const sportFilters = [
+    { id: "all", name: "All Sports", icon: <SportsIcon /> },
+    ...(propSports || [])
+      .filter(sport => {
+        // Filter out table tennis since it's not available yet
+        const sportName = (sport.name || "").toLowerCase();
+        return !sportName.includes("table tennis") && !sportName.includes("ping pong");
+      })
+      .map((sport) => {
+        // Map sport names to appropriate icons using the SportIcon component
+        const sportName = sport.name || "Unknown Sport";
+
+        return {
+          id: sport.id?.toString() || "",
+          name: sportName,
+          icon: <SportIcon sportName={sportName} />,
+        };
+      }),
+  ];
+
+  // Load personalized recommendations when component mounts or user changes
+  useEffect(() => {
+    const loadRecommendations = async () => {
+      if (!user) {
+        // For non-logged in users, just show the newest matches
+        if (propMatches) {
+          const sortedByDate = [...propMatches].sort(
+            (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0),
+          );
+          setRecommendedMatches(sortedByDate.slice(0, 3));
+        }
+        return;
+      }
+
+      try {
+        // Fetch personalized recommendations - we added error handling in the service itself
+        // so this should no longer throw errors
+        const { recommendations, type, message } =
+          await recommendationService.getRecommendations(user.id, 5);
+
+        if (recommendations && recommendations.length > 0) {
+          // Filter out matches where the user is the host
+          const filteredRecommendations = recommendations.filter(
+            (match) => match.host_id !== user.id,
+          );
+
+          // Set the recommended matches with their explanation and metadata
+          setRecommendedMatches(filteredRecommendations);
+
+          // If we got a message from the recommendation service, show it as a notification
+          if (message) {
+            setNotification({
+              severity: "info",
+              message: message,
+            });
+          }
+        } else {
+          // Fall back to sorting by date if recommendations are empty
+          console.log(
+            "No recommendations returned, falling back to default sorting",
+          );
+          if (propMatches) {
+            const sortedByDate = [...propMatches]
+              .filter((match) => match.host_id !== user.id) // Filter out user's own matches
+              .sort(
+                (a, b) =>
+                  new Date(b.created_at || 0) - new Date(a.created_at || 0),
+              );
+
+            setRecommendedMatches(sortedByDate.slice(0, 3));
+          }
+        }
+      } catch (error) {
+        console.error("Error in recommendation handling:", error);
+        // Fall back to sorting by date if recommendations fail
+        if (propMatches) {
+          const sortedByDate = [...propMatches]
+            .filter((match) => match.host_id !== user.id) // Filter out user's own matches
+            .sort(
+              (a, b) =>
+                new Date(b.created_at || 0) - new Date(a.created_at || 0),
+            );
+
+          setRecommendedMatches(sortedByDate.slice(0, 3));
+        }
+      }
+    };
+
+    loadRecommendations();
+  }, [user, propMatches]);
+
+  // Apply all filters to matches
+  const applyFilters = useCallback(
+    (sourceMatches) => {
+      if (!sourceMatches || sourceMatches.length === 0) return [];
+
+      console.log('Starting applyFilters with sourceMatches:', sourceMatches.length);
+      console.log('Sample match from source:', sourceMatches[0]?.title, sourceMatches[0]?.id);
+      
+      const filtered = sourceMatches
+        .filter((match) => {
+          // Always include user created matches in Available Matches tab
+          if (user && match.host_id === user.id) {
+            console.log('Including user match by host_id:', match.id, match.title);
+            return true;
+          }
+          
+          if (match.isUserCreated) {
+            console.log('Including user match by isUserCreated flag:', match.id, match.title);
+            return true;
+          }
+          
+          // Apply sport filter
+          if (viewMode === 0) {
+            // List view - handle array of sport filters
+            if (
+              listViewSportFilter.length > 0 &&
+              !listViewSportFilter.some(
+                sportId => 
+                  sportId === "all" || 
+                  match.sport_id?.toString() === sportId || 
+                  match.sport?.id?.toString() === sportId
+              )
+            ) {
+              return false;
+            }
+          } else if (
+            selectedSportFilter !== "all" &&
+            match.sport_id?.toString() !== selectedSportFilter &&
+            match.sport?.id?.toString() !== selectedSportFilter
+          ) {
+            return false;
+          }
+          
+          // Apply location filter (only for list view)
+          if (viewMode === 0 && locationFilter) {
+            // Filter by venue/location ID if available
+            if (match.location?.id && locationFilter.id && 
+                match.location.id.toString() !== locationFilter.id.toString()) {
+              return false;
+            }
+            
+            // Filter by venue/location name as fallback
+            else if (match.location?.name && locationFilter.name && 
+                    match.location.name !== locationFilter.name) {
+              return false;
+            }
+          }
+
+          // Apply skill level filter
+          if (
+            filters.skillLevel !== "all" &&
+            match.skill_level?.toLowerCase() !==
+              filters.skillLevel.toLowerCase()
+          ) {
+            return false;
+          }
+
+          // Apply spots filter - only show matches with at least this many spots left
+          const spotsLeft =
+            (match.max_participants || 0) - (match.current_participants || 0);
+          if (spotsLeft < filters.minSpots) {
+            return false;
+          }
+
+          // Apply full matches filter
+          if (!filters.showFull && spotsLeft <= 0) {
+            return false;
+          }
+
+          // Apply private matches filter
+          if (!filters.showPrivate && match.is_private) {
+            return false;
+          }
+
+          // Apply date range filter
+          if (filters.dateRange !== "all" && match.start_time) {
+            const matchDate = new Date(match.start_time);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Set to start of today
+
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            const nextWeek = new Date(today);
+            nextWeek.setDate(nextWeek.getDate() + 7);
+
+            if (
+              filters.dateRange === "today" &&
+              (matchDate < today || matchDate >= tomorrow)
+            ) {
+              return false;
+            } else if (
+              filters.dateRange === "tomorrow" &&
+              (matchDate < tomorrow ||
+                matchDate >= new Date(tomorrow.getTime() + 86400000))
+            ) {
+              return false;
+            } else if (
+              filters.dateRange === "week" &&
+              (matchDate < today || matchDate >= nextWeek)
+            ) {
+              return false;
+            }
+          }
+
+          // Match passed all filters
+          return true;
+        })
+        .map((match) => ({
+          ...match,
+          // Mark as updated if it's new or recently modified
+          isUpdated:
+            match.created_at &&
+            new Date(match.created_at) > new Date(Date.now() - 10 * 60 * 1000), // Created in last 10 minutes
+        }));
+
+      console.log('Filtered matches count:', filtered.length);
+      if (filtered.length > 0) {
+        console.log('First filtered match:', filtered[0].id, filtered[0].title);
+      }
+      
+      return filtered;
+    },
+    [selectedSportFilter, filters, user, viewMode, locationFilter, listViewSportFilter],
+  );
+
+  // Fetch user created matches
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchUserMatches = async () => {
+      try {
+        console.log('Fetching matches for user ID:', user.id);
+        
+        // Get the current date
+        const now = new Date();
+        
+        // Fetch all matches hosted by the user with full relationship data
+        const { data, error } = await supabase
+          .from('matches')
+          .select(`
+            *,
+            location (*),
+            sport (*)
+          `)
+          .eq('host_id', user.id);
+          
+        if (error) {
+          console.error('Error fetching user matches:', error);
+          throw error;
+        }
+        
+        console.log('Raw user matches data fetched:', data);
+        
+        // Filter out past matches (where end_time is in the past)
+        const activeMatches = data?.filter(match => {
+          // Calculate end time based on start_time + duration
+          const startTime = new Date(match.start_time);
+          const endTime = match.end_time 
+            ? new Date(match.end_time) 
+            : new Date(startTime.getTime() + (match.duration_minutes || 60) * 60000);
+            
+          // Only include matches that haven't ended yet
+          const isActive = endTime > now;
+          
+          if (!isActive) {
+            console.log('Filtering out past match:', match.id, match.title);
+          }
+          
+          return isActive;
+        }) || [];
+        
+        console.log('Active user matches after filtering past matches:', activeMatches.length);
+        
+        // Mark these matches as user created for easier filtering
+        const enhancedMatches = activeMatches.map(match => ({
+          ...match,
+          isUserCreated: true
+        }));
+        
+        setUserCreatedMatches(enhancedMatches);
+      } catch (error) {
+        console.error('Error in fetchUserMatches:', error);
+      }
+    };
+    
+    fetchUserMatches();
+  }, [user, supabase]);
+
+  // Update matches when props, user matches, or filter changes
+  useEffect(() => {
+    if (propMatches) {
+      console.log("Running match update effect with propMatches:", propMatches.length);
+      setLoading(false);
+      
+      // Combine prop matches with user created matches to ensure no duplicates
+      const allMatches = propMatches.slice();
+      console.log('Initial propMatches count:', allMatches.length);
+      
+      // Add any user created matches that aren't already in propMatches
+      if (userCreatedMatches && userCreatedMatches.length > 0) {
+        console.log('User created matches count:', userCreatedMatches.length);
+        userCreatedMatches.forEach(userMatch => {
+          // Always add user matches regardless if they're already in propMatches
+          if (!allMatches.some(match => match.id === userMatch.id)) {
+            // Add user-specific flag to help with debugging
+            console.log("Adding user match to allMatches:", userMatch.id, userMatch.title);
+            userMatch.isUserCreated = true;
+            allMatches.push(userMatch);
+          } else {
+            // Mark existing matches as user created if they are
+            const existingMatch = allMatches.find(match => match.id === userMatch.id);
+            if (existingMatch) {
+              existingMatch.isUserCreated = true;
+              console.log("Marking existing match as user created:", existingMatch.id, existingMatch.title);
+            }
+          }
+        });
+      } else {
+        console.log('No user created matches found');
+      }
+      
+      console.log('Combined matches count:', allMatches.length);
+      if (allMatches.length > 0) {
+        console.log('Sample match from allMatches:', allMatches[0].title);
+      }
+      
+      // Apply all filters
+      const filteredMatches = applyFilters(allMatches);
+      console.log('After filtering, matches count:', filteredMatches.length);
+      
+      // Check if user matches are still present after filtering
+      if (user && userCreatedMatches && userCreatedMatches.length > 0) {
+        const userMatchesAfterFilter = filteredMatches.filter(
+          match => match.host_id === user.id || match.isUserCreated
+        );
+        console.log('User matches after filtering:', userMatchesAfterFilter.length);
+        if (userMatchesAfterFilter.length > 0) {
+          console.log('User match example after filter:', {
+            id: userMatchesAfterFilter[0].id,
+            title: userMatchesAfterFilter[0].title,
+            isUserCreated: userMatchesAfterFilter[0].isUserCreated,
+            host_id: userMatchesAfterFilter[0].host_id
+          });
+        } else {
+          console.log('No user matches found after filtering, checking filters:', filters);
+        }
+      }
+      
+      setMatches(filteredMatches);
 
       // Register impressions for visible matches to improve recommendations
       if (user) {
@@ -722,7 +1253,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                   Available Matches
                 </Typography>
                 <Chip
-                  label={`${filteredMatches.length + (user ? matches.filter(m => m.host_id === user.id || m.isUserCreated === true).length : 0)} found`}
+                  label={`${filteredMatches.length} found`}
                   size="small"
                   color="default"
                   variant="outlined"
@@ -765,22 +1296,13 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                 </Paper>
               ) : (
                 <Grid container spacing={2}>
-                  {console.log("Preparing to render matches:", filteredMatches.length)}
-                  {matches.map((match) => {
-                    // Always show user created matches
-                    const isUserMatch = user && (match.host_id === user.id || match.isUserCreated === true);
-                    // For other matches, apply normal filtering
-                    const showMatch = isUserMatch || filteredMatches.some(m => m.id === match.id);
-                    
-                    if (showMatch) {
-                      console.log("Rendering match:", match.id, match.title, isUserMatch ? "(User Match)" : "");
-                      return (
-                        <Grid item xs={12} sm={6} md={4} key={match.id}>
-                          {renderMatchCard(match)}
-                        </Grid>
-                      );
-                    }
-                    return null;
+                  {filteredMatches.map((match) => {
+                    console.log("Rendering match:", match.id, match.title);
+                    return (
+                      <Grid item xs={12} sm={6} md={4} key={match.id}>
+                        {renderMatchCard(match)}
+                      </Grid>
+                    );
                   })}
                 </Grid>
               )}
@@ -1150,29 +1672,14 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
 
   // Apply filters to matches
   const filteredMatches = React.useMemo(() => {
-    if (!matches || matches.length === 0) {
-      console.log('No matches to filter');
-      return [];
-    }
+    if (!matches || matches.length === 0) return [];
     
     console.log('Filtering', matches.length, 'matches');
     
-    // Log user created matches before filtering
-    if (user) {
-      const userMatches = matches.filter(m => m.host_id === user.id || m.isUserCreated === true);
-      console.log('User matches before filtering:', userMatches.length);
-      userMatches.forEach(m => console.log(`User match before filtering: ${m.id} - ${m.title || 'untitled'}`));
-    }
-    
     return matches.filter((match) => {
       // Always include user created matches regardless of filters
-      if (user && match.host_id === user.id) {
-        console.log('Including user-created match by host_id in filtered results:', match.id, match.title);
-        return true;
-      }
-      
-      if (user && match.isUserCreated === true) {
-        console.log('Including user-created match by isUserCreated flag in filtered results:', match.id, match.title);
+      if (user && (match.host_id === user.id || match.isUserCreated === true)) {
+        console.log('Including user-created match in filtered results:', match.id, match.title);
         return true;
       }
       
