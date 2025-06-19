@@ -165,14 +165,16 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
   const [viewMode, setViewMode] = useState(0); // 0: List, 1: Map, 2: Calendar
   
   // Separate filter states for each view
-  const [listViewSportFilter, setListViewSportFilter] = useState("all");
+  const [listViewSportFilter, setListViewSportFilter] = useState([]);
   const [mapViewSportFilter, setMapViewSportFilter] = useState("all");
   const [calendarViewSportFilter, setCalendarViewSportFilter] = useState("all");
+  // Location filter for list view
+  const [locationFilter, setLocationFilter] = useState(null);
   
   // Helper function to get the active sport filter based on current view
   const getActiveSportFilter = () => {
     switch (viewMode) {
-      case 0: return listViewSportFilter;
+      case 0: return listViewSportFilter.length > 0 ? listViewSportFilter : ["all"];
       case 1: return mapViewSportFilter;
       case 2: return calendarViewSportFilter;
       default: return "all";
@@ -304,12 +306,36 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       return sourceMatches
         .filter((match) => {
           // Apply sport filter
-          if (
+          if (viewMode === 0) {
+            // List view - handle array of sport filters
+            if (
+              listViewSportFilter.length > 0 &&
+              !listViewSportFilter.some(
+                sportId => 
+                  sportId === "all" || 
+                  match.sport_id?.toString() === sportId || 
+                  match.sport?.id?.toString() === sportId
+              )
+            ) {
+              return false;
+            }
+          } else if (
             activeSportFilter !== "all" &&
             match.sport_id?.toString() !== activeSportFilter &&
             match.sport?.id?.toString() !== activeSportFilter
           ) {
             return false;
+          }
+          
+          // Apply location filter (only for list view)
+          if (viewMode === 0 && locationFilter) {
+            // Filter by venue/location name if available
+            if (match.location?.name && match.location.name !== locationFilter.name) {
+              return false;
+            }
+            
+            // Could also filter by coordinates if needed
+            // This would require adding coordinates to matches and comparing distance
           }
 
           // Apply skill level filter
@@ -425,7 +451,21 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
     // Update the appropriate filter based on current view mode
     switch (viewMode) {
       case 0:
-        setListViewSportFilter(sportId);
+        // For List View, handle multi-select
+        if (sportId === "all") {
+          // If "All Sports" is selected, clear the filter
+          setListViewSportFilter([]);
+        } else {
+          setListViewSportFilter(prev => {
+            if (prev.includes(sportId)) {
+              // If already selected, remove it
+              return prev.filter(id => id !== sportId);
+            } else {
+              // If not selected, add it
+              return [...prev, sportId];
+            }
+          });
+        }
         break;
       case 1:
         setMapViewSportFilter(sportId);
@@ -435,6 +475,17 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         break;
       default:
         break;
+    }
+  };
+  
+  // Function to navigate from Map view to List view with filters
+  const navigateToListWithFilters = (location, sport) => {
+    setViewMode(0); // Switch to List view
+    setLocationFilter(location); // Set location filter
+    
+    // Set sport filter if provided
+    if (sport) {
+      setListViewSportFilter([sport]);
     }
   };
 
@@ -550,15 +601,16 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           </>
         );
       case 1: // Map View
-        return (
-          <MapView
-            matches={matches}
-            selectedSport={selectedSportFilter}
-            onViewModeChange={handleViewModeChange}
-            onSportFilterChange={handleSportFilterChange}
-            sportFilters={sportFilters}
-            supabase={supabase}
-          />
+          return (
+    <MapView
+      matches={matches}
+      selectedSport={selectedSportFilter}
+      onViewModeChange={handleViewModeChange}
+      onSportFilterChange={handleSportFilterChange}
+      navigateToListWithFilters={navigateToListWithFilters}
+      sportFilters={sportFilters}
+      supabase={supabase}
+    />
         );
       case 2: // Calendar View
         return (
@@ -1634,18 +1686,22 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       {/* Only show filters in List View */}
       {viewMode === 0 && (
         <>
-          {/* Sports filter chips */}
-          <Box sx={{ mb: 3, display: "flex", flexWrap: "wrap", gap: 1 }}>
-            {sportFilters.map((sport) => (
-              <Chip
-                key={sport.id}
-                icon={sport.icon}
-                label={sport.name}
-                color={selectedSportFilter === sport.id ? "primary" : "default"}
-                onClick={() => handleSportFilterChange(sport.id)}
-                sx={{ mb: { xs: 1, md: 0 } }}
-              />
-            ))}
+                      {/* Sports filter chips */}
+            <Box sx={{ mb: 3, display: "flex", flexWrap: "wrap", gap: 1 }}>
+              {sportFilters.map((sport) => (
+                <Chip
+                  key={sport.id}
+                  icon={sport.icon}
+                  label={sport.name}
+                  color={
+                    sport.id === "all" 
+                      ? listViewSportFilter.length === 0 ? "primary" : "default"
+                      : listViewSportFilter.includes(sport.id) ? "primary" : "default"
+                  }
+                  onClick={() => handleSportFilterChange(sport.id)}
+                  sx={{ mb: { xs: 1, md: 0 } }}
+                />
+              ))}
 
             {/* Advanced filters toggle */}
             <Chip
@@ -2042,6 +2098,7 @@ const MapView = ({
   selectedSport,
   onViewModeChange,
   onSportFilterChange,
+  navigateToListWithFilters,
   sportFilters,
   supabase,
 }) => {
@@ -3042,7 +3099,37 @@ const MapView = ({
                       fullWidth
                       startIcon={<EventIcon />}
                       onClick={() => {
-                        // Navigate to find matches for this venue
+                        // Get the selected sport(s) for this venue
+                        const selectedSport = venue.supported_sports && venue.supported_sports.length > 0 
+                          ? venue.supported_sports[0] // Default to first sport
+                          : null;
+                        
+                        // If venue has multiple sports and user hasn't selected one yet, 
+                        // show a dialog or use the buttons above
+                        
+                        // Navigate to List view with filters
+                        if (typeof onViewModeChange === 'function') {
+                          // Create a location object with the venue's data
+                          const locationObj = {
+                            name: venue.name,
+                            id: venue.id,
+                            coordinates: {
+                              lat: venue.latitude,
+                              lng: venue.longitude
+                            }
+                          };
+                          
+                          // Call the parent's navigateToListWithFilters function
+                          if (typeof navigateToListWithFilters === 'function') {
+                            navigateToListWithFilters(locationObj, selectedSport);
+                          } else {
+                            // Fallback to direct navigation
+                            onViewModeChange(null, 0);
+                            if (typeof onSportFilterChange === 'function' && selectedSport) {
+                              onSportFilterChange(selectedSport);
+                            }
+                          }
+                        }
                       }}
                     >
                       Find Matches Here
@@ -3192,21 +3279,21 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
   useEffect(() => {
     // Always initialize with an empty array
     let events = [];
-    
+
     try {
       // Only process matches if we have them
       if (matches && Array.isArray(matches) && matches.length > 0) {
-        // Filter matches by selected sport if needed
-        let filteredMatches = [...matches];
-        if (selectedSport && selectedSport !== "all") {
-          filteredMatches = matches.filter(
-            (match) =>
-              match.sport_id?.toString() === selectedSport ||
-              match.sport?.id?.toString() === selectedSport,
-          );
-        }
+    // Filter matches by selected sport if needed
+    let filteredMatches = [...matches];
+    if (selectedSport && selectedSport !== "all") {
+      filteredMatches = matches.filter(
+        (match) =>
+          match.sport_id?.toString() === selectedSport ||
+          match.sport?.id?.toString() === selectedSport,
+      );
+    }
 
-        // Convert matches to calendar events
+    // Convert matches to calendar events
         events = filteredMatches.map((match) => {
           // Safely parse the start time with error handling
           let startTime;
@@ -3222,14 +3309,14 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
             startTime = new Date(); // Fallback to current time
           }
 
-          // Calculate end time (add duration in minutes or default to 1 hour)
+      // Calculate end time (add duration in minutes or default to 1 hour)
           let endTime;
           try {
             endTime = match.end_time
-              ? new Date(match.end_time)
-              : new Date(
-                  startTime.getTime() + (match.duration_minutes || 60) * 60000,
-                );
+        ? new Date(match.end_time)
+        : new Date(
+            startTime.getTime() + (match.duration_minutes || 60) * 60000,
+          );
             // Check if date is valid
             if (isNaN(endTime.getTime())) {
               console.warn(`Invalid end time for match ${match.id}:`, match.end_time);
@@ -3241,31 +3328,31 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
           }
 
           // Get sport name with safe access
-          const sportName = match.sport?.name || "Sport";
+      const sportName = match.sport?.name || "Sport";
 
-          // Get skill level with safe access
-          const skillLevel = match.skill_level || "Any Level";
+      // Get skill level with safe access
+      const skillLevel = match.skill_level || "Any Level";
 
           // Calculate spots available with safe access
-          const maxParticipants = match.max_participants || 10;
-          const currentParticipants = match.current_participants || 1;
-          const spotsAvailable = maxParticipants - currentParticipants;
+      const maxParticipants = match.max_participants || 10;
+      const currentParticipants = match.current_participants || 1;
+      const spotsAvailable = maxParticipants - currentParticipants;
 
-          return {
-            id: match.id,
-            title: match.title || `${sportName} Match`,
-            start: startTime,
-            end: endTime,
-            allDay: false,
-            resource: match, // Store the original match data for the event
-            sportName,
-            skillLevel,
-            location: match.location?.name || "Location not specified",
-            spotsAvailable,
-            isFull: spotsAvailable <= 0,
-            isPrivate: match.is_private,
-          };
-        });
+      return {
+        id: match.id,
+        title: match.title || `${sportName} Match`,
+        start: startTime,
+        end: endTime,
+        allDay: false,
+        resource: match, // Store the original match data for the event
+        sportName,
+        skillLevel,
+        location: match.location?.name || "Location not specified",
+        spotsAvailable,
+        isFull: spotsAvailable <= 0,
+        isPrivate: match.is_private,
+      };
+    });
       }
     } catch (error) {
       console.error("Error processing calendar events:", error);
@@ -3273,7 +3360,7 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
       events = [];
     } finally {
       // Always set calendar events, even if it's an empty array
-      setCalendarEvents(events);
+    setCalendarEvents(events);
     }
   }, [matches, selectedSport]);
 
@@ -3360,7 +3447,7 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
             <SportsScore fontSize="small" sx={{ mr: 1, color: 'primary.light' }} />
-            <Typography variant="body2">Level: {event.skillLevel}</Typography>
+          <Typography variant="body2">Level: {event.skillLevel}</Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
             <LocationOnIcon fontSize="small" sx={{ mr: 1, color: 'primary.light' }} />
@@ -3368,9 +3455,9 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
             <GroupIcon fontSize="small" sx={{ mr: 1, color: event.isFull ? 'error.light' : 'success.light' }} />
-            <Typography variant="body2">
+          <Typography variant="body2">
               {event.isFull ? "Full" : `${event.spotsAvailable} spots available`}
-            </Typography>
+          </Typography>
           </Box>
           {event.isPrivate && (
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
@@ -3492,7 +3579,7 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
             py: 1,
             textTransform: 'none',
             boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-            background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+            background: 'linear-gradient(45deg, #d32f2f 30%, #f44336 90%)',
             transition: 'all 0.3s ease',
             '&:hover': {
               boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
@@ -3656,16 +3743,16 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
         
         {/* Enhanced empty state overlay */}
         {(!calendarEvents || calendarEvents.length === 0) && (
-          <Box
-            sx={{
+        <Box
+          sx={{
               position: "absolute",
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
               flexDirection: "column",
               gap: 3,
               backgroundColor: "rgba(255, 255, 255, 0.9)",
@@ -3713,7 +3800,7 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
                 sx={{ mt: 1, color: 'text.secondary', opacity: 0.8 }}
               >
                 Try selecting a different sport or check back later.
-              </Typography>
+          </Typography>
             </Typography>
             <Button 
               variant="contained" 
@@ -3736,8 +3823,8 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
             >
               Show All Sports
             </Button>
-          </Box>
-        )}
+        </Box>
+      )}
       </Box>
     </Paper>
   );
