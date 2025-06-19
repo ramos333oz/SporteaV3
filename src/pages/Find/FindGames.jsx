@@ -70,6 +70,7 @@ import {
   ButtonGroup,
   InputBase,
   Fab,
+  Menu,
 } from "@mui/material";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
@@ -556,9 +557,11 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       case 2: // Calendar View
         return (
           <CalendarView 
+            key={`calendar-view-${selectedSportFilter}`} // Add a key that changes with the sport filter
             matches={matches} 
             selectedSport={selectedSportFilter}
             onSportFilterChange={handleSportFilterChange} 
+            sportFilters={sportFilters}
           />
         );
       default:
@@ -1776,25 +1779,6 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                 </Grid>
               ))}
           </Grid>
-        ) : matches.length === 0 ? (
-          <Paper
-            sx={{
-              p: 4,
-              textAlign: "center",
-              borderRadius: 3,
-            }}
-          >
-            <SportsIcon sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
-            <Typography variant="h3" gutterBottom>
-              No matches found
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Try adjusting your filters or create your own match!
-            </Typography>
-            <Button variant="contained" sx={{ mt: 2 }}>
-              Host a Match
-            </Button>
-          </Paper>
         ) : (
           renderViewContent()
         )}
@@ -3174,67 +3158,116 @@ const SetViewOnLocation = ({ center, bounds, selectedSportId, venueCoordinates, 
 /**
  * CalendarView component for displaying matches in a calendar
  */
-const CalendarView = ({ matches, selectedSport, onSportFilterChange }) => {
+const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilters }) => {
   const [calendarEvents, setCalendarEvents] = useState([]);
+  const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate();
+  const open = Boolean(anchorEl);
+
+  // Handle dropdown open/close
+  const handleSportFilterButtonClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleSportFilterClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleSportSelect = (sportId) => {
+    onSportFilterChange(sportId);
+    handleSportFilterClose();
+  };
 
   // Set up the localizer for the calendar
   const localizer = useMemo(() => momentLocalizer(moment), []);
 
   // Prepare matches data for calendar format
   useEffect(() => {
-    if (!matches || matches.length === 0) return;
-
-    // Filter matches by selected sport if needed
-    let filteredMatches = [...matches];
-    if (selectedSport && selectedSport !== "all") {
-      filteredMatches = matches.filter(
-        (match) =>
-          match.sport_id?.toString() === selectedSport ||
-          match.sport?.id?.toString() === selectedSport,
-      );
-    }
-
-    // Convert matches to calendar events
-    const events = filteredMatches.map((match) => {
-      // Parse the start time
-      const startTime = new Date(match.start_time);
-
-      // Calculate end time (add duration in minutes or default to 1 hour)
-      const endTime = match.end_time
-        ? new Date(match.end_time)
-        : new Date(
-            startTime.getTime() + (match.duration_minutes || 60) * 60000,
+    // Always initialize with an empty array
+    let events = [];
+    
+    try {
+      // Only process matches if we have them
+      if (matches && Array.isArray(matches) && matches.length > 0) {
+        // Filter matches by selected sport if needed
+        let filteredMatches = [...matches];
+        if (selectedSport && selectedSport !== "all") {
+          filteredMatches = matches.filter(
+            (match) =>
+              match.sport_id?.toString() === selectedSport ||
+              match.sport?.id?.toString() === selectedSport,
           );
+        }
 
-      // Get sport name
-      const sportName = match.sport?.name || "Sport";
+        // Convert matches to calendar events
+        events = filteredMatches.map((match) => {
+          // Safely parse the start time with error handling
+          let startTime;
+          try {
+            startTime = new Date(match.start_time);
+            // Check if date is valid
+            if (isNaN(startTime.getTime())) {
+              console.warn(`Invalid start time for match ${match.id}:`, match.start_time);
+              startTime = new Date(); // Fallback to current time
+            }
+          } catch (error) {
+            console.error(`Error parsing start time for match ${match.id}:`, error);
+            startTime = new Date(); // Fallback to current time
+          }
 
-      // Get skill level with safe access
-      const skillLevel = match.skill_level || "Any Level";
+          // Calculate end time (add duration in minutes or default to 1 hour)
+          let endTime;
+          try {
+            endTime = match.end_time
+              ? new Date(match.end_time)
+              : new Date(
+                  startTime.getTime() + (match.duration_minutes || 60) * 60000,
+                );
+            // Check if date is valid
+            if (isNaN(endTime.getTime())) {
+              console.warn(`Invalid end time for match ${match.id}:`, match.end_time);
+              endTime = new Date(startTime.getTime() + 60 * 60000); // Fallback to start time + 1 hour
+            }
+          } catch (error) {
+            console.error(`Error calculating end time for match ${match.id}:`, error);
+            endTime = new Date(startTime.getTime() + 60 * 60000); // Fallback to start time + 1 hour
+          }
 
-      // Calculate spots available
-      const maxParticipants = match.max_participants || 10;
-      const currentParticipants = match.current_participants || 1;
-      const spotsAvailable = maxParticipants - currentParticipants;
+          // Get sport name with safe access
+          const sportName = match.sport?.name || "Sport";
 
-      return {
-        id: match.id,
-        title: match.title || `${sportName} Match`,
-        start: startTime,
-        end: endTime,
-        allDay: false,
-        resource: match, // Store the original match data for the event
-        sportName,
-        skillLevel,
-        location: match.location?.name || "Location not specified",
-        spotsAvailable,
-        isFull: spotsAvailable <= 0,
-        isPrivate: match.is_private,
-      };
-    });
+          // Get skill level with safe access
+          const skillLevel = match.skill_level || "Any Level";
 
-    setCalendarEvents(events);
+          // Calculate spots available with safe access
+          const maxParticipants = match.max_participants || 10;
+          const currentParticipants = match.current_participants || 1;
+          const spotsAvailable = maxParticipants - currentParticipants;
+
+          return {
+            id: match.id,
+            title: match.title || `${sportName} Match`,
+            start: startTime,
+            end: endTime,
+            allDay: false,
+            resource: match, // Store the original match data for the event
+            sportName,
+            skillLevel,
+            location: match.location?.name || "Location not specified",
+            spotsAvailable,
+            isFull: spotsAvailable <= 0,
+            isPrivate: match.is_private,
+          };
+        });
+      }
+    } catch (error) {
+      console.error("Error processing calendar events:", error);
+      // Ensure we set an empty array on error
+      events = [];
+    } finally {
+      // Always set calendar events, even if it's an empty array
+      setCalendarEvents(events);
+    }
   }, [matches, selectedSport]);
 
   // Custom event renderer
@@ -3355,44 +3388,80 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange }) => {
     </Tooltip>
   );
 
+  // Find the currently selected sport object
+  const selectedSportObject = sportFilters?.find(sport => 
+    sport.id === selectedSport
+  ) || sportFilters?.[0] || { id: 'all', name: 'All Sports' };
+
   return (
-    <Paper sx={{ p: 2, height: 700, mb: 2 }}>
-      {/* Add sport filter chips at the top of the calendar */}
-      <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-        <Chip
-          label="All Sports"
-          onClick={() => onSportFilterChange("all")}
-          color={selectedSport === "all" ? "primary" : "default"}
-          variant={selectedSport === "all" ? "filled" : "outlined"}
-        />
-        {/* We don't have sportFilters prop in CalendarView, so we'll show just a few common ones */}
-        <Chip
-          icon={<SportsSoccerIcon />}
-          label="Football"
-          onClick={() => onSportFilterChange("1")} /* Assuming ID 1 is football */
-          color={selectedSport === "1" ? "primary" : "default"}
-          variant={selectedSport === "1" ? "filled" : "outlined"}
-        />
-        <Chip
-          icon={<SportsBasketballIcon />}
-          label="Basketball"
-          onClick={() => onSportFilterChange("2")} /* Assuming ID 2 is basketball */
-          color={selectedSport === "2" ? "primary" : "default"}
-          variant={selectedSport === "2" ? "filled" : "outlined"}
-        />
-        <Chip
-          icon={<SportsTennisIcon />}
-          label="Badminton"
-          onClick={() => onSportFilterChange("3")} /* Assuming ID 3 is badminton */
-          color={selectedSport === "3" ? "primary" : "default"}
-          variant={selectedSport === "3" ? "filled" : "outlined"}
-        />
+    <Paper sx={{ p: 2, height: 700, mb: 2 }} elevation={3}>
+      {/* Modern sport filter dropdown in the calendar header */}
+      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-start' }}>
+        <Button
+          id="sport-filter-button"
+          variant="contained"
+          color="primary"
+          onClick={handleSportFilterButtonClick}
+          startIcon={selectedSportObject.icon || <SportsIcon />}
+          endIcon={<FilterListIcon />}
+          sx={{ 
+            borderRadius: 2,
+            textTransform: 'none',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            '&:hover': {
+              boxShadow: '0 6px 10px rgba(0,0,0,0.15)',
+            },
+          }}
+        >
+          {selectedSportObject.name}
+        </Button>
+        <Menu
+          id="sport-filter-menu"
+          anchorEl={anchorEl}
+          open={open}
+          onClose={handleSportFilterClose}
+          MenuListProps={{
+            'aria-labelledby': 'sport-filter-button',
+            sx: { maxHeight: 300 }
+          }}
+          PaperProps={{
+            elevation: 3,
+            sx: {
+              mt: 1,
+              width: 200,
+              maxHeight: 400,
+              borderRadius: 2,
+            }
+          }}
+        >
+          {sportFilters?.map((sport) => (
+            <MenuItem 
+              key={sport.id} 
+              onClick={() => handleSportSelect(sport.id)}
+              selected={selectedSport === sport.id}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                py: 1,
+              }}
+            >
+              <Box component="span" sx={{ mr: 1, display: 'flex' }}>
+                {sport.icon}
+              </Box>
+              <Typography variant="body2">
+                {sport.name}
+              </Typography>
+            </MenuItem>
+          ))}
+        </Menu>
       </Box>
       
-      {calendarEvents.length > 0 ? (
+      {/* Always render the Calendar component with proper error handling */}
+      <Box sx={{ height: "calc(100% - 40px)", position: "relative" }}>
         <Calendar
+          key={`calendar-${selectedSport}`} // Add a key that changes with the sport filter
           localizer={localizer}
-          events={calendarEvents}
+          events={calendarEvents || []} // Ensure we always pass an array
           startAccessor="start"
           endAccessor="end"
           style={{ height: "100%" }}
@@ -3407,25 +3476,46 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange }) => {
             toolbar: CalendarToolbar,
           }}
         />
-      ) : (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100%",
-          }}
-        >
-          <Typography variant="body1">
-            No matches found for the selected filters.
-          </Typography>
-        </Box>
-      )}
+        
+        {/* Overlay empty state message when no events */}
+        {(!calendarEvents || calendarEvents.length === 0) && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              flexDirection: "column",
+              gap: 2,
+              backgroundColor: "rgba(255, 255, 255, 0.95)", // More opaque background
+              zIndex: 10,
+              pointerEvents: "auto", // Make entire overlay interactive
+            }}
+          >
+            <EventIcon sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.6 }} />
+            <Typography variant="h6" color="text.secondary">
+              No matches found for the selected sport.
+            </Typography>
+            <Button 
+              variant="outlined" 
+              onClick={() => handleSportSelect('all')}
+              startIcon={<SportsIcon />}
+              sx={{ zIndex: 20 }} // Ensure button is clickable
+            >
+              Show All Sports
+            </Button>
+          </Box>
+        )}
+      </Box>
     </Paper>
   );
 };
 
-// Custom Calendar Toolbar component
+// Custom Calendar Toolbar component with modernized styling
 const CalendarToolbar = (toolbar) => {
   const goToBack = () => {
     toolbar.onNavigate("PREV");
@@ -3458,7 +3548,7 @@ const CalendarToolbar = (toolbar) => {
   const label = () => {
     const date = toolbar.date;
     return (
-      <Typography variant="h6" component="span" sx={{ fontWeight: "bold" }}>
+      <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>
         {moment(date).format("MMMM YYYY")}
       </Typography>
     );
@@ -3477,8 +3567,13 @@ const CalendarToolbar = (toolbar) => {
     >
       <Box>{label()}</Box>
       <Box sx={{ display: "flex", gap: 1 }}>
-        <ButtonGroup size="small" variant="outlined">
-          <Button onClick={goToToday}>Today</Button>
+        <ButtonGroup size="small" variant="outlined" sx={{ borderRadius: 1 }}>
+          <Button 
+            onClick={goToToday} 
+            sx={{ fontWeight: 600, textTransform: 'none' }}
+          >
+            Today
+          </Button>
           <Button onClick={goToBack}>
             <NavigateBeforeIcon />
           </Button>
@@ -3488,28 +3583,36 @@ const CalendarToolbar = (toolbar) => {
         </ButtonGroup>
       </Box>
       <Box sx={{ display: "flex", gap: 1 }}>
-        <ButtonGroup size="small" variant="contained">
+        <ButtonGroup 
+          size="small" 
+          variant="contained" 
+          sx={{ borderRadius: 1, boxShadow: '0 2px 4px rgba(0,0,0,0.08)' }}
+        >
           <Button
             onClick={goToMonth}
             color={toolbar.view === "month" ? "primary" : "inherit"}
+            sx={{ minWidth: '55px', textTransform: 'none' }}
           >
             Month
           </Button>
           <Button
             onClick={goToWeek}
             color={toolbar.view === "week" ? "primary" : "inherit"}
+            sx={{ minWidth: '50px', textTransform: 'none' }}
           >
             Week
           </Button>
           <Button
             onClick={goToDay}
             color={toolbar.view === "day" ? "primary" : "inherit"}
+            sx={{ minWidth: '40px', textTransform: 'none' }}
           >
             Day
           </Button>
           <Button
             onClick={goToAgenda}
             color={toolbar.view === "agenda" ? "primary" : "inherit"}
+            sx={{ minWidth: '60px', textTransform: 'none' }}
           >
             Agenda
           </Button>
