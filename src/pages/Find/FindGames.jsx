@@ -2415,7 +2415,7 @@ const MapView = ({
     
     // Don't propagate filter changes to parent component anymore
     // This keeps map view filters isolated from other views
-    console.log('Map view filter changed to:', sportId);
+      console.log('Map view filter changed to:', sportId);
   };
   
   // Map style options with direct URLs
@@ -3387,13 +3387,13 @@ const SetViewOnLocation = ({ center, bounds, selectedSportId, venueCoordinates, 
           lastAnimationRef.current = now;
           
           // Use smoother animation with slightly longer duration
-          map.flyTo([lat, lng], 17, {
-            animate: true,
+        map.flyTo([lat, lng], 17, {
+          animate: true,
             duration: 2.0,
             easeLinearity: 0.25
-          });
-          
-          console.log(`Navigated to sport facility for ${selectedSportId} at ${lat},${lng}`);
+        });
+        
+        console.log(`Navigated to sport facility for ${selectedSportId} at ${lat},${lng}`);
         }
       }
     }
@@ -3684,39 +3684,8 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
     sport.id === selectedSport
   ) || sportFilters?.[0] || { id: 'all', name: 'All Sports' };
 
-  // Add effect to open popup for active venue when it changes
-  useEffect(() => {
-    if (activePopupVenue && activeMarkerRef.current) {
-      // Open the popup for the active marker
-      activeMarkerRef.current.openPopup();
-      console.log(`Opened popup for venue: ${activePopupVenue.name}`);
-    }
-  }, [activePopupVenue]);
-
-  // Add effect to sync activePopupVenue with currentVenueIndex
-  useEffect(() => {
-    if (sportVenues.length > 0 && currentVenueIndex >= 0 && currentVenueIndex < sportVenues.length) {
-      // When currentVenueIndex changes, update activePopupVenue to match
-      const currentVenue = sportVenues[currentVenueIndex];
-      
-      // Only update if different to prevent loops
-      if (!activePopupVenue || activePopupVenue.id !== currentVenue.id) {
-        console.log(`Updating active popup venue to match currentVenueIndex: ${currentVenue.name}`);
-        setActivePopupVenue(currentVenue);
-      }
-    }
-  }, [currentVenueIndex, sportVenues]);
-
-  // Create a function to expose activePopupVenue to child components
-  useEffect(() => {
-    // Make activePopupVenue available to the SetViewOnLocation component
-    window.activePopupVenue = activePopupVenue;
-    
-    // Cleanup function
-    return () => {
-      delete window.activePopupVenue;
-    };
-  }, [activePopupVenue]);
+  // These effects were removed as they referenced map-related variables
+  // that aren't available in the CalendarView component
 
   return (
     <Paper 
