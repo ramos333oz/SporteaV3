@@ -621,17 +621,26 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       case 0:
         // For List View, handle multi-select
         if (sportId === "all") {
-          // If "All Sports" is selected, clear the filter
+          // If "All Sports" is selected, clear all other filters
           setListViewSportFilter([]);
+          console.log('Set list view filter to empty array (all sports)');
         } else {
           setListViewSportFilter(prev => {
+            // Create a new array without the "all" option
+            let newFilters = prev.filter(id => id !== "all");
+            
             if (prev.includes(sportId)) {
               // If already selected, remove it
-              return prev.filter(id => id !== sportId);
+              newFilters = newFilters.filter(id => id !== sportId);
+              console.log(`Removing sport ${sportId} from filters`);
             } else {
               // If not selected, add it
-              return [...prev, sportId];
+              newFilters = [...newFilters, sportId];
+              console.log(`Adding sport ${sportId} to filters`);
             }
+            
+            // If all filters are removed, treat as "all sports"
+            return newFilters.length > 0 ? newFilters : [];
           });
         }
         break;
@@ -722,12 +731,24 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                   Available Matches
                 </Typography>
                 <Chip
-                  label={`${filteredMatches.length + (user ? matches.filter(m => m.host_id === user.id || m.isUserCreated === true).length : 0)} found`}
+                  label={`${filteredMatches.length} found`}
                   size="small"
                   color="default"
                   variant="outlined"
                   sx={{ ml: 2 }}
                 />
+                {viewMode === 0 && listViewSportFilter.length > 0 && (
+                  <Tooltip title="Filter is active">
+                    <Chip
+                      icon={<FilterListIcon />}
+                      label={`${listViewSportFilter.length} filter${listViewSportFilter.length > 1 ? 's' : ''} active`}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      sx={{ ml: 1 }}
+                    />
+                  </Tooltip>
+                )}
               </Box>
 
               {loading ? (
@@ -756,31 +777,44 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                   <Typography variant="h3" gutterBottom>
                     No matches found
                   </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    Try adjusting your filters or create your own match!
-                  </Typography>
-                  <Button variant="contained" sx={{ mt: 2 }}>
-                    Host a Match
-                  </Button>
+                                        <Typography variant="body1" color="text.secondary">
+                        Try adjusting your filters or create your own match!
+                      </Typography>
+                      {user && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 1 }}>
+                          Note: Your created matches are also subject to filters. 
+                          If you can't see your match, try resetting the filters.
+                        </Typography>
+                      )}
+                      <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center' }}>
+                        <Button 
+                          variant="contained" 
+                          onClick={() => navigate('/host')}
+                        >
+                          Host a Match
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<RefreshIcon />}
+                          onClick={handleResetFilters}
+                        >
+                          Reset All Filters
+                        </Button>
+                      </Box>
                 </Paper>
               ) : (
                 <Grid container spacing={2}>
-                  {console.log("Preparing to render matches:", filteredMatches.length)}
-                  {matches.map((match) => {
-                    // Always show user created matches
+                  {console.log("Preparing to render filtered matches:", filteredMatches.length)}
+                  {/* Use the filteredMatches directly since it already includes user matches */}
+                  {filteredMatches.map((match) => {
                     const isUserMatch = user && (match.host_id === user.id || match.isUserCreated === true);
-                    // For other matches, apply normal filtering
-                    const showMatch = isUserMatch || filteredMatches.some(m => m.id === match.id);
-                    
-                    if (showMatch) {
-                      console.log("Rendering match:", match.id, match.title, isUserMatch ? "(User Match)" : "");
-                      return (
-                        <Grid item xs={12} sm={6} md={4} key={match.id}>
-                          {renderMatchCard(match)}
-                        </Grid>
-                      );
-                    }
-                    return null;
+                    console.log("Rendering match:", match.id, match.title, isUserMatch ? "(User Match)" : "");
+                    return (
+                      <Grid item xs={12} sm={6} md={4} key={match.id}>
+                        {renderMatchCard(match)}
+                      </Grid>
+                    );
                   })}
                 </Grid>
               )}
@@ -1156,33 +1190,92 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
     }
     
     console.log('Filtering', matches.length, 'matches');
+    console.log('Current filter settings:', {
+      viewMode,
+      listViewSportFilter: listViewSportFilter.length > 0 ? listViewSportFilter : 'all (empty array)',
+      selectedSportFilter,
+      locationFilter: locationFilter ? `${locationFilter.name} (id: ${locationFilter.id})` : 'none',
+      otherFilters: filters
+    });
     
     // Log user created matches before filtering
     if (user) {
       const userMatches = matches.filter(m => m.host_id === user.id || m.isUserCreated === true);
       console.log('User matches before filtering:', userMatches.length);
-      userMatches.forEach(m => console.log(`User match before filtering: ${m.id} - ${m.title || 'untitled'}`));
+      if (userMatches.length > 0) {
+        console.log('User matches found:');
+        userMatches.forEach(m => {
+          console.log(`User match before filtering: ${m.id} - ${m.title || 'untitled'}`);
+          console.log(`  Details: host_id: ${m.host_id}, user.id: ${user.id}, isUserCreated: ${m.isUserCreated}`);
+          console.log(`  Sport: ${m.sport?.name || m.sport_id} (ID: ${m.sport?.id || m.sport_id})`);
+          console.log(`  Location: ${m.location?.name || 'unknown'} (ID: ${m.location?.id || 'unknown'})`);
+          console.log(`  Skill level: ${m.skill_level || 'not set'}`);
+          console.log(`  Spots: ${m.current_participants || 0}/${m.max_participants || 0}`);
+          console.log(`  Private: ${m.is_private ? 'Yes' : 'No'}`);
+          console.log(`  Date/Time: ${m.start_time ? new Date(m.start_time).toLocaleString() : 'not set'}`);
+        });
+      } else {
+        console.log('No user matches found before filtering - this could be the problem');
+      }
     }
     
     return matches.filter((match) => {
-      // Always include user created matches regardless of filters
-      if (user && match.host_id === user.id) {
-        console.log('Including user-created match by host_id in filtered results:', match.id, match.title);
-        return true;
+      // Check if this is a user-created match (for debugging only)
+      const isUserCreatedMatch = user && (match.host_id === user.id || match.isUserCreated === true);
+      if (isUserCreatedMatch) {
+        console.log(`Processing user-created match: ${match.id} - ${match.title || 'untitled'}`);
       }
       
-      if (user && match.isUserCreated === true) {
-        console.log('Including user-created match by isUserCreated flag in filtered results:', match.id, match.title);
-        return true;
+      // Apply sport filter based on the current view mode
+      if (viewMode === 0) {
+        // LIST VIEW: Handle multi-select sport filters
+        if (listViewSportFilter.length > 0) {
+          // If the user has selected specific sports (and not "all")
+          const matchSportId = match.sport_id?.toString() || match.sport?.id?.toString();
+          
+          // Check if match sport is in the selected list, or if "all" is selected
+          const sportMatches = listViewSportFilter.includes(matchSportId) || listViewSportFilter.includes("all");
+          
+          if (!sportMatches) {
+            if (isUserCreatedMatch) {
+              console.log(`User match ${match.id} filtered out - sport ${matchSportId} not in selected filters:`, listViewSportFilter);
+            }
+            return false;
+          }
+        }
+      } else {
+        // MAP/CALENDAR VIEW: Handle single sport filter
+        if (
+          selectedSportFilter !== "all" &&
+          match.sport_id?.toString() !== selectedSportFilter &&
+          match.sport?.id?.toString() !== selectedSportFilter
+        ) {
+          if (isUserCreatedMatch) {
+            console.log(`User match ${match.id} filtered out - sport doesn't match selected filter: ${selectedSportFilter}`);
+          }
+          return false;
+        }
       }
-      
-      // Apply sport filter
-      if (
-        selectedSportFilter !== "all" &&
-        match.sport_id?.toString() !== selectedSportFilter &&
-        match.sport?.id?.toString() !== selectedSportFilter
-      ) {
-        return false;
+
+      // Apply location filter (only for list view)
+      if (viewMode === 0 && locationFilter) {
+        // Filter by venue/location ID if available
+        if (match.location?.id && locationFilter.id && 
+            match.location.id.toString() !== locationFilter.id.toString()) {
+          if (isUserCreatedMatch) {
+            console.log(`User match ${match.id} filtered out - location ID doesn't match: ${match.location?.id} vs ${locationFilter.id}`);
+          }
+          return false;
+        }
+        
+        // Filter by venue/location name as fallback
+        else if (match.location?.name && locationFilter.name && 
+                match.location.name !== locationFilter.name) {
+          if (isUserCreatedMatch) {
+            console.log(`User match ${match.id} filtered out - location name doesn't match: ${match.location?.name} vs ${locationFilter.name}`);
+          }
+          return false;
+        }
       }
 
       // Apply skill level filter
@@ -1190,6 +1283,9 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         filters.skillLevel !== "all" &&
         match.skill_level?.toLowerCase() !== filters.skillLevel.toLowerCase()
       ) {
+        if (isUserCreatedMatch) {
+          console.log(`User match ${match.id} filtered out - skill level doesn't match: ${match.skill_level} vs ${filters.skillLevel}`);
+        }
         return false;
       }
 
@@ -1197,16 +1293,25 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       const spotsLeft =
         (match.max_participants || 0) - (match.current_participants || 0);
       if (spotsLeft < filters.minSpots) {
+        if (isUserCreatedMatch) {
+          console.log(`User match ${match.id} filtered out - not enough spots left: ${spotsLeft} vs ${filters.minSpots}`);
+        }
         return false;
       }
 
       // Apply full matches filter
       if (!filters.showFull && spotsLeft <= 0) {
+        if (isUserCreatedMatch) {
+          console.log(`User match ${match.id} filtered out - match is full and showFull is false`);
+        }
         return false;
       }
 
       // Apply private matches filter
       if (!filters.showPrivate && match.is_private) {
+        if (isUserCreatedMatch) {
+          console.log(`User match ${match.id} filtered out - match is private and showPrivate is false`);
+        }
         return false;
       }
 
@@ -1226,25 +1331,43 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           filters.dateRange === "today" &&
           (matchDate < today || matchDate >= tomorrow)
         ) {
+          if (isUserCreatedMatch) {
+            console.log(`User match ${match.id} filtered out - date not today: ${matchDate.toLocaleDateString()}`);
+          }
           return false;
         } else if (
           filters.dateRange === "tomorrow" &&
           (matchDate < tomorrow ||
             matchDate >= new Date(tomorrow.getTime() + 86400000))
         ) {
+          if (isUserCreatedMatch) {
+            console.log(`User match ${match.id} filtered out - date not tomorrow: ${matchDate.toLocaleDateString()}`);
+          }
           return false;
         } else if (
           filters.dateRange === "week" &&
           (matchDate < today || matchDate >= nextWeek)
         ) {
+          if (isUserCreatedMatch) {
+            console.log(`User match ${match.id} filtered out - date not within week: ${matchDate.toLocaleDateString()}`);
+          }
           return false;
         }
       }
 
       // Match passed all filters
+      if (isUserCreatedMatch) {
+        console.log(`User-created match ${match.id} passed all filters`);
+      }
       return true;
-    });
-  }, [matches, selectedSportFilter, filters]);
+    }).map((match) => ({
+      ...match,
+      // Mark as updated if it's new or recently modified
+      isUpdated:
+        match.created_at &&
+        new Date(match.created_at) > new Date(Date.now() - 10 * 60 * 1000) // Created in last 10 minutes
+    }));
+  }, [matches, selectedSportFilter, filters, viewMode, listViewSportFilter, locationFilter, user, userCreatedMatches]);
 
   // Handle filter change
   const handleFilterChange = (event) => {
@@ -1267,6 +1390,9 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
 
   // Reset filters to default
   const handleResetFilters = () => {
+    console.log("Resetting all filters to default values");
+    
+    // Reset all filters
     setFilters({
       skillLevel: "all",
       minSpots: 1,
@@ -1275,6 +1401,19 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       showFull: false,
       dateRange: "all",
     });
+    
+    // Reset sport filters
+    setListViewSportFilter([]);
+    
+    // Reset location filter
+    setLocationFilter(null);
+    
+    console.log("All filters have been reset to default values");
+    
+    // Close filter panel if it's open
+    if (showFilters) {
+      setShowFilters(false);
+    }
   };
 
   // Render recommendation card (similar to match card but with recommendation details)
@@ -1898,16 +2037,20 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         <>
                       {/* Sports filter chips */}
             <Box sx={{ mb: 3, display: "flex", flexWrap: "wrap", gap: 1 }}>
-              {sportFilters.map((sport) => (
+              <Chip
+                key="all"
+                icon={<SportsIcon />}
+                label="All Sports"
+                color={listViewSportFilter.length === 0 ? "primary" : "default"}
+                onClick={() => handleSportFilterChange("all")}
+                sx={{ mb: { xs: 1, md: 0 } }}
+              />
+              {sportFilters.slice(1).map((sport) => (
                 <Chip
                   key={sport.id}
                   icon={sport.icon}
                   label={sport.name}
-                  color={
-                    sport.id === "all" 
-                      ? listViewSportFilter.length === 0 ? "primary" : "default"
-                      : listViewSportFilter.includes(sport.id) ? "primary" : "default"
-                  }
+                  color={listViewSportFilter.includes(sport.id) ? "primary" : "default"}
                   onClick={() => handleSportFilterChange(sport.id)}
                   sx={{ mb: { xs: 1, md: 0 } }}
                 />
@@ -2014,22 +2157,28 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                 </Grid>
               </Grid>
 
-              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-                <Button
-                  size="small"
-                  onClick={handleResetFilters}
-                  sx={{ mr: 1 }}
-                >
-                  Reset Filters
-                </Button>
-                <Button
-                  size="small"
-                  variant="contained"
-                  onClick={() => setShowFilters(false)}
-                >
-                  Apply Filters
-                </Button>
-              </Box>
+                              <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Filters apply to all matches, including your own
+                  </Typography>
+                  <Box>
+                    <Button
+                      size="small"
+                      onClick={handleResetFilters}
+                      sx={{ mr: 1 }}
+                      startIcon={<RefreshIcon />}
+                    >
+                      Reset All Filters
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => setShowFilters(false)}
+                    >
+                      Apply Filters
+                    </Button>
+                  </Box>
+                </Box>
             </Paper>
           </Collapse>
         </>
