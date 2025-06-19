@@ -2116,27 +2116,27 @@ const MapView = ({
   const markerStyles = `
     @keyframes pulse {
       0% {
-        box-shadow: 0 0 0 0 rgba(63, 81, 181, 0.7);
-        transform: scale(1) translateY(0);
+        box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7);
+        transform: scale(1) translateY(0) rotate(-45deg);
       }
       50% {
-        box-shadow: 0 0 0 10px rgba(63, 81, 181, 0);
-        transform: scale(1.05) translateY(-3px);
+        box-shadow: 0 0 0 10px rgba(211, 47, 47, 0);
+        transform: scale(1.1) translateY(-5px) rotate(-45deg);
       }
       100% {
-        box-shadow: 0 0 0 0 rgba(63, 81, 181, 0);
-        transform: scale(1) translateY(0);
+        box-shadow: 0 0 0 0 rgba(211, 47, 47, 0);
+        transform: scale(1) translateY(0) rotate(-45deg);
       }
     }
     
     @keyframes ripple {
       0% {
-        box-shadow: 0 0 0 0 rgba(63, 81, 181, 0.5);
+        box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.5);
         transform: scale(0.8);
         opacity: 1;
       }
       100% {
-        box-shadow: 0 0 0 20px rgba(63, 81, 181, 0);
+        box-shadow: 0 0 0 20px rgba(211, 47, 47, 0);
         transform: scale(1.8);
         opacity: 0;
       }
@@ -2158,6 +2158,7 @@ const MapView = ({
       position: relative;
       filter: drop-shadow(0 3px 2px rgba(0,0,0,0.2));
       transition: all 0.3s ease;
+      animation: float 3s ease-in-out infinite;
     }
     
     .gps-marker.selected {
@@ -2167,6 +2168,23 @@ const MapView = ({
     
     .gps-marker.selected .pin {
       animation: pulse 1.5s infinite;
+      box-shadow: 0 0 10px 2px rgba(211, 47, 47, 0.7);
+    }
+    
+    .gps-marker .ripple {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: transparent;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: -1;
+    }
+    
+    .gps-marker.selected .ripple {
+      animation: ripple 2s infinite;
     }
     
     .leaflet-marker-icon:active .pin, .leaflet-popup-target .pin {
@@ -2176,16 +2194,20 @@ const MapView = ({
     .gps-marker .pin {
       width: 22px;
       height: 30px;
-      background-color: #3f51b5;
+      background-color: #d32f2f;
       border-radius: 50% 50% 50% 0;
       transform: rotate(-45deg);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 3px 5px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
       position: relative;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
       border: 1.5px solid rgba(255, 255, 255, 0.9);
+    }
+    
+    .gps-marker:hover .pin {
+      transform: rotate(-45deg) scale(1.1);
     }
     
     .gps-marker .pin::after {
@@ -2219,6 +2241,7 @@ const MapView = ({
     /* Styles for multi-sport markers */
     .gps-marker.multi-sport .pin {
       overflow: hidden;
+      background: linear-gradient(135deg, var(--color1) 0%, var(--color1) 49%, white 49.5%, white 50.5%, var(--color2) 51%, var(--color2) 100%);
     }
     
     .gps-marker.multi-sport .half {
@@ -2738,6 +2761,7 @@ const MapView = ({
       
       html = `
         <div class="gps-marker ${isSelectedVenue ? 'selected' : ''}">
+          <div class="ripple"></div>
           <div class="pin" style="background-color: ${sport.color};">
             <span class="material-icons" aria-hidden="true" style="font-size: 12px; color: white; transform: rotate(45deg); display: block; text-align: center;">${sport.icon}</span>
           </div>
@@ -2752,7 +2776,8 @@ const MapView = ({
 
       html = `
         <div class="gps-marker multi-sport ${isSelectedVenue ? 'selected' : ''}">
-          <div class="pin" style="background-color: ${sport1.color};">
+          <div class="ripple"></div>
+          <div class="pin" style="--color1: ${sport1.color}; --color2: ${sport2.color};">
             <div class="half" style="background-color: ${sport1.color};">
               <span class="material-icons" aria-hidden="true" style="font-size: 10px; color: white; transform: rotate(45deg); display: block; text-align: center;">${sport1.icon}</span>
           </div>
