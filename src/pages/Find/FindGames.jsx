@@ -3049,51 +3049,6 @@ const MapView = ({
           />
           <ZoomControl position="bottomright" />
           
-          {/* Map Tile Selector */}
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 10,
-              right: 10,
-              zIndex: 1000,
-              backgroundColor: 'rgba(255, 255, 255, 0.8)',
-              borderRadius: 1,
-              p: 0.5,
-              boxShadow: 1,
-            }}
-          >
-            <ButtonGroup size="small" variant="outlined">
-              <Button 
-                onClick={() => setSelectedTileProvider('default')}
-                variant={selectedTileProvider === 'default' ? 'contained' : 'outlined'}
-                size="small"
-              >
-                Standard
-              </Button>
-              <Button 
-                onClick={() => setSelectedTileProvider('terrain')}
-                variant={selectedTileProvider === 'terrain' ? 'contained' : 'outlined'}
-                size="small"
-              >
-                Terrain
-              </Button>
-              <Button 
-                onClick={() => setSelectedTileProvider('topo')}
-                variant={selectedTileProvider === 'topo' ? 'contained' : 'outlined'}
-                size="small"
-              >
-                Topo
-              </Button>
-              <Button 
-                onClick={() => setSelectedTileProvider('satellite')}
-                variant={selectedTileProvider === 'satellite' ? 'contained' : 'outlined'}
-                size="small"
-              >
-                Satellite
-              </Button>
-            </ButtonGroup>
-          </Box>
-          
           <SetViewOnLocation 
             center={mapCenter} 
             bounds={mapBounds} 
