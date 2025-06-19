@@ -2299,6 +2299,15 @@ const MapView = ({
   const [currentVenueIndex, setCurrentVenueIndex] = useState(0);
   const [sportVenues, setSportVenues] = useState([]);
   
+  // Add state to track the currently active popup venue
+  const [activePopupVenue, setActivePopupVenue] = useState(null);
+  const activeMarkerRef = useRef(null);
+  const previousMarkerRef = useRef(null); // Track previous marker to close its popup
+  const markerRefsMap = useRef({}); // Store all marker references by venue ID
+  
+  // Reference to the map instance
+  const mapRef = useRef(null);
+  
   // Keep local state in sync with parent's selectedSport
   useEffect(() => {
     if (selectedSport !== mapViewSelectedSport) {
@@ -2331,8 +2340,14 @@ const MapView = ({
     
     console.log(`Navigating from venue ${currentIdx + 1} to venue ${nextIndex + 1} of ${sportVenues.length}`);
     
-    // Update state only after validation
+    // Close any open popup first
+    if (previousMarkerRef.current) {
+      previousMarkerRef.current.closePopup();
+    }
+    
+    // Update state
     setCurrentVenueIndex(nextIndex);
+    setActivePopupVenue(nextVenue);
     
     // Show notification with safe access
     setNotification({
@@ -2347,17 +2362,39 @@ const MapView = ({
   };
 
   // Handle sport filter change specific to map view
-  const handleSportFilterChange = (sportId, event) => {
+  const handleSportFilterChange = (sportId, event, fromPopup = false) => {
     // Prevent default behavior to avoid any view switching
     if (event && event.preventDefault) {
       event.preventDefault();
       event.stopPropagation();
     }
     
+    // Set the selected sport filter
     setMapViewSelectedSport(sportId);
     
-    // Check if we have venue coordinates for this sport
-    if (sportId !== 'all' && venueCoordinatesBySport[sportId]) {
+    // Close any existing popups if not called from a popup
+    if (!fromPopup && previousMarkerRef.current) {
+      previousMarkerRef.current.closePopup();
+    }
+    
+    // If called from a popup, don't change the active popup venue
+    // This prevents the map from jumping to other locations when selecting a sport in a popup
+    if (fromPopup) {
+      console.log('Sport filter changed from popup, keeping current venue');
+      
+      // Keep the current active popup venue
+    } else {
+      // When changing sport filter not from popup, reset active popup venue
+      if (sportId !== 'all' && sportVenues && sportVenues.length > 0) {
+        // Find the first venue for this sport and set it as active
+        setActivePopupVenue(sportVenues[0]);
+      } else {
+        setActivePopupVenue(null);
+      }
+    }
+    
+    // Only show navigation notification if not called from a popup
+    if (!fromPopup && sportId !== 'all' && venueCoordinatesBySport[sportId]) {
       const venueName = venueCoordinatesBySport[sportId].venueName || 'a venue';
       const sportName = sportFilters.find(s => s.id === sportId)?.name || 'this sport';
       
@@ -2378,7 +2415,7 @@ const MapView = ({
     
     // Don't propagate filter changes to parent component anymore
     // This keeps map view filters isolated from other views
-      console.log('Map view filter changed to:', sportId);
+    console.log('Map view filter changed to:', sportId);
   };
   
   // Map style options with direct URLs
@@ -2570,6 +2607,13 @@ const MapView = ({
       // NEW: Store the full venue objects for the selected sport and reset current index
       setSportVenues(sportMatches);
       setCurrentVenueIndex(0);
+      
+      // Set the first venue as the active popup venue if available
+      if (sportMatches.length > 0) {
+        setActivePopupVenue(sportMatches[0]);
+      } else {
+        setActivePopupVenue(null);
+      }
     } else {
       // No sport filter, clear the matching venues list
       setSportMatchingVenues([]);
@@ -2580,6 +2624,9 @@ const MapView = ({
       // NEW: Clear sport venues array and reset index
       setSportVenues([]);
       setCurrentVenueIndex(0);
+      
+      // Clear the active popup venue
+      setActivePopupVenue(null);
     }
     
     // Build a mapping of sport IDs to venue coordinates for navigation
@@ -2656,6 +2703,30 @@ const MapView = ({
     // Update the coordinates map for use by the navigation component
     setVenueCoordinatesBySport(sportVenueMap);
   }, [venues, mapViewSelectedSport, sportFilters]);
+  
+  // Add effect to handle popup opening when activePopupVenue changes
+  useEffect(() => {
+    if (activePopupVenue) {
+      // Get the marker reference from our map
+      const marker = markerRefsMap.current[activePopupVenue.id];
+      
+      if (marker) {
+        // Set a small delay to allow the map to finish panning/zooming
+        setTimeout(() => {
+          // Close previous popup if it exists
+          if (previousMarkerRef.current && previousMarkerRef.current !== marker) {
+            previousMarkerRef.current.closePopup();
+          }
+          
+          // Open the popup for this marker
+          marker.openPopup();
+          
+          // Update the previous marker reference
+          previousMarkerRef.current = marker;
+        }, 500); // 500ms delay gives time for the map animation to complete
+      }
+    }
+  }, [activePopupVenue]);
 
   // Get sport icon for map markers
   const getSportIcon = (venue) => {
@@ -3041,14 +3112,52 @@ const MapView = ({
               return null;
             }
             
+            // Store marker reference if this is the active venue
+            const isActiveVenue = activePopupVenue && activePopupVenue.id === venue.id;
+            
             return (
               <Marker
                 key={venue.id}
                 position={[venue.latitude, venue.longitude]}
                 icon={getSportIcon(venue)}
                 className={sportMatchingVenues.includes(venue.id) ? "selected-venue" : ""}
+                ref={(marker) => {
+                  // Store this marker in our refs map
+                  if (marker) {
+                    markerRefsMap.current[venue.id] = marker;
+                  }
+                  
+                  if (isActiveVenue) {
+                    activeMarkerRef.current = marker;
+                  }
+                }}
+                eventHandlers={{
+                  click: (e) => {
+                    // Close the previous popup if it exists
+                    if (previousMarkerRef.current && previousMarkerRef.current !== e.target) {
+                      previousMarkerRef.current.closePopup();
+                    }
+                    
+                    // Update the active popup venue
+                    setActivePopupVenue(venue);
+                    
+                    // Update current venue index if this is in the sportVenues array
+                    if (sportVenues.length > 0) {
+                      const venueIndex = sportVenues.findIndex(v => v.id === venue.id);
+                      if (venueIndex !== -1) {
+                        setCurrentVenueIndex(venueIndex);
+                      }
+                    }
+                    
+                    // Store this marker as the previous one for next time
+                    previousMarkerRef.current = e.target;
+                  }
+                }}
               >
-                <Popup>
+                <Popup
+                  closeOnClick={false}
+                  autoClose={false}
+                >
                   <Box sx={{ p: 1 }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
                       {venue.name}
@@ -3114,7 +3223,7 @@ const MapView = ({
                                 size="small"
                                 onClick={(e) => {
                                   if (sportId && typeof handleSportFilterChange === 'function') {
-                                    handleSportFilterChange(sportId, e);
+                                    handleSportFilterChange(sportId, e, true); // Pass true for fromPopup parameter
                                   }
                                 }}
                                 color={sportId === mapViewSelectedSport ? "primary" : "inherit"}
@@ -3233,20 +3342,21 @@ const SetViewOnLocation = ({ center, bounds, selectedSportId, venueCoordinates, 
     }
   }, [bounds, map]);
   
-  // Handle navigation to venue when sport is selected or current venue index changes
+  // Handle navigation to venue when active popup venue changes
   useEffect(() => {
-    // Debounce rapid animations (prevent shakiness)
+    // Debounce rapid animations
     const now = Date.now();
     if (now - lastAnimationRef.current < 500) {
       return; // Skip if less than 500ms since last animation
     }
     
-    // If we have specific venues for this sport and a valid index
+    // Handle navigation when sport filter changes (not from popups)
     if (selectedSportId && selectedSportId !== 'all' && sportVenues && sportVenues.length > 0 && currentVenueIndex >= 0) {
-      // Make sure we're within bounds of the array
+      // Get the current venue based on index
       const safeIndex = Math.min(currentVenueIndex, sportVenues.length - 1);
       const venue = sportVenues[safeIndex];
       
+      // Only navigate if coordinates are valid
       if (venue && venue.latitude && venue.longitude && 
           !isNaN(venue.latitude) && !isNaN(venue.longitude)) {
         
@@ -3277,13 +3387,13 @@ const SetViewOnLocation = ({ center, bounds, selectedSportId, venueCoordinates, 
           lastAnimationRef.current = now;
           
           // Use smoother animation with slightly longer duration
-        map.flyTo([lat, lng], 17, {
-          animate: true,
+          map.flyTo([lat, lng], 17, {
+            animate: true,
             duration: 2.0,
             easeLinearity: 0.25
-        });
-        
-        console.log(`Navigated to sport facility for ${selectedSportId} at ${lat},${lng}`);
+          });
+          
+          console.log(`Navigated to sport facility for ${selectedSportId} at ${lat},${lng}`);
         }
       }
     }
@@ -3573,6 +3683,40 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
   const selectedSportObject = sportFilters?.find(sport => 
     sport.id === selectedSport
   ) || sportFilters?.[0] || { id: 'all', name: 'All Sports' };
+
+  // Add effect to open popup for active venue when it changes
+  useEffect(() => {
+    if (activePopupVenue && activeMarkerRef.current) {
+      // Open the popup for the active marker
+      activeMarkerRef.current.openPopup();
+      console.log(`Opened popup for venue: ${activePopupVenue.name}`);
+    }
+  }, [activePopupVenue]);
+
+  // Add effect to sync activePopupVenue with currentVenueIndex
+  useEffect(() => {
+    if (sportVenues.length > 0 && currentVenueIndex >= 0 && currentVenueIndex < sportVenues.length) {
+      // When currentVenueIndex changes, update activePopupVenue to match
+      const currentVenue = sportVenues[currentVenueIndex];
+      
+      // Only update if different to prevent loops
+      if (!activePopupVenue || activePopupVenue.id !== currentVenue.id) {
+        console.log(`Updating active popup venue to match currentVenueIndex: ${currentVenue.name}`);
+        setActivePopupVenue(currentVenue);
+      }
+    }
+  }, [currentVenueIndex, sportVenues]);
+
+  // Create a function to expose activePopupVenue to child components
+  useEffect(() => {
+    // Make activePopupVenue available to the SetViewOnLocation component
+    window.activePopupVenue = activePopupVenue;
+    
+    // Cleanup function
+    return () => {
+      delete window.activePopupVenue;
+    };
+  }, [activePopupVenue]);
 
   return (
     <Paper 
