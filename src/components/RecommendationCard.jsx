@@ -64,8 +64,8 @@ const RecommendationCard = ({
   onFeedback = () => {}
 }) => {
   // Extract data from recommendation object
-  const { match, score, explanation, vector_similarity, sport_preference_match, preference_scores, match_score } = recommendation || {};
-  
+  const { match, score, explanation, vector_similarity, sport_preference_match, preference_scores, match_score, breakdown } = recommendation || {};
+
   // Use match_score from lightweight recommendations if available, otherwise use the legacy score
   const displayScore = match_score !== undefined ? match_score : score;
   
@@ -143,8 +143,49 @@ const RecommendationCard = ({
   // Extract preference factors from explanation or from match_score components
   const extractPreferenceFactors = () => {
     const preferenceFactors = [];
-    
-    // For the new lightweight recommendation system
+
+    // For the new direct preference matching system with breakdown
+    if (breakdown) {
+      // Sports matching factor (30% of total)
+      preferenceFactors.push({
+        icon: <SportsSoccer color="primary" />,
+        label: 'Sports Matching',
+        description: 'Match based on your favorite sports and skill level',
+        score: breakdown.sports_score || 0,
+        weight: '30%'
+      });
+
+      // Venue matching factor (12% of total)
+      preferenceFactors.push({
+        icon: <LocationOn color="primary" />,
+        label: 'Venue Matching',
+        description: 'Match based on your preferred facilities',
+        score: breakdown.venue_score || 0,
+        weight: '12%'
+      });
+
+      // Schedule matching factor (9% of total)
+      preferenceFactors.push({
+        icon: <CalendarMonth color="primary" />,
+        label: 'Schedule Matching',
+        description: 'Match based on your availability',
+        score: breakdown.schedule_score || 0,
+        weight: '9%'
+      });
+
+      // Other preferences factor (9% of total)
+      preferenceFactors.push({
+        icon: <EmojiPeople color="primary" />,
+        label: 'Other Preferences',
+        description: 'Play style, age, and duration compatibility',
+        score: breakdown.other_score || 0,
+        weight: '9%'
+      });
+
+      return preferenceFactors;
+    }
+
+    // For the legacy lightweight recommendation system
     if (match_score !== undefined) {
       // Always add sport preference factor for lightweight recommendations
       preferenceFactors.push({
@@ -153,7 +194,7 @@ const RecommendationCard = ({
         description: 'Match based on your favorite sports',
         score: recommendation.sport_match_score || 0.5,
       });
-      
+
       // Add venue preference factor
       preferenceFactors.push({
         icon: <LocationOn color="primary" />,
@@ -161,7 +202,7 @@ const RecommendationCard = ({
         description: 'Match based on your preferred venues',
         score: recommendation.venue_match_score || 0.3,
       });
-      
+
       // Add schedule preference factor
       preferenceFactors.push({
         icon: <CalendarMonth color="primary" />,
@@ -169,7 +210,7 @@ const RecommendationCard = ({
         description: 'Match based on your availability',
         score: recommendation.schedule_match_score || 0.5,
       });
-      
+
       // Add other preferences factor
       preferenceFactors.push({
         icon: <EmojiPeople color="primary" />,
@@ -177,7 +218,7 @@ const RecommendationCard = ({
         description: 'Match based on group size and skill level',
         score: recommendation.other_prefs_match_score || 0.5,
       });
-      
+
       return preferenceFactors;
     }
     
@@ -370,23 +411,36 @@ const RecommendationCard = ({
                   <ListItemIcon sx={{ minWidth: 36 }}>
                     {factor.icon}
                   </ListItemIcon>
-                  <ListItemText 
-                    primary={factor.label} 
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" fontWeight="medium">
+                          {factor.label}
+                        </Typography>
+                        {factor.weight && (
+                          <Chip
+                            label={factor.weight}
+                            size="small"
+                            variant="outlined"
+                            sx={{ height: 20, fontSize: '0.65rem' }}
+                          />
+                        )}
+                      </Box>
+                    }
                     secondary={factor.description}
-                    primaryTypographyProps={{ variant: 'body2', fontWeight: 'medium' }}
                     secondaryTypographyProps={{ variant: 'caption' }}
                   />
                   {factor.score !== undefined && (
                     <Box sx={{ width: 60, ml: 1 }}>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={factor.score * 100} 
-            sx={{ 
-                          height: 6, 
+                      <LinearProgress
+                        variant="determinate"
+                        value={factor.score * 100}
+            sx={{
+                          height: 6,
                           borderRadius: 3,
                           backgroundColor: 'rgba(0,0,0,0.1)',
                           '& .MuiLinearProgress-bar': {
-                            backgroundColor: factor.score > 0.7 ? '#4caf50' : 
+                            backgroundColor: factor.score > 0.7 ? '#4caf50' :
                                             factor.score > 0.4 ? '#ff9800' : '#f44336'
                           }
                         }}
