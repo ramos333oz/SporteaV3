@@ -16,6 +16,8 @@ import Host from './pages/Host';
 import MatchDetail from './pages/MatchDetail';
 import EditMatch from './pages/EditMatch';
 import Admin from './pages/Admin';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import AuthCallback from './pages/Auth/AuthCallback';
 import ErrorDebug from './pages/ErrorDebug';
@@ -328,6 +330,10 @@ function App() {
                 <Route path="/debug" element={<ErrorDebug />} />
                 <Route path="/auth-debug" element={<AuthDebug />} />
                 <Route path="/direct-home" element={<DirectHome />} />
+
+                {/* Admin routes (separate authentication) */}
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 
                 {/* Root route with conditional redirect */}
                 <Route path="/" element={

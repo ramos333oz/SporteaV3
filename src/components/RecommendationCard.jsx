@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../services/supabase';
 import { 
   Box, 
   Card, 
@@ -110,18 +111,46 @@ const RecommendationCard = ({
     });
   };
 
-  const handleFeedback = (type) => {
+  const handleFeedback = async (type) => {
     // If already selected, allow toggling off
     if (feedback === type) {
       setFeedback(null);
       onFeedback(null, match.id);
       return;
     }
-    
+
     // Set the new feedback type
     setFeedback(type);
     setFeedbackSent(true);
-    
+
+    // Send feedback to backend
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const feedbackData = {
+          userId: user.id,
+          matchId: match.id,
+          feedbackType: type,
+          recommendationData: recommendation,
+          algorithmScores: score_breakdown,
+          finalScore: displayScore,
+          explanation: explanation
+        };
+
+        const { data, error } = await supabase.functions.invoke('recommendation-feedback', {
+          body: feedbackData
+        });
+
+        if (error) {
+          console.error('Error sending feedback:', error);
+        } else {
+          console.log('Feedback sent successfully:', data);
+        }
+      }
+    } catch (error) {
+      console.error('Error sending feedback:', error);
+    }
+
     if (onFeedback) {
       onFeedback(type, match.id);
     }
