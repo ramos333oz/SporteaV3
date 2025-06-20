@@ -162,9 +162,9 @@ const RecommendationCard = ({
   const extractPreferenceFactors = () => {
     const preferenceFactors = [];
 
-    // For the new combined recommendation system
-    if (score_breakdown && (direct_preference || collaborative_filtering)) {
-      // Direct Preference components
+    // For the new complete combined recommendation system (100% coverage)
+    if (score_breakdown && (direct_preference || collaborative_filtering || activity_based)) {
+      // Direct Preference components (60% total)
       if (direct_preference?.breakdown) {
         preferenceFactors.push({
           icon: <SportsSoccer color="primary" />,
@@ -172,7 +172,8 @@ const RecommendationCard = ({
           description: 'Match based on your favorite sports and skill level',
           score: direct_preference.breakdown.sports_score || 0,
           weight: '30%',
-          system: 'Direct Preference'
+          system: 'Direct Preference',
+          systemColor: 'primary'
         });
 
         preferenceFactors.push({
@@ -181,7 +182,8 @@ const RecommendationCard = ({
           description: 'Match based on your preferred facilities',
           score: direct_preference.breakdown.venue_score || 0,
           weight: '12%',
-          system: 'Direct Preference'
+          system: 'Direct Preference',
+          systemColor: 'primary'
         });
 
         preferenceFactors.push({
@@ -190,7 +192,8 @@ const RecommendationCard = ({
           description: 'Match based on your availability',
           score: direct_preference.breakdown.schedule_score || 0,
           weight: '9%',
-          system: 'Direct Preference'
+          system: 'Direct Preference',
+          systemColor: 'primary'
         });
 
         preferenceFactors.push({
@@ -199,31 +202,38 @@ const RecommendationCard = ({
           description: 'Play style, age, and duration compatibility',
           score: direct_preference.breakdown.other_score || 0,
           weight: '9%',
-          system: 'Direct Preference'
+          system: 'Direct Preference',
+          systemColor: 'primary'
         });
       }
 
-      // Collaborative Filtering component
+      // Collaborative Filtering component (30% total)
       if (collaborative_filtering) {
         preferenceFactors.push({
           icon: <Group color="secondary" />,
           label: 'Community Preference',
-          description: 'Based on users similar to you',
+          description: collaborative_filtering.explanation || 'Based on users similar to you',
           score: collaborative_filtering.score || 0,
           weight: '30%',
-          system: 'Collaborative Filtering'
+          system: 'Collaborative Filtering',
+          systemColor: 'secondary'
         });
       }
 
-      // Activity-based component (placeholder)
+      // Activity-based component (10% total)
       if (activity_based) {
+        const activityDescription = activity_based.activity_factors?.sport_experience
+          ? `You have experience with ${match?.sports?.name || 'this sport'}`
+          : activity_based.explanation || 'Based on your participation history';
+
         preferenceFactors.push({
           icon: <TrendingUp color="info" />,
           label: 'Activity Pattern',
-          description: 'Based on your participation history',
+          description: activityDescription,
           score: activity_based.score || 0,
           weight: '10%',
-          system: 'Activity-based'
+          system: 'Activity-based',
+          systemColor: 'info'
         });
       }
 
@@ -499,7 +509,7 @@ const RecommendationCard = ({
                   </ListItemIcon>
                   <ListItemText
                     primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                         <Typography variant="body2" fontWeight="medium">
                           {factor.label}
                         </Typography>
@@ -509,6 +519,20 @@ const RecommendationCard = ({
                             size="small"
                             variant="outlined"
                             sx={{ height: 20, fontSize: '0.65rem' }}
+                          />
+                        )}
+                        {factor.system && (
+                          <Chip
+                            label={factor.system}
+                            size="small"
+                            color={factor.systemColor || 'default'}
+                            variant="filled"
+                            sx={{
+                              height: 18,
+                              fontSize: '0.6rem',
+                              fontWeight: 'bold',
+                              opacity: 0.8
+                            }}
                           />
                         )}
                       </Box>
