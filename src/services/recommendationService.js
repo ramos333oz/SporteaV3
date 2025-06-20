@@ -7,6 +7,7 @@ import { supabase } from './supabase';
 // Configuration
 const DEBUG_MODE = true;
 const LOG_PREFIX = '[Sportea Recommendation Service]';
+const USE_COMBINED_RECOMMENDATIONS = true; // Use the new combined system (Direct + Collaborative)
 const USE_DIRECT_PREFERENCE_MATCHING = true;
 
 // Client-side cache
@@ -190,6 +191,11 @@ const recommendationService = {
 
       log(`Getting recommendations for user ${userId} with options:`, { limit, offset });
 
+      if (USE_COMBINED_RECOMMENDATIONS) {
+        log('Using combined recommendation system (Direct Preference + Collaborative Filtering)');
+        return recommendationService.getCombinedRecommendations(userId, { limit, offset });
+      }
+
       if (USE_DIRECT_PREFERENCE_MATCHING) {
         log('Using direct preference matching recommendation system');
         return recommendationService.getDirectPreferenceRecommendations(userId, { limit, offset });
@@ -202,6 +208,49 @@ const recommendationService = {
       logError('Exception in getRecommendations:', error);
       return recommendationService.getFallbackRecommendations(userId, options.limit || 10);
     }
+  },
+
+  /**
+   * Get combined recommendations (Direct Preference + Collaborative Filtering)
+   */
+  getCombinedRecommendations: async (userId, options = {}) => {
+    return getCachedOrNewRequest(`combined-${userId}`, async () => {
+      try {
+        const { limit = 10 } = options;
+        const requestId = generateRequestId();
+
+        log('Starting combined recommendation request', requestId, { userId, limit });
+
+        const { data, error } = await supabase.functions.invoke('combined-recommendations', {
+          body: { userId, limit }
+        });
+
+        if (error) {
+          logError('Error getting combined recommendations:', error);
+          return recommendationService.getDirectPreferenceRecommendations(userId, { limit });
+        }
+
+        log('Received combined recommendations', requestId, {
+          count: data?.count || 0,
+          algorithm: data?.algorithm || 'unknown'
+        });
+
+        return {
+          recommendations: data.recommendations || [],
+          metadata: {
+            count: data.count || 0,
+            algorithm: data.algorithm || 'combined-recommendations',
+            system_weights: data.system_weights || {},
+            component_status: data.component_status || {},
+            using: 'combined-system',
+            requestId
+          }
+        };
+      } catch (error) {
+        logError('Unexpected error in getCombinedRecommendations:', error);
+        return recommendationService.getDirectPreferenceRecommendations(userId, options.limit || 10);
+      }
+    });
   },
 
   /**

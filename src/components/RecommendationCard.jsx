@@ -37,7 +37,9 @@ import {
   School,
   EmojiPeople,
   SportsScore,
-  CheckCircle
+  CheckCircle,
+  Group,
+  TrendingUp
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 
@@ -64,10 +66,26 @@ const RecommendationCard = ({
   onFeedback = () => {}
 }) => {
   // Extract data from recommendation object
-  const { match, score, explanation, vector_similarity, sport_preference_match, preference_scores, match_score, breakdown } = recommendation || {};
+  const {
+    match,
+    score,
+    explanation,
+    vector_similarity,
+    sport_preference_match,
+    preference_scores,
+    match_score,
+    breakdown,
+    // New combined system fields
+    final_score,
+    direct_preference,
+    collaborative_filtering,
+    activity_based,
+    score_breakdown
+  } = recommendation || {};
 
-  // Use match_score from lightweight recommendations if available, otherwise use the legacy score
-  const displayScore = match_score !== undefined ? match_score : score;
+  // Determine which score to display (prioritize combined system)
+  const displayScore = final_score !== undefined ? final_score :
+                      match_score !== undefined ? match_score : score;
   
   const [feedback, setFeedback] = useState(null);
   const [expanded, setExpanded] = useState(false);
@@ -144,7 +162,75 @@ const RecommendationCard = ({
   const extractPreferenceFactors = () => {
     const preferenceFactors = [];
 
-    // For the new direct preference matching system with breakdown
+    // For the new combined recommendation system
+    if (score_breakdown && (direct_preference || collaborative_filtering)) {
+      // Direct Preference components
+      if (direct_preference?.breakdown) {
+        preferenceFactors.push({
+          icon: <SportsSoccer color="primary" />,
+          label: 'Sports Matching',
+          description: 'Match based on your favorite sports and skill level',
+          score: direct_preference.breakdown.sports_score || 0,
+          weight: '30%',
+          system: 'Direct Preference'
+        });
+
+        preferenceFactors.push({
+          icon: <LocationOn color="primary" />,
+          label: 'Venue Matching',
+          description: 'Match based on your preferred facilities',
+          score: direct_preference.breakdown.venue_score || 0,
+          weight: '12%',
+          system: 'Direct Preference'
+        });
+
+        preferenceFactors.push({
+          icon: <CalendarMonth color="primary" />,
+          label: 'Schedule Matching',
+          description: 'Match based on your availability',
+          score: direct_preference.breakdown.schedule_score || 0,
+          weight: '9%',
+          system: 'Direct Preference'
+        });
+
+        preferenceFactors.push({
+          icon: <EmojiPeople color="primary" />,
+          label: 'Other Preferences',
+          description: 'Play style, age, and duration compatibility',
+          score: direct_preference.breakdown.other_score || 0,
+          weight: '9%',
+          system: 'Direct Preference'
+        });
+      }
+
+      // Collaborative Filtering component
+      if (collaborative_filtering) {
+        preferenceFactors.push({
+          icon: <Group color="secondary" />,
+          label: 'Community Preference',
+          description: 'Based on users similar to you',
+          score: collaborative_filtering.score || 0,
+          weight: '30%',
+          system: 'Collaborative Filtering'
+        });
+      }
+
+      // Activity-based component (placeholder)
+      if (activity_based) {
+        preferenceFactors.push({
+          icon: <TrendingUp color="info" />,
+          label: 'Activity Pattern',
+          description: 'Based on your participation history',
+          score: activity_based.score || 0,
+          weight: '10%',
+          system: 'Activity-based'
+        });
+      }
+
+      return preferenceFactors;
+    }
+
+    // For the legacy direct preference matching system with breakdown
     if (breakdown) {
       // Sports matching factor (30% of total)
       preferenceFactors.push({
