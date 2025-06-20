@@ -3,8 +3,16 @@ import { Box, Typography, CircularProgress, Skeleton, Alert, Paper, Button, Grid
 import RecommendationCard from './RecommendationCard';
 import recommendationService from '../services/recommendationService';
 import { useAuth } from '../hooks/useAuth';
-import { supabase } from '../services/supabase';
-import { ErrorOutline, Refresh, Info } from '@mui/icons-material';
+
+import {
+  ErrorOutline,
+  Refresh,
+  Info,
+  SportsSoccer as SportsSoccerIcon,
+  Event as EventIcon,
+  LocationOn as LocationOnIcon,
+  AccessTime as AccessTimeIcon
+} from '@mui/icons-material';
 
 /**
  * Component for displaying personalized match recommendations
@@ -17,7 +25,7 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
   const [errorDetails, setErrorDetails] = useState(null);
   const [message, setMessage] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [fallbackMatches, setFallbackMatches] = useState([]);
+
   const [feedbackSnack, setFeedbackSnack] = useState({ open: false, message: '' });
   // Add a state to track if we're using fallback data
   const [usingFallback, setUsingFallback] = useState(false);
@@ -31,49 +39,7 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
     setFeedbackSnack({ ...feedbackSnack, open: false });
   };
 
-  // Fetch fallback matches if recommendations fail
-  const fetchFallbackMatches = useCallback(async () => {
-    try {
-      // Direct database query as fallback
-      const { data: matches, error } = await supabase
-        .from('matches')
-        .select(`
-          id,
-          title,
-          start_time,
-          end_time,
-          max_participants,
-          status,
-          locations(id, name),
-          sports(id, name),
-          host_id,
-          host:host_id(id, full_name, avatar_url)
-        `)
-        .not('status', 'eq', 'cancelled')
-        .not('status', 'eq', 'completed')
-        .order('created_at', { ascending: false }) // Get newest matches
-        .limit(limit);
-        
-      if (error) throw error;
-      
-      // Format matches to be used in the component
-      const formattedMatches = matches.map(match => ({
-        match: {
-          ...match,
-          sport: match.sports,
-          location: match.locations
-        },
-        score: 0.6,
-        explanation: 'Recently created match'
-      }));
-      
-      setFallbackMatches(formattedMatches);
-      return formattedMatches;
-    } catch (err) {
-      console.error('Error fetching fallback matches:', err);
-      return [];
-    }
-  }, [limit]);
+
 
   const fetchRecommendations = useCallback(async () => {
     console.log('fetchRecommendations called', { userId: user?.id, loading });
@@ -104,23 +70,16 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
       if (result.recommendations?.length > 0) {
         setRecommendations(result.recommendations);
         setMessage(result.message || 'Based on your preferences');
-        
+
         // If using fallback data from the recommendation service, show an indicator
-        if (result.isFallback) {
+        if (result.metadata?.isFallback || result.metadata?.type === 'fallback') {
           setUsingFallback(true);
         }
       } else {
-        // Try to get fallback matches if recommendations are empty
-        const fallbacks = await fetchFallbackMatches();
-        
-        if (fallbacks.length > 0) {
-          setRecommendations(fallbacks);
-          setMessage('Newest matches you might be interested in');
-          setUsingFallback(true);
-        } else {
-          setRecommendations([]);
-          setMessage(result.message || 'No recommendations available at this time');
-        }
+        // No recommendations found - show proper empty state
+        setRecommendations([]);
+        setMessage(result.message || 'No recommended matches found for you');
+        setUsingFallback(false);
       }
       
       // If there was an error but we still got results
@@ -141,21 +100,14 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
       
       setError('Unable to load personalized recommendations');
       setErrorDetails(errorInfo);
-      
-      // Try to show fallback matches on error
-      const fallbacks = await fetchFallbackMatches();
-      if (fallbacks.length > 0) {
-        setRecommendations(fallbacks);
-        setMessage('Showing general matches instead of personalized recommendations');
-        setUsingFallback(true);
-        setError(null); // Clear main error since we have fallback data
-      }
+      setRecommendations([]);
+      setUsingFallback(false);
       
       onError(err);
     } finally {
       setLoading(false);
     }
-  }, [user?.id, limit, onError, retryCount, fetchFallbackMatches]);
+  }, [user?.id, limit, onError, retryCount]);
 
   // Generate user embeddings to improve recommendations
   const generateEmbeddings = useCallback(async () => {
@@ -296,23 +248,7 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
           </Paper>
         )}
         
-        {/* Show fallback matches if available */}
-        {fallbackMatches.length > 0 && (
-          <>
-            <Typography variant="h6" gutterBottom>
-              Recent matches you might be interested in
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {fallbackMatches.map((recommendation) => (
-                <RecommendationCard 
-                  key={recommendation.match.id} 
-                  recommendation={recommendation}
-                  isFallback={true}
-                />
-              ))}
-            </Box>
-          </>
-        )}
+
       </Box>
     );
   }
@@ -320,20 +256,85 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
   if (!recommendations || recommendations.length === 0) {
     return (
       <Box sx={{ mt: 2 }}>
-        <Alert severity="info">
-          <AlertTitle>No Recommendations</AlertTitle>
-          We couldn't find any matches that match your preferences. Try updating your preferences or check back later.
-        </Alert>
-        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={generateEmbeddings}
-            startIcon={<Refresh />}
-          >
-            Update Recommendations
-          </Button>
-        </Box>
+        <Paper
+          sx={{
+            p: 4,
+            textAlign: 'center',
+            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+            border: '1px solid #e0e0e0'
+          }}
+        >
+          <Box sx={{ mb: 3 }}>
+            <SportsSoccerIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h5" gutterBottom color="text.primary">
+              No Recommended Matches Found
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 500, mx: 'auto' }}>
+              We couldn't find any matches that perfectly match your preferences right now.
+              This could be because:
+            </Typography>
+          </Box>
+
+          <Grid container spacing={2} sx={{ mb: 3, maxWidth: 600, mx: 'auto' }}>
+            <Grid item xs={12} sm={6}>
+              <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+                <EventIcon sx={{ color: 'primary.main', mb: 1 }} />
+                <Typography variant="body2" color="text.secondary">
+                  No matches scheduled for your available times
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+                <LocationOnIcon sx={{ color: 'primary.main', mb: 1 }} />
+                <Typography variant="body2" color="text.secondary">
+                  No matches at your preferred venues
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+                <SportsSoccerIcon sx={{ color: 'primary.main', mb: 1 }} />
+                <Typography variant="body2" color="text.secondary">
+                  No matches for your preferred sports
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+                <AccessTimeIcon sx={{ color: 'primary.main', mb: 1 }} />
+                <Typography variant="body2" color="text.secondary">
+                  All suitable matches are already full
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleRetry}
+              startIcon={<Refresh />}
+            >
+              Refresh Recommendations
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => window.location.href = '/profile'}
+            >
+              Update Preferences
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={() => window.location.href = '/matches'}
+            >
+              Browse All Matches
+            </Button>
+          </Box>
+        </Paper>
       </Box>
     );
   }

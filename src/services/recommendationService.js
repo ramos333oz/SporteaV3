@@ -92,7 +92,15 @@ const recommendationService = {
 
         if (error) {
           logError('Error getting direct preference recommendations:', error);
-          return recommendationService.getFallbackRecommendations(userId, limit);
+          return {
+            recommendations: [],
+            metadata: {
+              count: 0,
+              type: 'error',
+              message: 'Unable to load personalized recommendations',
+              error: error.message
+            }
+          };
         }
 
         log('Received direct preference recommendations', requestId, { 
@@ -112,7 +120,15 @@ const recommendationService = {
         };
       } catch (error) {
         logError('Unexpected error in getDirectPreferenceRecommendations:', error);
-        return recommendationService.getFallbackRecommendations(userId, options.limit || 10);
+        return {
+          recommendations: [],
+          metadata: {
+            count: 0,
+            type: 'error',
+            message: 'Unable to load personalized recommendations',
+            error: error.message
+          }
+        };
       }
     });
   },
@@ -201,12 +217,27 @@ const recommendationService = {
         return recommendationService.getDirectPreferenceRecommendations(userId, { limit, offset });
       }
 
-      // Fallback to basic recommendations
-      return recommendationService.getFallbackRecommendations(userId, limit);
+      // Return empty recommendations instead of fallback
+      return {
+        recommendations: [],
+        metadata: {
+          count: 0,
+          type: 'empty',
+          message: 'No recommended matches found for you'
+        }
+      };
 
     } catch (error) {
       logError('Exception in getRecommendations:', error);
-      return recommendationService.getFallbackRecommendations(userId, options.limit || 10);
+      return {
+        recommendations: [],
+        metadata: {
+          count: 0,
+          type: 'error',
+          message: 'Unable to load recommendations',
+          error: error.message
+        }
+      };
     }
   },
 
