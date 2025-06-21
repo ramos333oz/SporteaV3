@@ -989,32 +989,161 @@ export const participantService = {
     }
   },
   
+  // Check rate limiting for join requests
+  checkRateLimit: async (matchId, userId) => {
+    try {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+      // Check if user has made requests in the last hour
+      const { data, error } = await supabase
+        .from('match_join_requests')
+        .select('request_count, last_request_at')
+        .eq('user_id', userId)
+        .eq('match_id', matchId)
+        .gte('last_request_at', oneHourAgo)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data && data.request_count >= 3) {
+        return { allowed: false, reason: 'Rate limit exceeded. You can only request to join the same match 3 times per hour.' };
+      }
+
+      return { allowed: true };
+    } catch (error) {
+      console.error('Error checking rate limit:', error);
+      return { allowed: true }; // Allow on error to not block users
+    }
+  },
+
+  // Update request count for rate limiting
+  updateRequestCount: async (matchId, userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('match_join_requests')
+        .upsert({
+          user_id: userId,
+          match_id: matchId,
+          request_count: 1,
+          last_request_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,match_id',
+          ignoreDuplicates: false
+        })
+        .select();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating request count:', error);
+      // Don't throw error to not block the join process
+    }
+  },
+
   // Join a match
   joinMatch: async (matchId, userId) => {
     try {
+      // Check rate limiting first
+      const { allowed, reason } = await participantService.checkRateLimit(matchId, userId);
+      if (!allowed) {
+        throw new Error(reason);
+      }
+
       // Check if user is already a participant
       const { isParticipant, status } = await participantService.checkParticipationStatus(matchId, userId);
       
       if (isParticipant) {
-        // If user has already joined and status is not 'left', return appropriate message
-        if (status !== 'pending') {
+        // Handle different participation statuses
+        if (status === 'confirmed') {
           return {
             success: false,
-            message: `You have already ${status === 'confirmed' ? 'joined' : 'confirmed'} this match`,
+            message: 'You have already joined this match',
             status
           };
         }
-        
-        // If status is 'left', update the status to 'pending' to rejoin
+
+        if (status === 'pending') {
+          return {
+            success: false,
+            message: 'You have already sent a request to join this match',
+            status
+          };
+        }
+
+        if (status === 'declined') {
+          return {
+            success: false,
+            message: 'Your previous request to join this match was declined. Please contact the host.',
+            status
+          };
+        }
+
+        // If status is 'left', allow user to rejoin by updating status to 'pending'
         const { data, error } = await supabase
           .from('participants')
           .update({ status: 'pending' })
           .eq('match_id', matchId)
           .eq('user_id', userId)
           .select();
-          
+
         if (error) throw error;
-        
+
+        // Create notification for the match host (same as INSERT path)
+        try {
+          // Get match data for notification
+          const { data: match, error: matchError } = await supabase
+            .from('matches')
+            .select('*')
+            .eq('id', matchId)
+            .single();
+
+          if (!matchError) {
+            console.log(`[NOTIFICATION DEBUG] Creating rejoin request notification for host ${match.host_id} from user ${userId}`);
+
+            // Get user data for a better notification
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('full_name, username, avatar_url')
+              .eq('id', userId)
+              .single();
+
+            if (userError) {
+              console.error('[NOTIFICATION DEBUG] Error fetching user data:', userError);
+            } else {
+              console.log('[NOTIFICATION DEBUG] User data fetched:', userData);
+            }
+
+            const notificationData = {
+              user_id: match.host_id, // Send notification to the host
+              type: 'match_join_request',
+              title: 'New Join Request',
+              content: JSON.stringify({
+                message: `${userData?.full_name || userData?.username || 'A user'} wants to join your match "${match.title}"`,
+                sender_id: userId
+              }),
+              match_id: matchId,
+              is_read: false
+            };
+
+            console.log('[NOTIFICATION DEBUG] Rejoin notification data to insert:', notificationData);
+
+            // Use the direct method to create a notification
+            const { data: notificationResult, error: notifError } = await supabase
+              .from('notifications')
+              .insert([notificationData])
+              .select();
+
+            if (notifError) {
+              console.error('[NOTIFICATION DEBUG] Error inserting rejoin notification:', notifError);
+            } else {
+              console.log('[NOTIFICATION DEBUG] Rejoin request notification created successfully:', notificationResult);
+            }
+          }
+        } catch (notifError) {
+          console.error('Non-critical error creating rejoin notification:', notifError);
+          // Continue execution - this is non-blocking
+        }
+
         return {
           success: true,
           message: 'Successfully requested to rejoin the match',
@@ -1032,6 +1161,9 @@ export const participantService = {
         
       if (matchError) throw matchError;
       
+      // Update request count for rate limiting
+      await participantService.updateRequestCount(matchId, userId);
+
       // Insert new participant with 'pending' status
       const { data, error } = await supabase
         .from('participants')
@@ -1041,20 +1173,27 @@ export const participantService = {
           status: 'pending'
         }])
         .select();
-        
+
       if (error) throw error;
       
       // Create notification for the match host
       try {
-        console.log(`Creating join request notification for host ${match.host_id} from user ${userId}`);
-        
+        console.log(`[NOTIFICATION DEBUG] Creating join request notification for host ${match.host_id} from user ${userId}`);
+        console.log(`[NOTIFICATION DEBUG] Match details:`, { matchId, title: match.title, host_id: match.host_id });
+
         // Get user data for a better notification
-        const { data: userData } = await supabase
+        const { data: userData, error: userError } = await supabase
           .from('users')
           .select('full_name, username, avatar_url')
           .eq('id', userId)
           .single();
-          
+
+        if (userError) {
+          console.error('[NOTIFICATION DEBUG] Error fetching user data:', userError);
+        } else {
+          console.log('[NOTIFICATION DEBUG] User data fetched:', userData);
+        }
+
         const notificationData = {
           user_id: match.host_id, // Send notification to the host
           type: 'match_join_request',
@@ -1066,16 +1205,21 @@ export const participantService = {
           match_id: matchId,
           is_read: false
         };
-        
+
+        console.log('[NOTIFICATION DEBUG] Notification data to insert:', notificationData);
+
         // Use the direct method to create a notification
         const { data: notificationResult, error: notifError } = await supabase
           .from('notifications')
           .insert([notificationData])
           .select();
-        
-        if (notifError) throw notifError;
-        
-        console.log('Join request notification created:', notificationResult);
+
+        if (notifError) {
+          console.error('[NOTIFICATION DEBUG] Error inserting notification:', notifError);
+          throw notifError;
+        }
+
+        console.log('[NOTIFICATION DEBUG] Join request notification created successfully:', notificationResult);
       } catch (notifError) {
         console.error('Non-critical error creating notification:', notifError);
         console.error('Notification error details:', JSON.stringify(notifError));

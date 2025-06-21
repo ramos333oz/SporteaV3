@@ -200,8 +200,8 @@ class RealtimeService {
    * @returns {string} Subscription ID
    */
   subscribeToAllMatches(callback) {
-    log('Subscribing to all matches');
-    
+    log('Subscribing to all matches and participants');
+
     try {
       // Modified channel name to ensure it follows Supabase naming convention
       const channel = supabase
@@ -214,6 +214,19 @@ class RealtimeService {
           log('Received all matches update:', payload.eventType);
           callback({
             type: 'match_update',
+            data: payload.new,
+            oldData: payload.old,
+            eventType: payload.eventType
+          });
+        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'participants'
+        }, (payload) => {
+          log('Received participant update for all matches:', payload.eventType);
+          callback({
+            type: 'participant_update',
             data: payload.new,
             oldData: payload.old,
             eventType: payload.eventType

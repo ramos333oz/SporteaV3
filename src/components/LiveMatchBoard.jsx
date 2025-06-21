@@ -11,25 +11,33 @@ import {
   Badge,
   Button,
   Divider,
-  Avatar,
-  Stack
+  Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import PersonIcon from '@mui/icons-material/Person';
-import PlaceIcon from '@mui/icons-material/Place';
 import {
   SportsSoccer,
   SportsBasketball,
   SportsTennis,
   SportsRugby,
   SportsVolleyball,
-  SportsHockey
+  SportsHockey,
+  LocationOn,
+  CalendarMonth,
+  Star,
+  Visibility,
+  Group
 } from '@mui/icons-material';
 import { useRealtime } from '../hooks/useRealtime';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../services/supabase';
+import { supabase, participantService } from '../services/supabase';
 import UnifiedCard from './UnifiedCard';
 
 // Styled animated badge for recently updated matches
@@ -89,7 +97,7 @@ class MatchCardErrorBoundary extends React.Component {
 }
 
 // Compact live match card with same size as popular sport cards
-const MatchCard = ({ match, isRecentlyUpdated, onView }) => {
+const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoinRequest, currentUserId }) => {
   // Safety check for match data
   if (!match || !match.id) {
     return null;
@@ -157,6 +165,46 @@ const MatchCard = ({ match, isRecentlyUpdated, onView }) => {
     }
   };
 
+  const handleJoinClick = (e) => {
+    e.stopPropagation();
+    if (onJoinRequest && match.id) {
+      onJoinRequest(match);
+    }
+  };
+
+  // Determine button state based on user participation and host status
+  const getJoinButtonState = () => {
+    // Check if current user is the host
+    const isHost = match.host_id && match.host_id === currentUserId;
+
+    // Debug logging to verify host detection
+    console.log(`[MatchCard] Host detection for match ${match.id}:`, {
+      match_host_id: match.host_id,
+      current_user_id: currentUserId,
+      is_host: isHost,
+      match_title: match.title
+    });
+
+    if (isHost) return { text: "You're the Hoster", disabled: true, color: '#9C27B0' };
+    if (isFull) return { text: 'Full', disabled: true, color: 'grey' };
+    if (!userParticipation) return { text: 'Join Match', disabled: false, color: sportInfo.color };
+
+    switch (userParticipation.status) {
+      case 'pending':
+        return { text: 'Requested', disabled: true, color: '#FF9800' };
+      case 'confirmed':
+        return { text: 'Joined', disabled: true, color: '#4CAF50' };
+      case 'declined':
+        return { text: 'Declined', disabled: true, color: '#F44336' };
+      case 'left':
+        return { text: 'Join Match', disabled: false, color: sportInfo.color };
+      default:
+        return { text: 'Join Match', disabled: false, color: sportInfo.color };
+    }
+  };
+
+  const buttonState = getJoinButtonState();
+
   // Default venue images mapping using database UUIDs
   const defaultVenueImages = {
     '4746e9c1-f772-4515-8d08-6c28563fbfc9': '/images/venues/football-field.jpg', // Football
@@ -174,15 +222,18 @@ const MatchCard = ({ match, isRecentlyUpdated, onView }) => {
 
   const venueImage = defaultVenueImages[match.sport_id] || '/images/venues/default-field.jpg';
 
+  // Calculate spots remaining
+  const spotsRemaining = match.max_participants - (match.current_participants || 0);
+
   return (
     <Box sx={{ mb: 2 }}>
       <UnifiedCard
         image={venueImage}
         imageAlt={`${sportInfo.name} venue`}
-        imageHeight={120}
+        imageHeight={140}
         imagePosition="top"
-        title={match.title || 'Match'}
-        subtitle={`${formatDate(match.start_time)} • ${formatTime(match.start_time)}`}
+        title={match.title || `${sportInfo.name} Match`}
+        subtitle={`Live match • ${spotsRemaining} spots left`}
         onClick={handleCardClick}
         variant={isRecentlyUpdated ? 'elevated' : 'default'}
         ariaLabel={`View ${match.title || 'match'} details`}
@@ -199,25 +250,19 @@ const MatchCard = ({ match, isRecentlyUpdated, onView }) => {
           }
         }}
       >
-        {/* Sport Icon and Name */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-          <Avatar
-            sx={{
-              bgcolor: sportInfo.color,
-              width: 40,
-              height: 40,
-              '& svg': { fontSize: 24 }
-            }}
-          >
-            {React.cloneElement(sportInfo.icon, { sx: { color: 'white' } })}
-          </Avatar>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
-              {sportInfo.name}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {match.location_name || 'Location TBA'}
-            </Typography>
+        {/* Sport and Match Info - Following recommendation design */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          {React.cloneElement(sportInfo.icon, { sx: { color: sportInfo.color, fontSize: 28 } })}
+          <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+            {sportInfo.name}
+          </Typography>
+          <Box sx={{ ml: 'auto' }}>
+            <Chip
+              label={isFull ? 'Full' : `${spotsRemaining} spots left`}
+              size="small"
+              color={isFull ? 'error' : spotsRemaining <= 2 ? 'warning' : 'success'}
+              icon={<Group />}
+            />
           </Box>
           {isRecentlyUpdated && (
             <AnimatedBadge
@@ -230,45 +275,92 @@ const MatchCard = ({ match, isRecentlyUpdated, onView }) => {
           )}
         </Box>
 
-        {/* Key Information */}
-        <Stack spacing={1.5} sx={{ mb: 2 }}>
-          {/* Participants */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <PersonIcon fontSize="small" color="action" />
-              <Typography variant="body2" color="text.secondary">
-                Players
-              </Typography>
-            </Box>
-            <Chip
-              label={`${match.current_participants || 0}/${match.max_participants}`}
-              size="small"
-              color={isFull ? 'error' : 'success'}
-              sx={{ minWidth: 50 }}
-            />
-          </Box>
-
-          {/* Status */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <AccessTimeIcon fontSize="small" color="action" />
-              <Typography variant="body2" color="text.secondary">
-                Status
-              </Typography>
-            </Box>
-            <Chip
-              label={match.status || 'Open'}
-              size="small"
-              color={
-                match.status === 'open' ? 'success' :
-                match.status === 'full' ? 'warning' :
-                match.status === 'in_progress' ? 'info' :
-                'default'
-              }
-              sx={{ minWidth: 50 }}
-            />
-          </Box>
+        {/* Key Information - Following recommendation design with chips */}
+        <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
+          <Chip
+            icon={<CalendarMonth />}
+            label={`${formatDate(match.start_time)} • ${formatTime(match.start_time)}`}
+            variant="outlined"
+            size="small"
+            sx={{
+              borderColor: 'primary.main',
+              color: 'primary.main',
+              '& .MuiChip-icon': { color: 'primary.main' }
+            }}
+          />
+          <Chip
+            icon={<LocationOn />}
+            label={match.location_name || 'Location TBA'}
+            variant="outlined"
+            size="small"
+            sx={{
+              borderColor: 'secondary.main',
+              color: 'secondary.main',
+              '& .MuiChip-icon': { color: 'secondary.main' }
+            }}
+          />
+          <Chip
+            icon={<PersonIcon />}
+            label={`${match.current_participants || 0}/${match.max_participants} players`}
+            variant="outlined"
+            size="small"
+            color={isFull ? 'error' : 'success'}
+          />
         </Stack>
+
+        {/* Divider before actions - Following recommendation design */}
+        <Divider sx={{ my: 2 }} />
+
+        {/* Action Buttons - Following recommendation design */}
+        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'space-between' }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<Visibility />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCardClick();
+            }}
+            sx={{
+              flex: 1,
+              borderColor: 'primary.main',
+              color: 'primary.main',
+              '&:hover': {
+                borderColor: 'primary.dark',
+                backgroundColor: 'primary.main',
+                color: 'white',
+                transform: 'translateY(-1px)',
+              },
+              transition: 'all 0.2s ease'
+            }}
+          >
+            View Details
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<Group />}
+            disabled={buttonState.disabled}
+            onClick={buttonState.disabled ? undefined : handleJoinClick}
+            sx={{
+              flex: 1,
+              backgroundColor: buttonState.color,
+              '&:hover': {
+                backgroundColor: buttonState.disabled ? buttonState.color : buttonState.color,
+                filter: buttonState.disabled ? 'none' : 'brightness(0.9)',
+                transform: buttonState.disabled ? 'none' : 'translateY(-1px)',
+              },
+              '&:disabled': {
+                backgroundColor: buttonState.color,
+                color: 'white',
+                opacity: 0.8
+              },
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {buttonState.text}
+          </Button>
+        </Box>
       </UnifiedCard>
     </Box>
   );
@@ -284,8 +376,12 @@ const LiveMatchBoard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [recentlyUpdated, setRecentlyUpdated] = useState({});
-  const { connectionState, subscribeToAllMatches, unsubscribe } = useRealtime();
-  const { showInfoToast, showSuccessToast } = useToast();
+  const [userParticipations, setUserParticipations] = useState({});
+  const [joinDialog, setJoinDialog] = useState({ open: false, match: null });
+  const [joinLoading, setJoinLoading] = useState(false);
+  const { connectionState, subscribeToAllMatches, subscribeToUserMatches, unsubscribe } = useRealtime();
+  const { showSuccessToast, showErrorToast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   // Define fetchMatches function at component level so it's accessible everywhere
@@ -304,6 +400,7 @@ const LiveMatchBoard = () => {
           end_time,
           max_participants,
           status,
+          host_id,
           locations(id, name),
           sports(id, name)
         `)
@@ -338,7 +435,14 @@ const LiveMatchBoard = () => {
       }
       
       setMatches(transformedMatches);
-      
+
+      // Only fetch user participations on initial load, not on every update
+      // Real-time subscription will handle participation updates
+      if (user && userParticipations && Object.keys(userParticipations).length === 0) {
+        console.log('[LiveMatchBoard] Initial fetch of user participations');
+        setTimeout(() => fetchUserParticipations(), 100);
+      }
+
       // Get participant counts for each match
       try {
         const participantPromises = transformedMatches.map(async (match) => {
@@ -418,7 +522,7 @@ const LiveMatchBoard = () => {
         }
       } else if (update.type === 'participant_update') {
         // Update participant counts for the related match
-        const { data: participant, eventType } = update;
+        const { data: participant } = update;
         const matchId = participant.match_id;
         
         // Fetch the updated match details
@@ -452,6 +556,69 @@ const LiveMatchBoard = () => {
       // The automatic cleanup by useRealtime hook serves as a backup
     };
   }, [connectionState.isConnected, subscribeToAllMatches]);
+
+  // Subscribe to user participation updates
+  useEffect(() => {
+    if (!user || !connectionState.isConnected) return;
+
+    console.log('Setting up user participation subscription for user:', user.id);
+
+    const handleUserParticipationUpdate = (update) => {
+      if (update.type === 'participation_update') {
+        const { data: participation, eventType } = update;
+        console.log('[Real-time] User participation update:', eventType, participation);
+
+        if (eventType === 'INSERT' || eventType === 'UPDATE') {
+          // Update user participation state
+          console.log('[Real-time] Updating participation for match:', participation.match_id, 'status:', participation.status);
+          setUserParticipations(prev => {
+            const updated = {
+              ...prev,
+              [participation.match_id]: participation
+            };
+            console.log('[Real-time] Updated participation map:', updated);
+            return updated;
+          });
+        } else if (eventType === 'DELETE') {
+          // Remove participation
+          console.log('[Real-time] Removing participation for match:', participation.match_id);
+          setUserParticipations(prev => {
+            const updated = { ...prev };
+            delete updated[participation.match_id];
+            console.log('[Real-time] Updated participation map after delete:', updated);
+            return updated;
+          });
+        }
+      }
+    };
+
+    let userSubscriptionId;
+    try {
+      if (typeof subscribeToUserMatches === 'function') {
+        userSubscriptionId = subscribeToUserMatches(user.id, handleUserParticipationUpdate);
+      }
+    } catch (error) {
+      console.error('Error subscribing to user matches:', error);
+    }
+
+    return () => {
+      if (userSubscriptionId && typeof unsubscribe === 'function') {
+        try {
+          unsubscribe(userSubscriptionId);
+        } catch (error) {
+          console.error('Error unsubscribing from user matches:', error);
+        }
+      }
+    };
+  }, [user, connectionState.isConnected, subscribeToUserMatches, unsubscribe]);
+
+  // Initial fetch of user participations when component mounts
+  useEffect(() => {
+    if (user && matches.length > 0 && Object.keys(userParticipations).length === 0) {
+      console.log('[LiveMatchBoard] Initial fetch of user participations on mount - user participations is empty');
+      fetchUserParticipations();
+    }
+  }, [user, matches.length]); // Only run when user or matches.length changes
 
   // Helper function to fetch updated participant count
   const fetchMatchParticipantCount = async (matchId) => {
@@ -503,6 +670,75 @@ const LiveMatchBoard = () => {
     navigate(`/match/${matchId}`);
   };
 
+  // Handle join request
+  const handleJoinRequest = (match) => {
+    if (!user) {
+      showErrorToast('Authentication Required', 'Please log in to join matches');
+      return;
+    }
+    setJoinDialog({ open: true, match });
+  };
+
+  // Handle join confirmation
+  const handleJoinConfirm = async () => {
+    const match = joinDialog.match;
+    if (!match || !user) return;
+
+    setJoinLoading(true);
+    setJoinDialog({ open: false, match: null });
+
+    try {
+      const result = await participantService.joinMatch(match.id, user.id);
+
+      if (result && result.success) {
+        // Update user participation state
+        setUserParticipations(prev => ({
+          ...prev,
+          [match.id]: { status: 'pending', match_id: match.id, user_id: user.id }
+        }));
+
+        showSuccessToast('Request Sent', 'Successfully sent request to join match. Waiting for host approval.');
+      } else {
+        showErrorToast('Request Failed', result?.message || 'Failed to send join request');
+      }
+    } catch (error) {
+      console.error('Error joining match:', error);
+      showErrorToast('Error', error.message || 'Failed to join match');
+    } finally {
+      setJoinLoading(false);
+    }
+  };
+
+  // Fetch user participations for all matches
+  const fetchUserParticipations = async () => {
+    if (!user || matches.length === 0) return;
+
+    try {
+      const matchIds = matches.map(m => m.id);
+      console.log('[fetchUserParticipations] Fetching participations for user:', user.id, 'matches:', matchIds);
+
+      const { data, error } = await supabase
+        .from('participants')
+        .select('match_id, status, user_id')
+        .eq('user_id', user.id)
+        .in('match_id', matchIds);
+
+      if (error) throw error;
+
+      console.log('[fetchUserParticipations] Raw data from database:', data);
+
+      const participationMap = {};
+      data.forEach(p => {
+        participationMap[p.match_id] = p;
+      });
+
+      console.log('[fetchUserParticipations] Setting participation map:', participationMap);
+      setUserParticipations(participationMap);
+    } catch (error) {
+      console.error('Error fetching user participations:', error);
+    }
+  };
+
   return (
     <Box sx={{ mt: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -538,17 +774,40 @@ const LiveMatchBoard = () => {
         </Typography>
       ) : (
         <Box>
-          {matches.map((match, index) => (
+          {matches.map((match) => (
             <MatchCardErrorBoundary key={match.id}>
               <MatchCard
                 match={match}
                 isRecentlyUpdated={!!recentlyUpdated[match.id]}
                 onView={handleViewMatch}
+                userParticipation={userParticipations[match.id]}
+                onJoinRequest={handleJoinRequest}
+                currentUserId={user?.id}
               />
             </MatchCardErrorBoundary>
           ))}
         </Box>
       )}
+
+      {/* Join Match Confirmation Dialog */}
+      <Dialog
+        open={joinDialog.open}
+        onClose={() => setJoinDialog({ open: false, match: null })}
+        aria-labelledby="join-match-dialog-title"
+      >
+        <DialogTitle id="join-match-dialog-title">Request to Join Match</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to send a request to join "{joinDialog.match?.title}"? The host will need to approve your request.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setJoinDialog({ open: false, match: null })}>Cancel</Button>
+          <Button onClick={handleJoinConfirm} color="primary" variant="contained" disabled={joinLoading}>
+            {joinLoading ? <CircularProgress size={24} /> : 'Send Request'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

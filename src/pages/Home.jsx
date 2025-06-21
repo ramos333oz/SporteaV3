@@ -42,7 +42,6 @@ const Home = () => {
   const [joinedMatchIds, setJoinedMatchIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [loadingJoin, setLoadingJoin] = useState(false);
   
   // Popular sports data - will be populated from database
   const [popularSports, setPopularSports] = useState([]);
@@ -180,19 +179,7 @@ const Home = () => {
     }
   }, [fetchJoinedMatches]);
 
-  // Join a match
-  const handleJoinMatch = async (matchId) => {
-    try {
-      setLoadingJoin(true);
-      await participantService.joinMatch(matchId, user.id);
-      setJoinedMatchIds(prev => [...prev, matchId]);
-    } catch (err) {
-      console.error('Error joining match:', err);
-      alert('Failed to join match. Please try again.');
-    } finally {
-      setLoadingJoin(false);
-    }
-  };
+  // Note: Join functionality is now handled in MatchDetail page with proper request system
 
   // Initial data loading
   useEffect(() => {

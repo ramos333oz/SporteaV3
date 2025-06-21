@@ -268,8 +268,8 @@ const MatchDetail = () => {
   const [openLeaveDialog, setOpenLeaveDialog] = useState(false);
   const [buttonLoading, setButtonLoading] = useState(false);
   
-  // Calculate active participants count (excluding those who left)
-  const activeParticipantsCount = participants.filter(p => p.status !== 'left').length;
+  // Calculate active participants count (only confirmed participants)
+  const activeParticipantsCount = participants.filter(p => p.status === 'confirmed').length;
   
   // Check if match is full
   const isMatchFull = activeParticipantsCount >= match?.max_participants;
@@ -304,9 +304,9 @@ const MatchDetail = () => {
     try {
       setOpenJoinDialog(false);
       setButtonLoading(true);
-      
+
       const result = await participantService.joinMatch(matchId, user.id);
-      
+
       // Update local state immediately to reflect the change
       if (result && result.success) {
         setUserParticipation({
@@ -315,8 +315,27 @@ const MatchDetail = () => {
           status: 'pending' // Always set to pending for new joins
         });
         showSuccessToast('Request Sent', 'Successfully sent request to join match. Waiting for host approval.');
-      } else if (result && result.alreadyJoined) {
-        showInfoToast('Already Joined', result.message);
+      } else if (result && !result.success) {
+        // Handle cases where request failed but we need to update UI state
+        if (result.status === 'pending') {
+          // User already has a pending request
+          setUserParticipation({
+            user_id: user.id,
+            match_id: matchId,
+            status: 'pending'
+          });
+        } else if (result.status === 'confirmed') {
+          // User is already confirmed
+          setUserParticipation({
+            user_id: user.id,
+            match_id: matchId,
+            status: 'confirmed'
+          });
+        }
+        showInfoToast('Request Status', result.message);
+
+        // Force refetch to ensure UI is in sync with database
+        fetchParticipants();
       }
       // Real-time update will eventually come through subscription as well
     } catch (error) {
@@ -345,13 +364,22 @@ const MatchDetail = () => {
     try {
       setButtonLoading(true);
       const result = await participantService.leaveMatch(matchId, user.id);
-      
+
       // Update local state immediately to reflect the change
       if (result && result.success) {
-        setUserParticipation(null); // Clear user participation
+        // Set user participation to 'left' status instead of null to properly handle button state
+        setUserParticipation({
+          user_id: user.id,
+          match_id: matchId,
+          status: 'left'
+        });
+
         showSuccessToast('Success', result.message || 'You have successfully left the match');
-        // Force refetch participants to update UI correctly
+
+        // Force refetch participants to update UI correctly and trigger real-time updates
         fetchParticipants();
+
+        console.log('[LEAVE MATCH] User participation updated to left status');
       }
       setOpenLeaveDialog(false);
       setButtonLoading(false);
@@ -891,10 +919,10 @@ const MatchDetail = () => {
                           Cancel Match
                         </Button>
                       </>
-                    ) : userParticipation ? (
+                    ) : userParticipation && userParticipation.status !== 'left' && userParticipation.status !== 'declined' ? (
                       userParticipation.status === 'pending' ? (
-                        <Button 
-                          variant="outlined" 
+                        <Button
+                          variant="outlined"
                           color="warning"
                           onClick={handleLeaveMatch}
                           fullWidth
@@ -903,8 +931,8 @@ const MatchDetail = () => {
                           {buttonLoading ? <CircularProgress size={24} /> : 'Cancel Request'}
                         </Button>
                       ) : (
-                        <Button 
-                          variant="outlined" 
+                        <Button
+                          variant="outlined"
                           color="error"
                           onClick={handleLeaveMatch}
                           fullWidth
