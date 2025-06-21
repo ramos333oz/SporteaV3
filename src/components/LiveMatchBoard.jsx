@@ -10,16 +10,27 @@ import {
   Fade,
   Badge,
   Button,
-  Divider
+  Divider,
+  Avatar,
+  Stack
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import PersonIcon from '@mui/icons-material/Person';
 import PlaceIcon from '@mui/icons-material/Place';
+import {
+  SportsSoccer,
+  SportsBasketball,
+  SportsTennis,
+  SportsRugby,
+  SportsVolleyball,
+  SportsHockey
+} from '@mui/icons-material';
 import { useRealtime } from '../hooks/useRealtime';
 import { useToast } from '../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
+import UnifiedCard from './UnifiedCard';
 
 // Styled animated badge for recently updated matches
 const AnimatedBadge = styled(Badge)(({ theme }) => ({
@@ -49,92 +60,180 @@ const AnimatedBadge = styled(Badge)(({ theme }) => ({
   },
 }));
 
+// Error boundary for individual match cards
+class MatchCardErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('MatchCard error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
+          <Typography variant="body2">Unable to load match card</Typography>
+        </Box>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Compact live match card with same size as popular sport cards
 const MatchCard = ({ match, isRecentlyUpdated, onView }) => {
-  // Format date for display
+  // Safety check for match data
+  if (!match || !match.id) {
+    return null;
+  }
+
+  // Format date and time for display
+  const formatTime = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+      return 'Time TBA';
+    }
+  };
+
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    } catch (error) {
+      return 'Date TBA';
+    }
+  };
+
+  // Sport icon mapping (same as other components)
+  const sportIcons = {
+    1: { icon: <SportsSoccer />, color: '#4CAF50', name: 'Football' },
+    2: { icon: <SportsRugby />, color: '#FF9800', name: 'Rugby' },
+    3: { icon: <SportsBasketball />, color: '#FF5722', name: 'Basketball' },
+    4: { icon: <SportsSoccer />, color: '#2196F3', name: 'Futsal' },
+    5: { icon: <SportsVolleyball />, color: '#9C27B0', name: 'Volleyball' },
+    6: { icon: <SportsHockey sx={{ transform: 'rotate(90deg)' }} />, color: '#607D8B', name: 'Frisbee' },
+    7: { icon: <SportsHockey />, color: '#795548', name: 'Hockey' },
+    8: { icon: <SportsTennis />, color: '#E91E63', name: 'Badminton' },
+  };
+
+  const sportInfo = sportIcons[match.sport_id] || sportIcons[1];
+  const isFull = (match.current_participants || 0) >= (match.max_participants || 0);
+
+  const handleCardClick = () => {
+    try {
+      if (onView && match.id) {
+        onView(match.id);
+      }
+    } catch (error) {
+      console.error('Error handling card click:', error);
+    }
   };
 
   return (
-    <Fade in={true} timeout={500}>
-      <Card 
-        elevation={isRecentlyUpdated ? 4 : 1} 
-        sx={{ 
-          mb: 2, 
+    <Box sx={{ mb: 2 }}>
+      <UnifiedCard
+        imagePosition="none"
+        title={match.title || 'Match'}
+        subtitle={`${formatDate(match.start_time)} • ${formatTime(match.start_time)}`}
+        onClick={handleCardClick}
+        variant={isRecentlyUpdated ? 'elevated' : 'default'}
+        ariaLabel={`View ${match.title || 'match'} details`}
+        sx={{
+          minHeight: 200, // Same as compact SportCard
+          background: isRecentlyUpdated
+            ? `linear-gradient(135deg, ${sportInfo.color}15 0%, ${sportInfo.color}25 100%)`
+            : `linear-gradient(135deg, ${sportInfo.color}08 0%, ${sportInfo.color}15 100%)`,
+          border: `1px solid ${isRecentlyUpdated ? sportInfo.color : `${sportInfo.color}30`}`,
           transition: 'all 0.3s ease',
-          border: isRecentlyUpdated ? '1px solid' : 'none',
-          borderColor: 'primary.main',
           '&:hover': {
-            transform: 'translateY(-5px)',
-            boxShadow: 4
+            background: `linear-gradient(135deg, ${sportInfo.color}15 0%, ${sportInfo.color}25 100%)`,
+            borderColor: sportInfo.color,
+            transform: 'translateY(-2px)',
           }
         }}
       >
-        <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={8}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                {isRecentlyUpdated && (
-                  <AnimatedBadge
-                    overlap="circular"
-                    anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
-                    variant="dot"
-                    sx={{ mr: 1 }}
-                  >
-                    <Box sx={{ width: 8, height: 8 }} />
-                  </AnimatedBadge>
-                )}
-                <Typography variant="h6" component="div">
-                  {match.title}
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
-                <PlaceIcon fontSize="small" sx={{ mr: 0.5 }} />
-                {match.location_name || 'Location pending'}
+        {/* Sport Icon and Name */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+          <Avatar
+            sx={{
+              bgcolor: sportInfo.color,
+              width: 40,
+              height: 40,
+              '& svg': { fontSize: 24 }
+            }}
+          >
+            {React.cloneElement(sportInfo.icon, { sx: { color: 'white' } })}
+          </Avatar>
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+              {sportInfo.name}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {match.location_name || 'Location TBA'}
+            </Typography>
+          </Box>
+          {isRecentlyUpdated && (
+            <AnimatedBadge
+              overlap="circular"
+              anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+              variant="dot"
+            >
+              <Box sx={{ width: 8, height: 8 }} />
+            </AnimatedBadge>
+          )}
+        </Box>
+
+        {/* Key Information */}
+        <Stack spacing={1.5} sx={{ mb: 2 }}>
+          {/* Participants */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <PersonIcon fontSize="small" color="action" />
+              <Typography variant="body2" color="text.secondary">
+                Players
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
-                <AccessTimeIcon fontSize="small" sx={{ mr: 0.5 }} />
-                {formatDate(match.start_time)} - {formatDate(match.end_time)}
+            </Box>
+            <Chip
+              label={`${match.current_participants || 0}/${match.max_participants}`}
+              size="small"
+              color={isFull ? 'error' : 'success'}
+              sx={{ minWidth: 50 }}
+            />
+          </Box>
+
+          {/* Status */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AccessTimeIcon fontSize="small" color="action" />
+              <Typography variant="body2" color="text.secondary">
+                Status
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
-                <PersonIcon fontSize="small" sx={{ mr: 0.5 }} />
-                {match.current_participants || 0}/{match.max_participants} participants
-              </Typography>
-            </Grid>
-            <Grid item xs={4} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-              <Chip 
-                label={match.sport_name || 'Sport'} 
-                color="primary" 
-                size="small" 
-                sx={{ mb: 1 }} 
-              />
-              <Chip 
-                label={match.status || 'Open'} 
-                color={
-                  match.status === 'open' ? 'success' : 
-                  match.status === 'full' ? 'warning' : 
-                  match.status === 'in_progress' ? 'info' : 
-                  match.status === 'completed' ? 'default' : 
-                  match.status === 'cancelled' ? 'error' : 
-                  'default'
-                }
-                size="small" 
-                sx={{ mb: 1 }} 
-              />
-              <Button 
-                variant="outlined" 
-                size="small" 
-                onClick={() => onView(match.id)}
-                sx={{ mt: 1 }}
-              >
-                View Match
-              </Button>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-    </Fade>
+            </Box>
+            <Chip
+              label={match.status || 'Open'}
+              size="small"
+              color={
+                match.status === 'open' ? 'success' :
+                match.status === 'full' ? 'warning' :
+                match.status === 'in_progress' ? 'info' :
+                'default'
+              }
+              sx={{ minWidth: 50 }}
+            />
+          </Box>
+        </Stack>
+      </UnifiedCard>
+    </Box>
   );
 };
 
@@ -401,13 +500,14 @@ const LiveMatchBoard = () => {
         </Typography>
       ) : (
         <Box>
-          {matches.map(match => (
-            <MatchCard
-              key={match.id}
-              match={match}
-              isRecentlyUpdated={!!recentlyUpdated[match.id]}
-              onView={handleViewMatch}
-            />
+          {matches.map((match, index) => (
+            <MatchCardErrorBoundary key={match.id}>
+              <MatchCard
+                match={match}
+                isRecentlyUpdated={!!recentlyUpdated[match.id]}
+                onView={handleViewMatch}
+              />
+            </MatchCardErrorBoundary>
           ))}
         </Box>
       )}

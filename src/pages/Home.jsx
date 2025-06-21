@@ -28,110 +28,11 @@ import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import EventIcon from '@mui/icons-material/Event';
 import LiveMatchBoard from '../components/LiveMatchBoard';
 import RecommendationsList from '../components/RecommendationsList';
+import EnhancedMatchCard from '../components/EnhancedMatchCard';
+import SportCard from '../components/SportCard';
 import { supabase } from '../services/supabase';
 
-// Match card component
-const MatchCard = ({ match, onJoin, joinedMatches }) => {
-  const navigate = useNavigate();
-  
-  // Check if user has already joined this match
-  const hasJoined = joinedMatches.includes(match.id);
-  
-  // Format date and time
-  const formattedDate = format(new Date(match.start_time), 'MMM dd, yyyy');
-  const formattedTime = format(new Date(match.start_time), 'h:mm a');
-  
-  // Calculate spots remaining
-  const spotsRemaining = match.max_participants - (match.participants?.count || 0);
-  
-  return (
-    <Card elevation={1} sx={{ mb: 2, borderRadius: 2, overflow: 'visible' }}>
-      <CardContent sx={{ p: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
-          <Box>
-            <Typography variant="h3" component="div" sx={{ mb: 1 }}>
-              {match.title}
-            </Typography>
-            <Chip 
-              label={match.sport?.name || 'Sport'} 
-              size="small" 
-              color="primary" 
-              icon={<SportsSoccerIcon />}
-              sx={{ mr: 1, mb: 1 }}
-            />
-            <Chip 
-              label={`Level: ${match.skill_level}`} 
-              size="small" 
-              color="secondary"
-              sx={{ mr: 1, mb: 1 }}
-            />
-            <Chip 
-              label={spotsRemaining > 0 ? `${spotsRemaining} spots left` : 'Full'} 
-              size="small" 
-              color={spotsRemaining > 0 ? "success" : "error"}
-              icon={<PersonIcon />}
-              sx={{ mb: 1 }}
-            />
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Avatar src={match.host?.avatar_url}>
-              {match.host?.full_name?.charAt(0) || 'H'}
-            </Avatar>
-          </Box>
-        </Box>
-        
-        <Divider sx={{ my: 1 }} />
-        
-        <Grid container spacing={1} sx={{ mt: 0.5 }}>
-          <Grid item xs={12} sm={6}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <EventIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-              <Typography variant="body2">{formattedDate}</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <AccessTimeIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-              <Typography variant="body2">{formattedTime}</Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <LocationOnIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-              <Typography variant="body2" noWrap>
-                {match.location?.name || 'Location'}, {match.location?.campus || ''}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <PersonIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-              <Typography variant="body2">
-                Hosted by {match.host?.full_name || 'Unknown'}
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
-        
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-          <Button 
-            variant="outlined" 
-            size="small"
-            onClick={() => navigate(`/match/${match.id}`)}
-          >
-            View Details
-          </Button>
-          
-          <Button 
-            variant="contained" 
-            size="small"
-            color={hasJoined ? "secondary" : "primary"}
-            disabled={hasJoined || spotsRemaining === 0}
-            onClick={() => !hasJoined && onJoin(match.id)}
-          >
-            {hasJoined ? 'Joined' : (spotsRemaining === 0 ? 'Full' : 'Join Match')}
-          </Button>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-};
+// Using the new EnhancedMatchCard component for consistency
 
 const Home = () => {
   const navigate = useNavigate();
@@ -143,12 +44,16 @@ const Home = () => {
   const [error, setError] = useState(null);
   const [loadingJoin, setLoadingJoin] = useState(false);
   
-  // Mock data for popular sports (will be replaced with real data from Supabase)
+  // Popular sports data with correct IDs matching SportCard component
   const [popularSports, setPopularSports] = useState([
     { id: 1, name: 'Football', count: 0 },
-    { id: 2, name: 'Basketball', count: 0 },
-    { id: 3, name: 'Badminton', count: 0 },
-    { id: 4, name: 'Futsal', count: 0 }
+    { id: 2, name: 'Rugby', count: 0 },
+    { id: 3, name: 'Basketball', count: 0 },
+    { id: 4, name: 'Futsal', count: 0 },
+    { id: 5, name: 'Volleyball', count: 0 },
+    { id: 6, name: 'Frisbee', count: 0 },
+    { id: 7, name: 'Hockey', count: 0 },
+    { id: 8, name: 'Badminton', count: 0 }
   ]);
 
   // Fetch upcoming matches
@@ -377,33 +282,25 @@ const Home = () => {
       />
       
       {/* Popular sports section */}
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ mb: 4, mt: 6 }}>
         <Typography variant="h2" gutterBottom>
           Popular Sports
         </Typography>
-        <Grid container spacing={2}>
+        <Grid container spacing={3}>
           {popularSports.map((sport) => (
             <Grid item xs={12} sm={6} md={3} key={sport.id}>
-              <Paper 
-                elevation={1} 
-                sx={{ 
-                  p: 3, 
-                  textAlign: 'center',
-                  borderRadius: 3,
-                  transition: 'transform 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-5px)',
-                    boxShadow: 3
-                  },
-                  cursor: 'pointer'
+              <SportCard
+                sport={sport}
+                stats={{
+                  activeMatches: sport.count,
+                  totalPlayers: sport.count * 8, // Estimate
+                  upcomingMatches: sport.count,
+                  popularityScore: sport.count / Math.max(...popularSports.map(s => s.count), 1)
                 }}
                 onClick={() => navigate(`/find?sport=${sport.id}`)}
-              >
-                <Typography variant="h3">{sport.name}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {sport.count} active matches
-                </Typography>
-              </Paper>
+                variant="default"
+                compact={false}
+              />
             </Grid>
           ))}
         </Grid>

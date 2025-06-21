@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, CircularProgress, Skeleton, Alert, Paper, Button, Grid, Snackbar, AlertTitle, Chip, IconButton, Tooltip } from '@mui/material';
-import RecommendationCard from './RecommendationCard';
+import EnhancedRecommendationCard from './EnhancedRecommendationCard';
 import recommendationService from '../services/recommendationService';
 import { useAuth } from '../hooks/useAuth';
 
@@ -255,13 +255,15 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
 
   if (!recommendations || recommendations.length === 0) {
     return (
-      <Box sx={{ mt: 2 }}>
+      <Box sx={{ mt: 2, mb: 6 }}>
         <Paper
           sx={{
             p: 4,
             textAlign: 'center',
-            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-            border: '1px solid #e0e0e0'
+            background: 'linear-gradient(135deg, #F5F5F7 0%, #FFFFFF 100%)',
+            border: '1px solid rgba(138, 21, 56, 0.1)',
+            borderRadius: 3,
+            boxShadow: '0px 4px 16px rgba(138, 21, 56, 0.08)'
           }}
         >
           <Box sx={{ mb: 3 }}>
@@ -316,20 +318,56 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
               color="primary"
               onClick={handleRetry}
               startIcon={<Refresh />}
+              sx={{
+                borderRadius: 3,
+                px: 3,
+                py: 1.5,
+                fontWeight: 600,
+                textTransform: 'none',
+                boxShadow: '0px 4px 12px rgba(138, 21, 56, 0.3)',
+                '&:hover': {
+                  boxShadow: '0px 6px 16px rgba(138, 21, 56, 0.4)',
+                  transform: 'translateY(-2px)',
+                }
+              }}
             >
               Refresh Recommendations
             </Button>
             <Button
-              variant="outlined"
+              variant="contained"
               color="primary"
               onClick={() => window.location.href = '/profile'}
+              sx={{
+                borderRadius: 3,
+                px: 3,
+                py: 1.5,
+                fontWeight: 600,
+                textTransform: 'none',
+                boxShadow: '0px 4px 12px rgba(138, 21, 56, 0.3)',
+                '&:hover': {
+                  boxShadow: '0px 6px 16px rgba(138, 21, 56, 0.4)',
+                  transform: 'translateY(-2px)',
+                }
+              }}
             >
               Update Preferences
             </Button>
             <Button
-              variant="outlined"
-              color="secondary"
-              onClick={() => window.location.href = '/matches'}
+              variant="contained"
+              color="primary"
+              onClick={() => window.location.href = '/find'}
+              sx={{
+                borderRadius: 3,
+                px: 3,
+                py: 1.5,
+                fontWeight: 600,
+                textTransform: 'none',
+                boxShadow: '0px 4px 12px rgba(138, 21, 56, 0.3)',
+                '&:hover': {
+                  boxShadow: '0px 6px 16px rgba(138, 21, 56, 0.4)',
+                  transform: 'translateY(-2px)',
+                }
+              }}
             >
               Browse All Matches
             </Button>
@@ -376,14 +414,15 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
         </IconButton>
       </Box>
       
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {recommendations.map((recommendation) => (
-          <RecommendationCard 
-            key={recommendation.match.id} 
+          <EnhancedRecommendationCard
+            key={recommendation.match.id}
             recommendation={recommendation}
             isFallback={usingFallback}
             metrics={metrics}
             recommendationType={recommendationType}
+            onFeedback={onFeedback}
           />
         ))}
       </Box>
