@@ -3,6 +3,7 @@ import { Box, Typography, CircularProgress, Skeleton, Alert, Paper, Button, Grid
 import EnhancedRecommendationCard from './EnhancedRecommendationCard';
 import recommendationService from '../services/recommendationService';
 import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../services/supabase';
 
 import {
   ErrorOutline,
@@ -154,6 +155,105 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
     setRetryCount(prev => prev + 1);
     fetchRecommendations();
   };
+
+  // Handle feedback from recommendation cards
+  const onFeedback = useCallback(async (feedbackType, matchId) => {
+    if (!user?.id || !matchId) {
+      console.error('Missing user ID or match ID for feedback');
+      return;
+    }
+
+    try {
+      console.log('Submitting feedback:', { feedbackType, matchId, userId: user.id });
+
+      // Show feedback message
+      if (feedbackType === 'liked') {
+        setFeedbackSnack({
+          open: true,
+          message: 'Thanks for the feedback! We\'ll show you more matches like this.'
+        });
+      } else if (feedbackType === 'disliked') {
+        setFeedbackSnack({
+          open: true,
+          message: 'Thanks for the feedback! We\'ll improve your recommendations.'
+        });
+      } else {
+        setFeedbackSnack({
+          open: true,
+          message: 'Feedback removed.'
+        });
+      }
+
+      // Submit feedback to database
+      if (feedbackType) {
+        // First check if feedback already exists for this user-match combination
+        const { data: existingFeedback, error: checkError } = await supabase
+          .from('recommendation_feedback')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('match_id', matchId)
+          .single();
+
+        if (checkError && checkError.code !== 'PGRST116') {
+          // PGRST116 is "not found" error, which is expected if no feedback exists
+          console.error('Error checking existing feedback:', checkError);
+          return;
+        }
+
+        if (existingFeedback) {
+          // Update existing feedback
+          const { error: updateError } = await supabase
+            .from('recommendation_feedback')
+            .update({
+              feedback_type: feedbackType,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingFeedback.id);
+
+          if (updateError) {
+            console.error('Error updating feedback in database:', updateError);
+          } else {
+            console.log('Feedback updated successfully');
+          }
+        } else {
+          // Insert new feedback
+          const { error: insertError } = await supabase
+            .from('recommendation_feedback')
+            .insert({
+              user_id: user.id,
+              match_id: matchId,
+              feedback_type: feedbackType
+            });
+
+          if (insertError) {
+            console.error('Error inserting feedback to database:', insertError);
+          } else {
+            console.log('Feedback inserted successfully');
+          }
+        }
+      } else {
+        // Remove feedback if feedbackType is null
+        const { error: deleteError } = await supabase
+          .from('recommendation_feedback')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('match_id', matchId);
+
+        if (deleteError) {
+          console.error('Error removing feedback from database:', deleteError);
+        } else {
+          console.log('Feedback removed successfully');
+        }
+      }
+
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      setFeedbackSnack({
+        open: true,
+        message: 'Failed to submit feedback. Please try again.'
+      });
+    }
+  }, [user?.id]);
   
   // Check if embeddings need to be generated automatically
   useEffect(() => {

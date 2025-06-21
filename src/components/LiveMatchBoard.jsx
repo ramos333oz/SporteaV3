@@ -114,19 +114,37 @@ const MatchCard = ({ match, isRecentlyUpdated, onView }) => {
     }
   };
 
-  // Sport icon mapping (same as other components)
+  // Sport icon mapping using database UUIDs (same as other components)
   const sportIcons = {
-    1: { icon: <SportsSoccer />, color: '#4CAF50', name: 'Football' },
-    2: { icon: <SportsRugby />, color: '#FF9800', name: 'Rugby' },
-    3: { icon: <SportsBasketball />, color: '#FF5722', name: 'Basketball' },
-    4: { icon: <SportsSoccer />, color: '#2196F3', name: 'Futsal' },
-    5: { icon: <SportsVolleyball />, color: '#9C27B0', name: 'Volleyball' },
-    6: { icon: <SportsHockey sx={{ transform: 'rotate(90deg)' }} />, color: '#607D8B', name: 'Frisbee' },
-    7: { icon: <SportsHockey />, color: '#795548', name: 'Hockey' },
-    8: { icon: <SportsTennis />, color: '#E91E63', name: 'Badminton' },
+    // Football
+    '4746e9c1-f772-4515-8d08-6c28563fbfc9': { icon: <SportsSoccer />, color: '#4CAF50', name: 'Football' },
+    // Rugby
+    '13e32815-8a3b-48f7-8cc9-5fdad873b851': { icon: <SportsRugby />, color: '#FF9800', name: 'Rugby' },
+    // Basketball
+    'dd400853-7ce6-47bc-aee6-2ee241530f79': { icon: <SportsBasketball />, color: '#FF5722', name: 'Basketball' },
+    // Futsal
+    'd662bc78-9e50-4785-ac71-d1e591e4a9ce': { icon: <SportsSoccer />, color: '#2196F3', name: 'Futsal' },
+    // Volleyball
+    '66e9893a-2be7-47f0-b7d3-d7191901dd77': { icon: <SportsVolleyball />, color: '#9C27B0', name: 'Volleyball' },
+    // Frisbee
+    'dcedf87a-13aa-4c2f-979f-6b71d457f531': { icon: <SportsHockey sx={{ transform: 'rotate(90deg)' }} />, color: '#607D8B', name: 'Frisbee' },
+    // Hockey
+    '3aba0f36-38bf-4ca2-b713-3dabd9f993f1': { icon: <SportsHockey />, color: '#795548', name: 'Hockey' },
+    // Badminton
+    'fb575fc1-2eac-4142-898a-2f7dae107844': { icon: <SportsTennis />, color: '#E91E63', name: 'Badminton' },
+    // Tennis
+    '9a304214-6c57-4c33-8c5f-3f1955b63caf': { icon: <SportsTennis />, color: '#4CAF50', name: 'Tennis' },
+    // Table Tennis
+    '845d3461-42fc-45c2-a403-8efcaf237c17': { icon: <SportsTennis />, color: '#FF5722', name: 'Table Tennis' },
+    // Squash
+    '0ec51cfc-f644-4057-99d8-d2c29c1b7dd0': { icon: <SportsTennis />, color: '#9C27B0', name: 'Squash' },
   };
 
-  const sportInfo = sportIcons[match.sport_id] || sportIcons[1];
+  const sportInfo = sportIcons[match.sport_id] || {
+    icon: <SportsSoccer />,
+    color: '#757575',
+    name: 'Sport'
+  };
   const isFull = (match.current_participants || 0) >= (match.max_participants || 0);
 
   const handleCardClick = () => {
@@ -139,26 +157,45 @@ const MatchCard = ({ match, isRecentlyUpdated, onView }) => {
     }
   };
 
+  // Default venue images mapping using database UUIDs
+  const defaultVenueImages = {
+    '4746e9c1-f772-4515-8d08-6c28563fbfc9': '/images/venues/football-field.jpg', // Football
+    '13e32815-8a3b-48f7-8cc9-5fdad873b851': '/images/venues/rugby-field.jpg', // Rugby
+    'dd400853-7ce6-47bc-aee6-2ee241530f79': '/images/venues/basketball-court.jpg', // Basketball
+    'd662bc78-9e50-4785-ac71-d1e591e4a9ce': '/images/venues/futsal-court.jpg', // Futsal
+    '66e9893a-2be7-47f0-b7d3-d7191901dd77': '/images/venues/volleyball-court.jpg', // Volleyball
+    'dcedf87a-13aa-4c2f-979f-6b71d457f531': '/images/venues/field.jpg', // Frisbee
+    '3aba0f36-38bf-4ca2-b713-3dabd9f993f1': '/images/venues/hockey-field.jpg', // Hockey
+    'fb575fc1-2eac-4142-898a-2f7dae107844': '/images/venues/badminton-court.jpg', // Badminton
+    '9a304214-6c57-4c33-8c5f-3f1955b63caf': '/images/venues/tennis-court.jpg', // Tennis
+    '845d3461-42fc-45c2-a403-8efcaf237c17': '/images/venues/table-tennis-court.jpg', // Table Tennis
+    '0ec51cfc-f644-4057-99d8-d2c29c1b7dd0': '/images/venues/squash-court.jpg', // Squash
+  };
+
+  const venueImage = defaultVenueImages[match.sport_id] || '/images/venues/default-field.jpg';
+
   return (
     <Box sx={{ mb: 2 }}>
       <UnifiedCard
-        imagePosition="none"
+        image={venueImage}
+        imageAlt={`${sportInfo.name} venue`}
+        imageHeight={120}
+        imagePosition="top"
         title={match.title || 'Match'}
         subtitle={`${formatDate(match.start_time)} • ${formatTime(match.start_time)}`}
         onClick={handleCardClick}
         variant={isRecentlyUpdated ? 'elevated' : 'default'}
         ariaLabel={`View ${match.title || 'match'} details`}
         sx={{
-          minHeight: 200, // Same as compact SportCard
-          background: isRecentlyUpdated
-            ? `linear-gradient(135deg, ${sportInfo.color}15 0%, ${sportInfo.color}25 100%)`
-            : `linear-gradient(135deg, ${sportInfo.color}08 0%, ${sportInfo.color}15 100%)`,
-          border: `1px solid ${isRecentlyUpdated ? sportInfo.color : `${sportInfo.color}30`}`,
+          minHeight: 240, // Same as SportCard (non-compact)
+          backgroundColor: 'white',
+          border: isRecentlyUpdated ? `2px solid ${sportInfo.color}` : '1px solid rgba(0, 0, 0, 0.12)',
           transition: 'all 0.3s ease',
           '&:hover': {
-            background: `linear-gradient(135deg, ${sportInfo.color}15 0%, ${sportInfo.color}25 100%)`,
+            backgroundColor: 'white',
             borderColor: sportInfo.color,
             transform: 'translateY(-2px)',
+            boxShadow: '0px 8px 24px rgba(0, 0, 0, 0.15)',
           }
         }}
       >
@@ -287,6 +324,7 @@ const LiveMatchBoard = () => {
         ...match,
         location_name: match.locations?.name,
         sport_name: match.sports?.name,
+        sport_id: match.sports?.id, // Ensure sport_id is properly set
         current_participants: 0 // Will be filled in later
       }));
       

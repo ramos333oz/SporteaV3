@@ -46,16 +46,19 @@ import UnifiedCard from './UnifiedCard';
  * and detailed recommendation scoring breakdown
  */
 
-// Sport icon mapping with correct icons (consistent with EnhancedMatchCard)
+// Sport icon mapping using database UUIDs (consistent with other components)
 const sportIcons = {
-  1: <SportsSoccer sx={{ color: '#4CAF50' }} />, // Football
-  2: <SportsRugby sx={{ color: '#FF9800' }} />, // Rugby
-  3: <SportsBasketball sx={{ color: '#FF5722' }} />, // Basketball
-  4: <SportsSoccer sx={{ color: '#2196F3' }} />, // Futsal
-  5: <SportsVolleyball sx={{ color: '#9C27B0' }} />, // Volleyball
-  6: <SportsHockey sx={{ color: '#607D8B', transform: 'rotate(90deg)' }} />, // Frisbee
-  7: <SportsHockey sx={{ color: '#795548' }} />, // Hockey
-  8: <SportsTennis sx={{ color: '#E91E63' }} />, // Badminton
+  '4746e9c1-f772-4515-8d08-6c28563fbfc9': <SportsSoccer sx={{ color: '#4CAF50' }} />, // Football
+  '13e32815-8a3b-48f7-8cc9-5fdad873b851': <SportsRugby sx={{ color: '#FF9800' }} />, // Rugby
+  'dd400853-7ce6-47bc-aee6-2ee241530f79': <SportsBasketball sx={{ color: '#FF5722' }} />, // Basketball
+  'd662bc78-9e50-4785-ac71-d1e591e4a9ce': <SportsSoccer sx={{ color: '#2196F3' }} />, // Futsal
+  '66e9893a-2be7-47f0-b7d3-d7191901dd77': <SportsVolleyball sx={{ color: '#9C27B0' }} />, // Volleyball
+  'dcedf87a-13aa-4c2f-979f-6b71d457f531': <SportsHockey sx={{ color: '#607D8B', transform: 'rotate(90deg)' }} />, // Frisbee
+  '3aba0f36-38bf-4ca2-b713-3dabd9f993f1': <SportsHockey sx={{ color: '#795548' }} />, // Hockey
+  'fb575fc1-2eac-4142-898a-2f7dae107844': <SportsTennis sx={{ color: '#E91E63' }} />, // Badminton
+  '9a304214-6c57-4c33-8c5f-3f1955b63caf': <SportsTennis sx={{ color: '#4CAF50' }} />, // Tennis
+  '845d3461-42fc-45c2-a403-8efcaf237c17': <SportsTennis sx={{ color: '#FF5722' }} />, // Table Tennis
+  '0ec51cfc-f644-4057-99d8-d2c29c1b7dd0': <SportsTennis sx={{ color: '#9C27B0' }} />, // Squash
 };
 
 const defaultVenueImages = {

@@ -24,28 +24,45 @@ import UnifiedCard from './UnifiedCard';
  * Uses the unified card system for consistent styling
  */
 
-// Sport icon mapping with correct icons and vibrant colors
+// Sport icon mapping with correct icons and vibrant colors using database UUIDs
 const sportIcons = {
-  1: { icon: <SportsSoccer />, color: '#4CAF50', name: 'Football' },
-  2: { icon: <SportsRugby />, color: '#FF9800', name: 'Rugby' },
-  3: { icon: <SportsBasketball />, color: '#FF5722', name: 'Basketball' },
-  4: { icon: <SportsSoccer />, color: '#2196F3', name: 'Futsal' },
-  5: { icon: <SportsVolleyball />, color: '#9C27B0', name: 'Volleyball' },
-  6: { icon: <SportsHockey sx={{ transform: 'rotate(90deg)' }} />, color: '#607D8B', name: 'Frisbee' },
-  7: { icon: <SportsHockey />, color: '#795548', name: 'Hockey' },
-  8: { icon: <SportsTennis />, color: '#E91E63', name: 'Badminton' },
+  // Football
+  '4746e9c1-f772-4515-8d08-6c28563fbfc9': { icon: <SportsSoccer />, color: '#4CAF50', name: 'Football' },
+  // Rugby
+  '13e32815-8a3b-48f7-8cc9-5fdad873b851': { icon: <SportsRugby />, color: '#FF9800', name: 'Rugby' },
+  // Basketball
+  'dd400853-7ce6-47bc-aee6-2ee241530f79': { icon: <SportsBasketball />, color: '#FF5722', name: 'Basketball' },
+  // Futsal
+  'd662bc78-9e50-4785-ac71-d1e591e4a9ce': { icon: <SportsSoccer />, color: '#2196F3', name: 'Futsal' },
+  // Volleyball
+  '66e9893a-2be7-47f0-b7d3-d7191901dd77': { icon: <SportsVolleyball />, color: '#9C27B0', name: 'Volleyball' },
+  // Frisbee
+  'dcedf87a-13aa-4c2f-979f-6b71d457f531': { icon: <SportsHockey sx={{ transform: 'rotate(90deg)' }} />, color: '#607D8B', name: 'Frisbee' },
+  // Hockey
+  '3aba0f36-38bf-4ca2-b713-3dabd9f993f1': { icon: <SportsHockey />, color: '#795548', name: 'Hockey' },
+  // Badminton
+  'fb575fc1-2eac-4142-898a-2f7dae107844': { icon: <SportsTennis />, color: '#E91E63', name: 'Badminton' },
+  // Tennis
+  '9a304214-6c57-4c33-8c5f-3f1955b63caf': { icon: <SportsTennis />, color: '#4CAF50', name: 'Tennis' },
+  // Table Tennis
+  '845d3461-42fc-45c2-a403-8efcaf237c17': { icon: <SportsTennis />, color: '#FF5722', name: 'Table Tennis' },
+  // Squash
+  '0ec51cfc-f644-4057-99d8-d2c29c1b7dd0': { icon: <SportsTennis />, color: '#9C27B0', name: 'Squash' },
 };
 
-// Sport background images
+// Sport background images using database UUIDs
 const sportBackgrounds = {
-  1: '/images/sports/football-bg.jpg',
-  2: '/images/sports/rugby-bg.jpg',
-  3: '/images/sports/basketball-bg.jpg',
-  4: '/images/sports/futsal-bg.jpg',
-  5: '/images/sports/volleyball-bg.jpg',
-  6: '/images/sports/frisbee-bg.jpg',
-  7: '/images/sports/hockey-bg.jpg',
-  8: '/images/sports/badminton-bg.jpg',
+  '4746e9c1-f772-4515-8d08-6c28563fbfc9': '/images/sports/football-bg.jpg', // Football
+  '13e32815-8a3b-48f7-8cc9-5fdad873b851': '/images/sports/rugby-bg.jpg', // Rugby
+  'dd400853-7ce6-47bc-aee6-2ee241530f79': '/images/sports/basketball-bg.jpg', // Basketball
+  'd662bc78-9e50-4785-ac71-d1e591e4a9ce': '/images/sports/futsal-bg.jpg', // Futsal
+  '66e9893a-2be7-47f0-b7d3-d7191901dd77': '/images/sports/volleyball-bg.jpg', // Volleyball
+  'dcedf87a-13aa-4c2f-979f-6b71d457f531': '/images/sports/frisbee-bg.jpg', // Frisbee
+  '3aba0f36-38bf-4ca2-b713-3dabd9f993f1': '/images/sports/hockey-bg.jpg', // Hockey
+  'fb575fc1-2eac-4142-898a-2f7dae107844': '/images/sports/badminton-bg.jpg', // Badminton
+  '9a304214-6c57-4c33-8c5f-3f1955b63caf': '/images/sports/tennis-bg.jpg', // Tennis
+  '845d3461-42fc-45c2-a403-8efcaf237c17': '/images/sports/table-tennis-bg.jpg', // Table Tennis
+  '0ec51cfc-f644-4057-99d8-d2c29c1b7dd0': '/images/sports/squash-bg.jpg', // Squash
 };
 
 const SportCard = ({ 

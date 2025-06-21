@@ -44,17 +44,8 @@ const Home = () => {
   const [error, setError] = useState(null);
   const [loadingJoin, setLoadingJoin] = useState(false);
   
-  // Popular sports data with correct IDs matching SportCard component
-  const [popularSports, setPopularSports] = useState([
-    { id: 1, name: 'Football', count: 0 },
-    { id: 2, name: 'Rugby', count: 0 },
-    { id: 3, name: 'Basketball', count: 0 },
-    { id: 4, name: 'Futsal', count: 0 },
-    { id: 5, name: 'Volleyball', count: 0 },
-    { id: 6, name: 'Frisbee', count: 0 },
-    { id: 7, name: 'Hockey', count: 0 },
-    { id: 8, name: 'Badminton', count: 0 }
-  ]);
+  // Popular sports data - will be populated from database
+  const [popularSports, setPopularSports] = useState([]);
 
   // Fetch upcoming matches
   const fetchUpcomingMatches = useCallback(async () => {
@@ -101,12 +92,13 @@ const Home = () => {
             return acc;
           }, []);
           
-          // Sort by count (descending) and take top 4
+          // Sort by count (descending) and take top 8 to show all sports
           const topSports = sportNamesAndCounts
             .sort((a, b) => b.count - a.count)
-            .slice(0, 4);
-          
+            .slice(0, 8);
+
           console.log('Updated sport counts:', topSports);
+          console.log('Sport IDs and names from database:', topSports.map(s => `${s.id}: ${s.name}`));
           setPopularSports(topSports);
         }
       } catch (sportCountErr) {
