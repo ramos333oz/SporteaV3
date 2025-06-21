@@ -468,10 +468,11 @@ const MatchDetail = () => {
   
   // Share match handler
   const handleShareMatch = () => {
+    const sportName = match.sport?.name || 'Unknown Sport';
     if (navigator.share) {
       navigator.share({
-        title: `${match.sport.name} match on Sportea`,
-        text: `Join me for a ${match.sport.name} match on ${formatMatchDate(match.start_time)} at ${formatMatchTime(match.start_time)}`,
+        title: `${sportName} match on Sportea`,
+        text: `Join me for a ${sportName} match on ${formatMatchDate(match.start_time)} at ${formatMatchTime(match.start_time)}`,
         url: window.location.href
       }).catch(err => {
         console.error('Error sharing:', err);
@@ -670,7 +671,7 @@ const MatchDetail = () => {
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Paper sx={{ p: 3, mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h2">{match.sport.name} Match</Typography>
+          <Typography variant="h2">{match.sport?.name || 'Unknown Sport'} Match</Typography>
           {getStatusChip()}
         </Box>
         
@@ -694,7 +695,7 @@ const MatchDetail = () => {
               
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <LocationIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography>{match.location.name}</Typography>
+                <Typography>{match.location?.name || 'Unknown Location'}</Typography>
               </Box>
               
               <Box sx={{ display: 'flex', alignItems: 'center' }}>

@@ -71,13 +71,13 @@ const NotificationPanel = () => {
   
   const open = Boolean(anchorEl);
   
-  // Load initial notifications
+  // Load initial notifications and unread count
   useEffect(() => {
     if (!user) return;
-    
+
     const fetchNotifications = async () => {
       setLoading(true);
-      
+
       try {
         // Get notifications with more detailed data to help debugging
         const { data, error } = await supabase
@@ -89,15 +89,16 @@ const NotificationPanel = () => {
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(20);
-          
+
         if (error) throw error;
-        
+
         console.log('[NotificationPanel] Fetched notifications:', data);
-        
+
         setNotifications(data || []);
-        
+
         // Count unread notifications
         const unread = data ? data.filter(n => !n.is_read).length : 0;
+        console.log('[NotificationPanel] Setting unread count:', unread, 'from', data?.length, 'total notifications');
         setUnreadCount(unread);
       } catch (err) {
         console.error('Error fetching notifications:', err);
@@ -105,21 +106,50 @@ const NotificationPanel = () => {
         setLoading(false);
       }
     };
-    
+
     fetchNotifications();
-    
-    // Refresh notifications when the panel is opened
-    if (open) {
-      fetchNotifications();
-    }
+  }, [user]);
+
+  // Separate effect to refresh when panel is opened
+  useEffect(() => {
+    if (!user || !open) return;
+
+    const fetchNotifications = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select(`
+            *,
+            sender:users(id, full_name, username, avatar_url)
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (error) throw error;
+
+        setNotifications(data || []);
+        const unread = data ? data.filter(n => !n.is_read).length : 0;
+        setUnreadCount(unread);
+      } catch (err) {
+        console.error('Error refreshing notifications:', err);
+      }
+    };
+
+    fetchNotifications();
   }, [user, open]);
   
   // Subscribe to real-time notification updates
   useEffect(() => {
-    if (!user || !connectionState.isConnected) return;
-    
+    if (!user) return;
+
     console.log(`[NotificationPanel] Setting up notification subscription for user: ${user.id}`);
     console.log(`[NotificationPanel] Connection state:`, connectionState);
+
+    // Don't wait for connection - subscribe immediately and let the realtime service handle reconnection
+    if (!connectionState.isConnected) {
+      console.log('[NotificationPanel] Not connected yet, but setting up subscription anyway');
+    }
 
     const handleNotification = (update) => {
       console.log('[NotificationPanel] Received realtime update:', update);
@@ -131,8 +161,12 @@ const NotificationPanel = () => {
         if (eventType === 'INSERT') {
           // Add new notification to the top of the list
           setNotifications(prev => [data, ...prev]);
-          setUnreadCount(prev => prev + 1);
-          
+          setUnreadCount(prev => {
+            const newCount = prev + 1;
+            console.log('[NotificationPanel] Incrementing unread count from', prev, 'to', newCount);
+            return newCount;
+          });
+
           // Show toast notification
           const title = getNotificationTitle(data);
           const message = data.content || data.message || 'You have a new notification';
@@ -199,8 +233,46 @@ const NotificationPanel = () => {
       // No need to manually unsubscribe as the useRealtime hook handles this
       console.log(`[NotificationPanel] Cleaning up notification subscription`);
     };
-  }, [user, connectionState.isConnected, subscribeToUserNotifications, showInfoToast]);
-  
+  }, [user, subscribeToUserNotifications, showInfoToast]); // Removed connectionState.isConnected dependency
+
+  // Periodic refresh of unread count (fallback for real-time issues)
+  useEffect(() => {
+    if (!user) return;
+
+    const refreshUnreadCount = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('id, is_read')
+          .eq('user_id', user.id)
+          .eq('is_read', false);
+
+        if (error) throw error;
+
+        const currentUnreadCount = data?.length || 0;
+        console.log('[NotificationPanel] Periodic refresh - unread count:', currentUnreadCount);
+
+        setUnreadCount(prev => {
+          if (prev !== currentUnreadCount) {
+            console.log('[NotificationPanel] Updating unread count from', prev, 'to', currentUnreadCount);
+            return currentUnreadCount;
+          }
+          return prev;
+        });
+      } catch (err) {
+        console.error('[NotificationPanel] Error in periodic refresh:', err);
+      }
+    };
+
+    // Initial refresh
+    refreshUnreadCount();
+
+    // Set up periodic refresh every 30 seconds
+    const interval = setInterval(refreshUnreadCount, 30000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
   // Handle click to open notification panel
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -542,8 +614,25 @@ const NotificationPanel = () => {
         color="inherit"
         onClick={handleClick}
         aria-label="show notifications"
+        title={`${unreadCount} unread notifications`}
       >
-        <Badge badgeContent={unreadCount} color="error">
+        <Badge
+          badgeContent={unreadCount}
+          color="error"
+          max={99}
+          showZero={false}
+          sx={{
+            '& .MuiBadge-badge': {
+              fontSize: '0.75rem',
+              minWidth: '20px',
+              height: '20px',
+              borderRadius: '10px',
+              fontWeight: 'bold',
+              border: '2px solid white',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            }
+          }}
+        >
           <NotificationsIcon />
         </Badge>
       </IconButton>
@@ -572,11 +661,41 @@ const NotificationPanel = () => {
       >
         <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h6">Notifications</Typography>
-          {unreadCount > 0 && (
-            <Button size="small" onClick={markAllAsRead}>
-              Mark all as read
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button size="small" onClick={() => {
+              // Manual refresh
+              const fetchNotifications = async () => {
+                try {
+                  const { data, error } = await supabase
+                    .from('notifications')
+                    .select(`
+                      *,
+                      sender:users(id, full_name, username, avatar_url)
+                    `)
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                  if (error) throw error;
+
+                  setNotifications(data || []);
+                  const unread = data ? data.filter(n => !n.is_read).length : 0;
+                  setUnreadCount(unread);
+                  console.log('[NotificationPanel] Manual refresh completed, unread count:', unread);
+                } catch (err) {
+                  console.error('Error in manual refresh:', err);
+                }
+              };
+              fetchNotifications();
+            }}>
+              Refresh
             </Button>
-          )}
+            {unreadCount > 0 && (
+              <Button size="small" onClick={markAllAsRead}>
+                Mark all as read
+              </Button>
+            )}
+          </Box>
         </Box>
         
         <Divider />
