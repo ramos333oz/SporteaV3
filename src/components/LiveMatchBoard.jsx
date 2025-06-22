@@ -97,7 +97,7 @@ class MatchCardErrorBoundary extends React.Component {
 }
 
 // Compact live match card with same size as popular sport cards
-const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoinRequest, currentUserId }) => {
+const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoinRequest, onLeaveRequest, currentUserId }) => {
   // Safety check for match data
   if (!match || !match.id) {
     return null;
@@ -167,7 +167,13 @@ const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoin
 
   const handleJoinClick = (e) => {
     e.stopPropagation();
-    if (onJoinRequest && match.id) {
+
+    // Check if user is already joined and handle leave functionality
+    if (userParticipation && userParticipation.status === 'confirmed') {
+      if (onLeaveRequest) {
+        onLeaveRequest(match);
+      }
+    } else if (onJoinRequest && match.id) {
       onJoinRequest(match);
     }
   };
@@ -193,7 +199,7 @@ const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoin
       case 'pending':
         return { text: 'Requested', disabled: true, color: '#FF9800' };
       case 'confirmed':
-        return { text: 'Joined', disabled: true, color: '#4CAF50' };
+        return { text: 'Joined', disabled: false, color: '#4CAF50' };
       case 'declined':
         return { text: 'Declined', disabled: true, color: '#F44336' };
       case 'left':
@@ -436,11 +442,10 @@ const LiveMatchBoard = () => {
       
       setMatches(transformedMatches);
 
-      // Only fetch user participations on initial load, not on every update
-      // Real-time subscription will handle participation updates
-      if (user && userParticipations && Object.keys(userParticipations).length === 0) {
-        console.log('[LiveMatchBoard] Initial fetch of user participations');
-        setTimeout(() => fetchUserParticipations(), 100);
+      // Always fetch user participations when matches are loaded to ensure consistency
+      if (user) {
+        console.log('[LiveMatchBoard] Fetching user participations after matches loaded');
+        setTimeout(() => fetchUserParticipations(true), 100);
       }
 
       // Get participant counts for each match
@@ -524,9 +529,12 @@ const LiveMatchBoard = () => {
         // Update participant counts for the related match
         const { data: participant } = update;
         const matchId = participant.match_id;
-        
-        // Fetch the updated match details
-        fetchMatchParticipantCount(matchId);
+
+        console.log('[Real-time] Participant update detected for match:', matchId, 'participant:', participant);
+
+        // Refresh the complete match data to prevent "Unknown" data corruption
+        // This ensures sport, location, and all other match data remains intact
+        fetchSingleMatchWithDetails(matchId);
       }
     };
 
@@ -589,6 +597,10 @@ const LiveMatchBoard = () => {
             return updated;
           });
         }
+
+        // Force refresh of user participations to ensure consistency
+        console.log('[Real-time] Forcing refresh of user participations after update');
+        setTimeout(() => fetchUserParticipations(), 500);
       }
     };
 
@@ -614,13 +626,24 @@ const LiveMatchBoard = () => {
 
   // Initial fetch of user participations when component mounts
   useEffect(() => {
-    if (user && matches.length > 0 && Object.keys(userParticipations).length === 0) {
-      console.log('[LiveMatchBoard] Initial fetch of user participations on mount - user participations is empty');
-      fetchUserParticipations();
+    if (user && matches.length > 0) {
+      console.log('[LiveMatchBoard] Force fetching user participations on mount/update');
+      fetchUserParticipations(true);
     }
-  }, [user, matches.length]); // Only run when user or matches.length changes
+  }, [user, matches.length]); // Run when user or matches.length changes
 
-  // Helper function to fetch updated participant count
+  // Additional effect to ensure participations are loaded
+  useEffect(() => {
+    if (user && matches.length > 0 && Object.keys(userParticipations).length === 0) {
+      console.log('[LiveMatchBoard] No participations found, retrying fetch...');
+      const retryTimer = setTimeout(() => {
+        fetchUserParticipations(true);
+      }, 1000);
+      return () => clearTimeout(retryTimer);
+    }
+  }, [user, matches.length, userParticipations]);
+
+  // Helper function to fetch updated participant count (kept for backward compatibility)
   const fetchMatchParticipantCount = async (matchId) => {
     if (!matchId) {
       console.error('Invalid match ID provided to fetchMatchParticipantCount');
@@ -635,19 +658,93 @@ const LiveMatchBoard = () => {
         .eq('status', 'confirmed');
 
       if (error) throw error;
-      
+
       // Update the match with the new participant count
-      setMatches(prevMatches => 
-        prevMatches.map(match => 
-          match.id === matchId 
-            ? { ...match, current_participants: data.length } 
+      setMatches(prevMatches =>
+        prevMatches.map(match =>
+          match.id === matchId
+            ? { ...match, current_participants: data.length }
             : match
         )
       );
-      
+
       markAsRecentlyUpdated(matchId);
     } catch (error) {
       console.error('Error fetching participant count:', error);
+    }
+  };
+
+  // Helper function to fetch complete match details with relationships
+  const fetchSingleMatchWithDetails = async (matchId) => {
+    if (!matchId) {
+      console.error('Invalid match ID provided to fetchSingleMatchWithDetails');
+      return;
+    }
+
+    try {
+      console.log('[fetchSingleMatchWithDetails] Refreshing complete match data for:', matchId);
+
+      // Fetch the complete match data with all relationships
+      const { data: matchData, error: matchError } = await supabase
+        .from('matches')
+        .select(`
+          id,
+          title,
+          start_time,
+          end_time,
+          max_participants,
+          status,
+          host_id,
+          locations(id, name),
+          sports(id, name)
+        `)
+        .eq('id', matchId)
+        .single();
+
+      if (matchError) {
+        console.error('Error fetching match details:', matchError);
+        return;
+      }
+
+      if (!matchData) {
+        console.warn('No match data found for ID:', matchId);
+        return;
+      }
+
+      // Get the current participant count
+      const { data: participantData, error: participantError } = await supabase
+        .from('participants')
+        .select('id')
+        .eq('match_id', matchId)
+        .eq('status', 'confirmed');
+
+      if (participantError) {
+        console.error('Error fetching participant count:', participantError);
+        return;
+      }
+
+      // Transform the match data to include location and sport names
+      const transformedMatch = {
+        ...matchData,
+        location_name: matchData.locations?.name,
+        sport_name: matchData.sports?.name,
+        sport_id: matchData.sports?.id,
+        current_participants: participantData?.length || 0
+      };
+
+      console.log('[fetchSingleMatchWithDetails] Refreshed match data:', transformedMatch);
+
+      // Update the specific match in the state
+      setMatches(prevMatches =>
+        prevMatches.map(match =>
+          match.id === matchId ? transformedMatch : match
+        )
+      );
+
+      markAsRecentlyUpdated(matchId);
+
+    } catch (error) {
+      console.error('[fetchSingleMatchWithDetails] Error refreshing match data:', error);
     }
   };
 
@@ -677,6 +774,40 @@ const LiveMatchBoard = () => {
       return;
     }
     setJoinDialog({ open: true, match });
+  };
+
+  // Handle leave match request
+  const handleLeaveRequest = async (match) => {
+    if (!user) return;
+
+    try {
+      // Show confirmation dialog
+      const confirmed = window.confirm(
+        `Are you sure you want to leave "${match.title}"? You will need to request to join again if you change your mind.`
+      );
+
+      if (!confirmed) return;
+
+      const result = await participantService.leaveMatch(match.id, user.id);
+
+      if (result && result.success) {
+        // Update user participation state to 'left'
+        setUserParticipations(prev => ({
+          ...prev,
+          [match.id]: { status: 'left', match_id: match.id, user_id: user.id }
+        }));
+
+        showSuccessToast('Success', result.message || 'Successfully left the match');
+
+        // Force refresh of user participations to ensure consistency
+        setTimeout(() => fetchUserParticipations(true), 500);
+      } else {
+        showErrorToast('Error', result?.message || 'Failed to leave match');
+      }
+    } catch (error) {
+      console.error('Error leaving match:', error);
+      showErrorToast('Error', error.message || 'Failed to leave match');
+    }
   };
 
   // Handle join confirmation
@@ -710,32 +841,50 @@ const LiveMatchBoard = () => {
   };
 
   // Fetch user participations for all matches
-  const fetchUserParticipations = async () => {
-    if (!user || matches.length === 0) return;
+  const fetchUserParticipations = async (forceRefresh = false) => {
+    if (!user || matches.length === 0) {
+      console.log('[fetchUserParticipations] Skipping - no user or matches:', { user: !!user, matchCount: matches.length });
+      return;
+    }
 
     try {
       const matchIds = matches.map(m => m.id);
-      console.log('[fetchUserParticipations] Fetching participations for user:', user.id, 'matches:', matchIds);
+      console.log('[fetchUserParticipations] Fetching participations for user:', user.id, 'matches:', matchIds, 'forceRefresh:', forceRefresh);
 
       const { data, error } = await supabase
         .from('participants')
-        .select('match_id, status, user_id')
+        .select('match_id, status, user_id, joined_at')
         .eq('user_id', user.id)
         .in('match_id', matchIds);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[fetchUserParticipations] Database error:', error);
+        throw error;
+      }
 
       console.log('[fetchUserParticipations] Raw data from database:', data);
+      console.log('[fetchUserParticipations] Data length:', data?.length || 0);
 
       const participationMap = {};
-      data.forEach(p => {
-        participationMap[p.match_id] = p;
-      });
+      if (data && data.length > 0) {
+        data.forEach(p => {
+          participationMap[p.match_id] = p;
+          console.log('[fetchUserParticipations] Adding to map:', p.match_id, '→', p.status);
+        });
+      } else {
+        console.log('[fetchUserParticipations] No participation data found for user');
+      }
 
-      console.log('[fetchUserParticipations] Setting participation map:', participationMap);
+      console.log('[fetchUserParticipations] Final participation map:', participationMap);
       setUserParticipations(participationMap);
+
+      // If we found data, log success
+      if (Object.keys(participationMap).length > 0) {
+        console.log('[fetchUserParticipations] ✅ Successfully loaded', Object.keys(participationMap).length, 'participations');
+      }
     } catch (error) {
-      console.error('Error fetching user participations:', error);
+      console.error('[fetchUserParticipations] ❌ Error fetching user participations:', error);
+      // Don't clear existing participations on error
     }
   };
 
@@ -782,6 +931,7 @@ const LiveMatchBoard = () => {
                 onView={handleViewMatch}
                 userParticipation={userParticipations[match.id]}
                 onJoinRequest={handleJoinRequest}
+                onLeaveRequest={handleLeaveRequest}
                 currentUserId={user?.id}
               />
             </MatchCardErrorBoundary>

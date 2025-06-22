@@ -1131,7 +1131,8 @@ const Profile = () => {
                                match.status === 'cancelled' ? 'Cancelled' : 'In Progress'}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              {new Date(match.created_at).toLocaleDateString()}
+                              {match.start_time ? new Date(match.start_time).toLocaleDateString() :
+                               match.created_at ? new Date(match.created_at).toLocaleDateString() : 'Unknown date'}
                             </Typography>
                           </>
                         }
@@ -1183,7 +1184,8 @@ const Profile = () => {
                                participation.match?.status === 'cancelled' ? 'Cancelled' : 'In Progress'}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              {participation.created_at ? new Date(participation.created_at).toLocaleDateString() : 'Unknown date'}
+                              {participation.match?.start_time ? new Date(participation.match.start_time).toLocaleDateString() :
+                               participation.joined_at ? new Date(participation.joined_at).toLocaleDateString() : 'Unknown date'}
                             </Typography>
                           </>
                         }

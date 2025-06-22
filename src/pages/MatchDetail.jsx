@@ -544,18 +544,50 @@ const MatchDetail = () => {
   // Real-time update handler for match
   const handleMatchUpdate = useCallback((payload) => {
     const oldMatch = match;
-    const newMatch = payload.data;
+    const newMatchData = payload.data;
 
-    setMatch(newMatch);
+    console.log('[MatchDetail] Real-time match update received:', {
+      matchId: matchId,
+      eventType: payload.eventType,
+      hasExistingMatch: !!oldMatch,
+      hasRelationalData: !!(oldMatch?.sport || oldMatch?.location),
+      newData: newMatchData
+    });
+
+    // Preserve relational data from existing match while updating changed fields
+    // This prevents "Unknown Sport Match" issue by maintaining sport, location, and host data
+    if (oldMatch && (oldMatch.sport || oldMatch.location || oldMatch.host)) {
+      const mergedMatch = {
+        ...oldMatch,           // Keep existing data including relationships
+        ...newMatchData,       // Apply updates from real-time payload
+        // Explicitly preserve critical relational data that might be missing from real-time updates
+        sport: oldMatch.sport || newMatchData.sport,
+        location: oldMatch.location || newMatchData.location,
+        host: oldMatch.host || newMatchData.host,
+        participants: oldMatch.participants || newMatchData.participants
+      };
+
+      console.log('[MatchDetail] Merged match data:', {
+        sportName: mergedMatch.sport?.name,
+        locationName: mergedMatch.location?.name,
+        hostName: mergedMatch.host?.full_name
+      });
+
+      setMatch(mergedMatch);
+    } else {
+      // If no existing match data, use new data directly (initial load case)
+      console.log('[MatchDetail] No existing match data, using new data directly');
+      setMatch(newMatchData);
+    }
 
     // Only show notifications for significant changes, not automatic updates
-    if (newMatch.status === 'cancelled' && oldMatch?.status !== 'cancelled') {
+    if (newMatchData.status === 'cancelled' && oldMatch?.status !== 'cancelled') {
       showWarningToast('Match Cancelled', 'This match has been cancelled by the host.');
-    } else if (newMatch.status === 'completed' && oldMatch?.status !== 'completed') {
+    } else if (newMatchData.status === 'completed' && oldMatch?.status !== 'completed') {
       showInfoToast('Match Completed', 'This match has been marked as completed.');
     }
     // Don't show generic "match updated" notifications for minor changes like participant counts
-  }, [match, showInfoToast, showWarningToast]);
+  }, [match, matchId, showInfoToast, showWarningToast]);
   
   // Fetch data on mount
   useEffect(() => {
