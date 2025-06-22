@@ -575,7 +575,8 @@ const NotificationPanel = () => {
     try {
       await participantService.acceptJoinRequest(
         notification.match_id,
-        senderId
+        senderId,
+        user.id
       );
       
       // Mark as read
@@ -620,7 +621,8 @@ const NotificationPanel = () => {
     try {
       await participantService.declineJoinRequest(
         notification.match_id,
-        senderId
+        senderId,
+        user.id
       );
       
       // Mark as read

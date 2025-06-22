@@ -620,7 +620,7 @@ const MatchDetail = () => {
   // Handle accepting a join request
   const handleAcceptRequest = async (participantId, userId) => {
     try {
-      await participantService.acceptJoinRequest(matchId, userId);
+      await participantService.acceptJoinRequest(matchId, userId, user.id);
       showSuccessToast('Request Accepted', 'The participant has been accepted to join the match');
       // Fetch participants again to update the UI
       fetchParticipants();
@@ -633,7 +633,7 @@ const MatchDetail = () => {
   // Handle declining a join request
   const handleDeclineRequest = async (participantId, userId) => {
     try {
-      await participantService.declineJoinRequest(matchId, userId);
+      await participantService.declineJoinRequest(matchId, userId, user.id);
       showSuccessToast('Request Declined', 'The join request has been declined');
       // Fetch participants again to update the UI
       fetchParticipants();
