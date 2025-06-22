@@ -1347,13 +1347,20 @@ export const participantService = {
   // Leave a match
   leaveMatch: async (matchId, userId) => {
     try {
-      // First check if the user is actually in the match
-      const { isParticipant } = await participantService.checkParticipationStatus(matchId, userId);
-      
-      if (!isParticipant) {
+      // First check if the user is actually in the match and get their current status
+      const { data: participantData, error: checkError } = await supabase
+        .from('participants')
+        .select('status')
+        .eq('match_id', matchId)
+        .eq('user_id', userId)
+        .single();
+
+      if (checkError || !participantData) {
         throw new Error('You are not a participant in this match');
       }
-      
+
+      const currentStatus = participantData.status;
+
       // Update participant status to 'left' instead of deleting
       // This keeps participation history for potential analytics
       const { data, error } = await supabase
@@ -1362,10 +1369,20 @@ export const participantService = {
         .eq('match_id', matchId)
         .eq('user_id', userId)
         .select();
-        
+
       if (error) throw error;
-      
-      return { success: true, data, message: 'Successfully left the match' };
+
+      // Return different messages based on previous status
+      let message;
+      if (currentStatus === 'pending') {
+        message = 'Request cancelled successfully';
+      } else if (currentStatus === 'confirmed') {
+        message = 'Successfully left the match';
+      } else {
+        message = 'Status updated successfully';
+      }
+
+      return { success: true, data, message, previousStatus: currentStatus };
     } catch (error) {
       console.error('Error leaving match:', error);
       throw error;

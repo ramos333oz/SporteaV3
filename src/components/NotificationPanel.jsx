@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Popover,
@@ -288,7 +288,7 @@ const NotificationPanel = () => {
   // Parse JSON content for notification data
   const parseNotificationContent = (notification) => {
     if (!notification.content) return null;
-    
+
     try {
       // Try to parse as JSON first
       return JSON.parse(notification.content);
@@ -297,6 +297,60 @@ const NotificationPanel = () => {
       return { message: notification.content };
     }
   };
+
+  // Check if a join request notification is still actionable
+  const isJoinRequestActionable = useCallback(async (notification) => {
+    if (notification.type !== 'match_join_request' || !notification.match_id) {
+      return false;
+    }
+
+    try {
+      const content = parseNotificationContent(notification);
+      const senderId = content?.sender_id;
+
+      if (!senderId) return false;
+
+      // Check current participant status
+      const { data, error } = await supabase
+        .from('participants')
+        .select('status')
+        .eq('match_id', notification.match_id)
+        .eq('user_id', senderId)
+        .single();
+
+      if (error || !data) return false;
+
+      // Only actionable if status is still 'pending'
+      return data.status === 'pending';
+    } catch (error) {
+      console.error('Error checking join request status:', error);
+      return false;
+    }
+  }, []);
+
+  // Enhanced notification processing with actionability check
+  const [actionableNotifications, setActionableNotifications] = useState(new Set());
+
+  // Check actionability for join request notifications
+  useEffect(() => {
+    const checkActionability = async () => {
+      const joinRequestNotifications = notifications.filter(n => n.type === 'match_join_request');
+      const actionableIds = new Set();
+
+      for (const notification of joinRequestNotifications) {
+        const isActionable = await isJoinRequestActionable(notification);
+        if (isActionable) {
+          actionableIds.add(notification.id);
+        }
+      }
+
+      setActionableNotifications(actionableIds);
+    };
+
+    if (notifications.length > 0) {
+      checkActionability();
+    }
+  }, [notifications, isJoinRequestActionable]);
   
   // Handle notification click
   const handleNotificationClick = async (notification) => {
@@ -528,13 +582,20 @@ const NotificationPanel = () => {
       await markAsRead(notification.id);
       
       // Update local notification list
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => n.id === notification.id ? { ...n, is_read: true, processed: true } : n)
       );
-      
+
+      // Remove from actionable notifications
+      setActionableNotifications(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(notification.id);
+        return newSet;
+      });
+
       // Show success toast
       showInfoToast('Success', 'Join request accepted');
-      
+
       // Update unread count
       updateUnreadCount();
     } catch (error) {
@@ -566,13 +627,20 @@ const NotificationPanel = () => {
       await markAsRead(notification.id);
       
       // Update local notification list
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => n.id === notification.id ? { ...n, is_read: true, processed: true } : n)
       );
-      
+
+      // Remove from actionable notifications
+      setActionableNotifications(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(notification.id);
+        return newSet;
+      });
+
       // Show success toast
       showInfoToast('Success', 'Join request declined');
-      
+
       // Update unread count
       updateUnreadCount();
     } catch (error) {
@@ -742,7 +810,7 @@ const NotificationPanel = () => {
                         </Typography>
                         
                         {/* Friend request action buttons */}
-                        {notification.type === 'friend_request' && !notification.is_read && !notification.processed && (
+                        {notification.type === 'friend_request' && !notification.processed && (
                           <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
                             <Button
                               size="small"
@@ -770,25 +838,27 @@ const NotificationPanel = () => {
                             </Button>
                           </Box>
                         )}
-                        
+
                         {/* Match join request action buttons */}
-                        {notification.type === 'match_join_request' && !notification.is_read && !notification.processed && (
+                        {notification.type === 'match_join_request' && actionableNotifications.has(notification.id) && (
                           <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
                             <Button
                               size="small"
                               variant="contained"
                               color="success"
                               onClick={(e) => handleAcceptJoinRequest(notification, e)}
+                              disabled={actionLoading === notification.id}
                             >
-                              Accept
+                              {actionLoading === notification.id ? <CircularProgress size={20} /> : 'Accept'}
                             </Button>
                             <Button
                               size="small"
                               variant="outlined"
                               color="error"
                               onClick={(e) => handleDeclineJoinRequest(notification, e)}
+                              disabled={actionLoading === notification.id}
                             >
-                              Decline
+                              {actionLoading === notification.id ? <CircularProgress size={20} /> : 'Decline'}
                             </Button>
                           </Box>
                         )}

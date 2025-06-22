@@ -69,10 +69,10 @@ const MatchStatusIndicator = ({ match }) => {
     const endTime = match?.end_time ? new Date(match.end_time) : null;
     
     if (!startTime || !endTime) {
-      return { 
-        text: 'Unknown', 
-        color: 'default', 
-        icon: <HourglassEmpty />,
+      return {
+        text: 'Unknown',
+        color: 'default',
+        icon: <PendingIcon />,
         progress: 0
       };
     }
@@ -162,10 +162,10 @@ const MatchStatusIndicator = ({ match }) => {
     }
     
     // Default case
-    return { 
-      text: 'Unknown Status', 
-      color: 'default', 
-      icon: <HourglassEmpty />,
+    return {
+      text: 'Unknown Status',
+      color: 'default',
+      icon: <PendingIcon />,
       progress: 0
     };
   }, [match]);
@@ -543,15 +543,19 @@ const MatchDetail = () => {
   
   // Real-time update handler for match
   const handleMatchUpdate = useCallback((payload) => {
-    setMatch(payload.data);
-    
-    // Show appropriate toast based on update type
-    if (payload.data.status === 'cancelled') {
+    const oldMatch = match;
+    const newMatch = payload.data;
+
+    setMatch(newMatch);
+
+    // Only show notifications for significant changes, not automatic updates
+    if (newMatch.status === 'cancelled' && oldMatch?.status !== 'cancelled') {
       showWarningToast('Match Cancelled', 'This match has been cancelled by the host.');
-    } else if (payload.eventType === 'UPDATE') {
-      showInfoToast('Match Updated', 'Match details have been updated.');
+    } else if (newMatch.status === 'completed' && oldMatch?.status !== 'completed') {
+      showInfoToast('Match Completed', 'This match has been marked as completed.');
     }
-  }, [showInfoToast, showWarningToast]);
+    // Don't show generic "match updated" notifications for minor changes like participant counts
+  }, [match, showInfoToast, showWarningToast]);
   
   // Fetch data on mount
   useEffect(() => {
