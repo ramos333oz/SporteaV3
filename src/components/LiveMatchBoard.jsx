@@ -33,7 +33,7 @@ import {
   Visibility,
   Group
 } from '@mui/icons-material';
-import { useRealtime } from '../hooks/useRealtime';
+import { useOptimizedRealtime } from '../hooks/useOptimizedRealtime';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -226,7 +226,11 @@ const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoin
     '0ec51cfc-f644-4057-99d8-d2c29c1b7dd0': '/images/venues/squash-court.jpg', // Squash
   };
 
-  const venueImage = defaultVenueImages[match.sport_id] || '/images/venues/default-field.jpg';
+  // Prioritize actual venue image from location, fallback to sport-based default
+  const venueImage = match.location_image_url ||
+                     (match.locations?.image_url) ||
+                     defaultVenueImages[match.sport_id] ||
+                     '/images/venues/default-field.jpg';
 
   // Calculate spots remaining
   const spotsRemaining = match.max_participants - (match.current_participants || 0);
@@ -281,6 +285,24 @@ const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoin
           )}
         </Box>
 
+        {/* Location prominently displayed at top with bigger fonts */}
+        <Box sx={{ mb: 2 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 600,
+              color: 'text.primary',
+              fontSize: '1.1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}
+          >
+            <LocationOn sx={{ color: 'primary.main', fontSize: '1.3rem' }} />
+            {match.location_name || 'Location TBA'}
+          </Typography>
+        </Box>
+
         {/* Key Information - Following recommendation design with chips */}
         <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
           <Chip
@@ -292,17 +314,6 @@ const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoin
               borderColor: 'primary.main',
               color: 'primary.main',
               '& .MuiChip-icon': { color: 'primary.main' }
-            }}
-          />
-          <Chip
-            icon={<LocationOn />}
-            label={match.location_name || 'Location TBA'}
-            variant="outlined"
-            size="small"
-            sx={{
-              borderColor: 'secondary.main',
-              color: 'secondary.main',
-              '& .MuiChip-icon': { color: 'secondary.main' }
             }}
           />
           <Chip
@@ -385,7 +396,13 @@ const LiveMatchBoard = () => {
   const [userParticipations, setUserParticipations] = useState({});
   const [joinDialog, setJoinDialog] = useState({ open: false, match: null });
   const [joinLoading, setJoinLoading] = useState(false);
-  const { connectionState, subscribeToAllMatches, subscribeToUserMatches, unsubscribe } = useRealtime();
+  const {
+    connectionState,
+    subscribeToMatchUpdates,
+    subscribeToParticipantUpdates,
+    subscribeToUserParticipation,
+    unsubscribe
+  } = useOptimizedRealtime();
   const { showSuccessToast, showErrorToast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -407,7 +424,7 @@ const LiveMatchBoard = () => {
           max_participants,
           status,
           host_id,
-          locations(id, name),
+          locations(id, name, image_url),
           sports(id, name)
         `)
         .not('status', 'eq', 'cancelled')
@@ -491,126 +508,119 @@ const LiveMatchBoard = () => {
   useEffect(() => {
     // Subscribe even if not connected yet - the useRealtime hook will handle reconnection
     console.log('Setting up real-time subscriptions for matches, connection state:', connectionState);
-    
-    // Force a refresh of the matches data every 30 seconds as a fallback
-    const refreshInterval = setInterval(() => {
-      console.log('Performing scheduled refresh of matches data');
-      fetchMatches(); // This will now be in scope
-    }, 30000); // 30 second refresh
+
+    // Remove the 30-second refresh interval to reduce server load
+    // Real-time updates should handle data freshness
     
     // Initial fetch
     fetchMatches();
 
-    const handleUpdate = (update) => {
-      if (update.type === 'match_update') {
-        const { data: newMatch, eventType } = update;
-        
-        // Handle different event types
-        if (eventType === 'INSERT') {
-          setMatches(prevMatches => [newMatch, ...prevMatches]);
-          markAsRecentlyUpdated(newMatch.id);
-          showSuccessToast(
-            'New Match Created', 
-            `${newMatch.title} at ${newMatch.location_name || 'Unknown location'}`
-          );
-        } else if (eventType === 'UPDATE') {
-          setMatches(prevMatches => 
-            prevMatches.map(match => 
-              match.id === newMatch.id ? { ...match, ...newMatch } : match
-            )
-          );
-          markAsRecentlyUpdated(newMatch.id);
-        } else if (eventType === 'DELETE') {
-          setMatches(prevMatches => 
-            prevMatches.filter(match => match.id !== newMatch.id)
-          );
-        }
-      } else if (update.type === 'participant_update') {
-        // Update participant counts for the related match
-        const { data: participant } = update;
-        const matchId = participant.match_id;
+    // Handle match updates (optimized)
+    const handleMatchUpdate = (update) => {
+      console.log('[OptimizedRealtime] Match update:', update.eventType, update.data?.id);
+      const { data: newMatch, eventType } = update;
 
-        console.log('[Real-time] Participant update detected for match:', matchId, 'participant:', participant);
-
-        // Refresh the complete match data to prevent "Unknown" data corruption
-        // This ensures sport, location, and all other match data remains intact
-        fetchSingleMatchWithDetails(matchId);
+      // Handle different event types
+      if (eventType === 'INSERT') {
+        setMatches(prevMatches => [newMatch, ...prevMatches]);
+        markAsRecentlyUpdated(newMatch.id);
+        showSuccessToast(
+          'New Match Created',
+          `${newMatch.title} at ${newMatch.location_name || 'Unknown location'}`
+        );
+      } else if (eventType === 'UPDATE') {
+        setMatches(prevMatches =>
+          prevMatches.map(match =>
+            match.id === newMatch.id ? { ...match, ...newMatch } : match
+          )
+        );
+        markAsRecentlyUpdated(newMatch.id);
+      } else if (eventType === 'DELETE') {
+        setMatches(prevMatches =>
+          prevMatches.filter(match => match.id !== newMatch.id)
+        );
       }
     };
 
-    // Subscribe to all match updates with safety check
-    let subscriptionId;
+    // Handle participant updates (optimized)
+    const handleParticipantUpdate = (update) => {
+      console.log('[OptimizedRealtime] Participant update:', update.eventType, update.data);
+      const { data: participant } = update;
+      const matchId = participant.match_id;
+
+      // Refresh the complete match data to prevent "Unknown" data corruption
+      // This ensures sport, location, and all other match data remains intact
+      fetchSingleMatchWithDetails(matchId);
+    };
+
+    // Subscribe to optimized channels
+    let matchSubscriptionId, participantSubscriptionId;
     try {
-      if (typeof subscribeToAllMatches === 'function') {
-        subscriptionId = subscribeToAllMatches(handleUpdate);
+      if (typeof subscribeToMatchUpdates === 'function') {
+        matchSubscriptionId = subscribeToMatchUpdates(handleMatchUpdate);
+      }
+      if (typeof subscribeToParticipantUpdates === 'function') {
+        participantSubscriptionId = subscribeToParticipantUpdates(handleParticipantUpdate);
       }
     } catch (error) {
-      console.error('Error subscribing to matches:', error);
+      console.error('[OptimizedRealtime] Error subscribing to updates:', error);
     }
 
     // Cleanup function
     return () => {
-      // Clear the refresh interval
-      clearInterval(refreshInterval);
-      
-      // Manually unsubscribe just to be safe
-      if (subscriptionId && typeof unsubscribe === 'function') {
+      // Manually unsubscribe from both subscriptions
+      if (matchSubscriptionId && typeof unsubscribe === 'function') {
         try {
-          unsubscribe(subscriptionId);
+          unsubscribe(matchSubscriptionId);
         } catch (error) {
-          console.error('Error unsubscribing:', error);
+          console.error('Error unsubscribing from match updates:', error);
         }
       }
-      // The automatic cleanup by useRealtime hook serves as a backup
+      if (participantSubscriptionId && typeof unsubscribe === 'function') {
+        try {
+          unsubscribe(participantSubscriptionId);
+        } catch (error) {
+          console.error('Error unsubscribing from participant updates:', error);
+        }
+      }
     };
-  }, [connectionState.isConnected, subscribeToAllMatches]);
+  }, [connectionState.isConnected, subscribeToMatchUpdates, subscribeToParticipantUpdates]);
 
-  // Subscribe to user participation updates
+  // Subscribe to user participation updates (optimized)
   useEffect(() => {
     if (!user || !connectionState.isConnected) return;
 
-    console.log('Setting up user participation subscription for user:', user.id);
+    console.log('[OptimizedRealtime] Setting up user participation subscription for user:', user.id);
 
     const handleUserParticipationUpdate = (update) => {
-      if (update.type === 'participation_update') {
-        const { data: participation, eventType } = update;
-        console.log('[Real-time] User participation update:', eventType, participation);
+      const { data: participation, eventType } = update;
 
-        if (eventType === 'INSERT' || eventType === 'UPDATE') {
-          // Update user participation state
-          console.log('[Real-time] Updating participation for match:', participation.match_id, 'status:', participation.status);
-          setUserParticipations(prev => {
-            const updated = {
-              ...prev,
-              [participation.match_id]: participation
-            };
-            console.log('[Real-time] Updated participation map:', updated);
-            return updated;
-          });
-        } else if (eventType === 'DELETE') {
-          // Remove participation
-          console.log('[Real-time] Removing participation for match:', participation.match_id);
-          setUserParticipations(prev => {
-            const updated = { ...prev };
-            delete updated[participation.match_id];
-            console.log('[Real-time] Updated participation map after delete:', updated);
-            return updated;
-          });
-        }
-
-        // Force refresh of user participations to ensure consistency
-        console.log('[Real-time] Forcing refresh of user participations after update');
-        setTimeout(() => fetchUserParticipations(), 500);
+      if (eventType === 'INSERT' || eventType === 'UPDATE') {
+        // Update user participation state
+        setUserParticipations(prev => ({
+          ...prev,
+          [participation.match_id]: participation
+        }));
+      } else if (eventType === 'DELETE') {
+        // Remove participation
+        setUserParticipations(prev => {
+          const updated = { ...prev };
+          delete updated[participation.match_id];
+          return updated;
+        });
       }
+
+      // Force refresh of user participations to ensure consistency
+      setTimeout(() => fetchUserParticipations(), 500);
     };
 
     let userSubscriptionId;
     try {
-      if (typeof subscribeToUserMatches === 'function') {
-        userSubscriptionId = subscribeToUserMatches(user.id, handleUserParticipationUpdate);
+      if (typeof subscribeToUserParticipation === 'function') {
+        userSubscriptionId = subscribeToUserParticipation(handleUserParticipationUpdate);
       }
     } catch (error) {
-      console.error('Error subscribing to user matches:', error);
+      console.error('[OptimizedRealtime] Error subscribing to user participation:', error);
     }
 
     return () => {
@@ -618,61 +628,30 @@ const LiveMatchBoard = () => {
         try {
           unsubscribe(userSubscriptionId);
         } catch (error) {
-          console.error('Error unsubscribing from user matches:', error);
+          console.error('[OptimizedRealtime] Error unsubscribing from user participation:', error);
         }
       }
     };
-  }, [user, connectionState.isConnected, subscribeToUserMatches, unsubscribe]);
+  }, [user, connectionState.isConnected, subscribeToUserParticipation, unsubscribe]);
 
   // Initial fetch of user participations when component mounts
   useEffect(() => {
     if (user && matches.length > 0) {
-      console.log('[LiveMatchBoard] Force fetching user participations on mount/update');
-      fetchUserParticipations(true);
+      fetchUserParticipations();
     }
   }, [user, matches.length]); // Run when user or matches.length changes
 
   // Additional effect to ensure participations are loaded
   useEffect(() => {
     if (user && matches.length > 0 && Object.keys(userParticipations).length === 0) {
-      console.log('[LiveMatchBoard] No participations found, retrying fetch...');
       const retryTimer = setTimeout(() => {
-        fetchUserParticipations(true);
+        fetchUserParticipations();
       }, 1000);
       return () => clearTimeout(retryTimer);
     }
   }, [user, matches.length, userParticipations]);
 
-  // Helper function to fetch updated participant count (kept for backward compatibility)
-  const fetchMatchParticipantCount = async (matchId) => {
-    if (!matchId) {
-      console.error('Invalid match ID provided to fetchMatchParticipantCount');
-      return;
-    }
-    try {
-      // Get the current participant count
-      const { data, error } = await supabase
-        .from('participants')
-        .select('id')
-        .eq('match_id', matchId)
-        .eq('status', 'confirmed');
 
-      if (error) throw error;
-
-      // Update the match with the new participant count
-      setMatches(prevMatches =>
-        prevMatches.map(match =>
-          match.id === matchId
-            ? { ...match, current_participants: data.length }
-            : match
-        )
-      );
-
-      markAsRecentlyUpdated(matchId);
-    } catch (error) {
-      console.error('Error fetching participant count:', error);
-    }
-  };
 
   // Helper function to fetch complete match details with relationships
   const fetchSingleMatchWithDetails = async (matchId) => {
@@ -682,7 +661,6 @@ const LiveMatchBoard = () => {
     }
 
     try {
-      console.log('[fetchSingleMatchWithDetails] Refreshing complete match data for:', matchId);
 
       // Fetch the complete match data with all relationships
       const { data: matchData, error: matchError } = await supabase
@@ -695,7 +673,7 @@ const LiveMatchBoard = () => {
           max_participants,
           status,
           host_id,
-          locations(id, name),
+          locations(id, name, image_url),
           sports(id, name)
         `)
         .eq('id', matchId)
@@ -731,8 +709,6 @@ const LiveMatchBoard = () => {
         sport_id: matchData.sports?.id,
         current_participants: participantData?.length || 0
       };
-
-      console.log('[fetchSingleMatchWithDetails] Refreshed match data:', transformedMatch);
 
       // Update the specific match in the state
       setMatches(prevMatches =>
@@ -841,15 +817,13 @@ const LiveMatchBoard = () => {
   };
 
   // Fetch user participations for all matches
-  const fetchUserParticipations = async (forceRefresh = false) => {
+  const fetchUserParticipations = async () => {
     if (!user || matches.length === 0) {
-      console.log('[fetchUserParticipations] Skipping - no user or matches:', { user: !!user, matchCount: matches.length });
       return;
     }
 
     try {
       const matchIds = matches.map(m => m.id);
-      console.log('[fetchUserParticipations] Fetching participations for user:', user.id, 'matches:', matchIds, 'forceRefresh:', forceRefresh);
 
       const { data, error } = await supabase
         .from('participants')
@@ -862,28 +836,16 @@ const LiveMatchBoard = () => {
         throw error;
       }
 
-      console.log('[fetchUserParticipations] Raw data from database:', data);
-      console.log('[fetchUserParticipations] Data length:', data?.length || 0);
-
       const participationMap = {};
       if (data && data.length > 0) {
         data.forEach(p => {
           participationMap[p.match_id] = p;
-          console.log('[fetchUserParticipations] Adding to map:', p.match_id, '→', p.status);
         });
-      } else {
-        console.log('[fetchUserParticipations] No participation data found for user');
       }
 
-      console.log('[fetchUserParticipations] Final participation map:', participationMap);
       setUserParticipations(participationMap);
-
-      // If we found data, log success
-      if (Object.keys(participationMap).length > 0) {
-        console.log('[fetchUserParticipations] ✅ Successfully loaded', Object.keys(participationMap).length, 'participations');
-      }
     } catch (error) {
-      console.error('[fetchUserParticipations] ❌ Error fetching user participations:', error);
+      console.error('[fetchUserParticipations] Error fetching user participations:', error);
       // Don't clear existing participations on error
     }
   };
@@ -894,21 +856,6 @@ const LiveMatchBoard = () => {
         <Typography variant="h5" component="h2">
           Live Matches
         </Typography>
-        {connectionState && connectionState.isConnected ? (
-          <Chip 
-            label="Live Updates Active" 
-            color="success" 
-            size="small" 
-            sx={{ fontSize: '0.75rem' }}
-          />
-        ) : (
-          <Chip 
-            label="Live Updates Unavailable" 
-            color="error" 
-            size="small" 
-            sx={{ fontSize: '0.75rem' }}
-          />
-        )}
       </Box>
       
       <Divider sx={{ mb: 2 }} />

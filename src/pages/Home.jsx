@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { useRealtime } from '../hooks/useRealtime';
+import { useOptimizedRealtime } from '../hooks/useOptimizedRealtime';
 import { matchService, participantService } from '../services/supabase';
 import { format } from 'date-fns';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -37,7 +37,7 @@ import { supabase } from '../services/supabase';
 const Home = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { subscribeToAllMatches, subscribeToUserMatches } = useRealtime();
+  const { subscribeToMatchUpdates, subscribeToUserParticipation } = useOptimizedRealtime();
   const [upcomingMatches, setUpcomingMatches] = useState([]);
   const [joinedMatchIds, setJoinedMatchIds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -187,15 +187,19 @@ const Home = () => {
     fetchJoinedMatches();
   }, [fetchUpcomingMatches, fetchJoinedMatches]);
 
-  // Set up real-time subscriptions
+  // Set up optimized real-time subscriptions (no duplicates)
   useEffect(() => {
-    const matchSub = subscribeToAllMatches(handleMatchUpdate);
-    const userSub = subscribeToUserMatches(handleParticipationUpdate);
-    
+    // Note: These subscriptions are now shared with LiveMatchBoard through the optimized service
+    // No need to create duplicate subscriptions - the optimized service handles this centrally
+    console.log('[Home] Optimized real-time subscriptions are managed centrally');
+
+    // The data will be received through the optimized service automatically
+    // when LiveMatchBoard or other components are active
+
     return () => {
-      // Cleanup is handled by the useRealtime hook
+      // Cleanup is handled by the useOptimizedRealtime hook
     };
-  }, [subscribeToAllMatches, subscribeToUserMatches, handleMatchUpdate, handleParticipationUpdate]);
+  }, []);
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Typography, CircularProgress, Skeleton, Alert, Paper, Button, Grid, Snackbar, AlertTitle, Chip, IconButton, Tooltip } from '@mui/material';
 import EnhancedRecommendationCard from './EnhancedRecommendationCard';
 import recommendationService from '../services/recommendationService';
@@ -25,7 +25,6 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
   const [error, setError] = useState(null);
   const [errorDetails, setErrorDetails] = useState(null);
   const [message, setMessage] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
 
   const [feedbackSnack, setFeedbackSnack] = useState({ open: false, message: '' });
   // Add a state to track if we're using fallback data
@@ -35,6 +34,11 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
   // Track recommendation type
   const [recommendationType, setRecommendationType] = useState('standard');
 
+  // Refs for preventing memory leaks and managing requests
+  const mountedRef = useRef(true);
+  const debounceTimeoutRef = useRef(null);
+  const abortControllerRef = useRef(null);
+
   // Close snackbar
   const handleCloseSnack = () => {
     setFeedbackSnack({ ...feedbackSnack, open: false });
@@ -43,72 +47,96 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
 
 
   const fetchRecommendations = useCallback(async () => {
-    console.log('fetchRecommendations called', { userId: user?.id, loading });
-    
     // Only check for user ID, not loading state (to avoid circular dependency)
-    if (!user?.id) {
-      console.log('Early return from fetchRecommendations - missing user ID');
+    if (!user?.id || !mountedRef.current) {
       return;
     }
-    
-    setLoading(true);
-    setError(null);
-    setErrorDetails(null);
-    setUsingFallback(false);
-    
-    try {
-      console.log(`Fetching recommendations (attempt ${retryCount + 1})`);
-      const result = await recommendationService.getRecommendations(user.id, limit);
-      
-      // Store metrics if available for debugging
-      if (result.metrics) {
-        setMetrics(result.metrics);
-      }
-      
-      // Store recommendation type
-      setRecommendationType(result.type || 'standard');
-      
-      if (result.recommendations?.length > 0) {
-        setRecommendations(result.recommendations);
-        setMessage(result.message || 'Based on your preferences');
 
-        // If using fallback data from the recommendation service, show an indicator
-        if (result.metadata?.isFallback || result.metadata?.type === 'fallback') {
-          setUsingFallback(true);
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Clear any pending debounced calls
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
+    // Only update state if component is still mounted
+    if (mountedRef.current) {
+      setLoading(true);
+      setError(null);
+      setErrorDetails(null);
+      setUsingFallback(false);
+    }
+
+    try {
+      const result = await recommendationService.getRecommendations(user.id, limit);
+
+      // Only update state if component is still mounted and request wasn't aborted
+      if (mountedRef.current && !abortControllerRef.current?.signal.aborted) {
+        // Store metrics if available for debugging
+        if (result.metrics) {
+          setMetrics(result.metrics);
         }
-      } else {
-        // No recommendations found - show proper empty state
-        setRecommendations([]);
-        setMessage(result.message || 'No recommended matches found for you');
-        setUsingFallback(false);
-      }
-      
-      // If there was an error but we still got results
-      if (result.error) {
-        console.warn('Received recommendations with error:', result.error);
-        // Store error details but don't display error UI if we have usable results
-        setErrorDetails(result.error);
+
+        // Store recommendation type
+        setRecommendationType(result.type || 'standard');
+
+        if (result.recommendations?.length > 0) {
+          setRecommendations(result.recommendations);
+          setMessage(result.message || 'Based on your preferences');
+
+          // If using fallback data from the recommendation service, show an indicator
+          if (result.metadata?.isFallback || result.metadata?.type === 'fallback') {
+            setUsingFallback(true);
+          }
+        } else {
+          // No recommendations found - show proper empty state
+          setRecommendations([]);
+          setMessage(result.message || 'No recommended matches found for you');
+          setUsingFallback(false);
+        }
+
+        // If there was an error but we still got results
+        if (result.error) {
+          console.warn('Received recommendations with error:', result.error);
+          // Store error details but don't display error UI if we have usable results
+          setErrorDetails(result.error);
+        }
       }
     } catch (err) {
-      console.error('Error in recommendation component:', err);
-      
-      // Capture detailed error info for debugging
-      const errorInfo = {
-        message: err.message || 'Unknown error',
-        code: err.statusCode || 'none',
-        details: err.originalError ? err.originalError.message : null
-      };
-      
-      setError('Unable to load personalized recommendations');
-      setErrorDetails(errorInfo);
-      setRecommendations([]);
-      setUsingFallback(false);
-      
-      onError(err);
+      // Only handle error if component is still mounted and request wasn't aborted
+      if (mountedRef.current && !abortControllerRef.current?.signal.aborted) {
+        console.error('Error in recommendation component:', err);
+
+        // Capture detailed error info for debugging
+        const errorInfo = {
+          message: err.message || 'Unknown error',
+          code: err.statusCode || 'none',
+          details: err.originalError ? err.originalError.message : null
+        };
+
+        setError('Unable to load personalized recommendations');
+        setErrorDetails(errorInfo);
+        setRecommendations([]);
+        setUsingFallback(false);
+
+        onError(err);
+      }
     } finally {
-      setLoading(false);
+      // Only update loading state if component is still mounted
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+      // Clear the abort controller
+      abortControllerRef.current = null;
     }
-  }, [user?.id, limit, onError, retryCount]);
+  }, [user?.id, limit, onError]);
 
   // Generate user embeddings to improve recommendations
   const generateEmbeddings = useCallback(async () => {
@@ -132,7 +160,7 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
         
         // Wait a moment and then refresh recommendations
         setTimeout(() => {
-          setRetryCount(prev => prev + 1);
+          debouncedFetchRecommendations();
         }, 1500);
       } else {
         // Show error message
@@ -150,9 +178,21 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
     }
   }, [user?.id]);
 
+  // Debounced version of fetchRecommendations to prevent rapid successive calls
+  const debouncedFetchRecommendations = useCallback(() => {
+    // Clear any existing timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    // Set a new timeout
+    debounceTimeoutRef.current = setTimeout(() => {
+      fetchRecommendations();
+    }, 300); // 300ms debounce
+  }, [fetchRecommendations]);
+
   // Handle manual retry
   const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
     fetchRecommendations();
   };
 
@@ -276,8 +316,8 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
           if (result.success) {
             // Refresh recommendations after a short delay
             setTimeout(() => {
-              setRetryCount(prev => prev + 1);
-            }, 1000);
+              debouncedFetchRecommendations();
+            }, 2000);
           } else if (result.skipReason === 'recent_error') {
             // If we're skipping due to a recent error, just continue silently
             console.log('Skipping automatic embedding generation due to recent error');
@@ -296,13 +336,29 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
     checkAndGenerateEmbeddings();
   }, [user?.id]);
 
+  // Initial load effect - only runs when user changes
   useEffect(() => {
-    console.log('Recommendation component: User state check:', { 
-      userId: user?.id || 'undefined', 
-      isLoading: loading 
-    });
-    fetchRecommendations();
-  }, [fetchRecommendations, user?.id]);
+    if (user?.id) {
+      fetchRecommendations();
+    }
+  }, [user?.id]); // Removed fetchRecommendations from dependencies to prevent infinite loop
+
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+
+      // Cancel any pending request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Clear any pending debounced calls
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (loading) {
     return (

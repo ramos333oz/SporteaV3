@@ -26,6 +26,7 @@ import SportsRugbyIcon from '@mui/icons-material/SportsRugby';
 import SportsHockeyIcon from '@mui/icons-material/SportsHockey';
 import ErrorIcon from '@mui/icons-material/Error';
 import { useAuth } from '../../hooks/useAuth';
+import VenueImage from '../../components/VenueImage';
 
 const LocationSelection = ({ matchData, onUpdateMatchData }) => {
   const { supabase } = useAuth();
@@ -346,29 +347,16 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
                   <CardContent>
                     <Grid container spacing={2}>
                       <Grid item xs={12} sm={4}>
-                        {/* Venue Image */}
-                        <Box 
-                          sx={{ 
-                            width: '100%', 
-                            height: '150px', 
-                            borderRadius: 1, 
-                            overflow: 'hidden',
-                            mb: 1,
-                            bgcolor: 'action.hover'
-                          }}
-                        >
-                          <img 
-                            src={location.raw.image_url || `https://placehold.co/500x300/e0e0e0/7a7a7a?text=${encodeURIComponent(location.name)}`} 
-                            alt={location.name}
-                            style={{ 
-                              width: '100%', 
-                              height: '100%', 
-                              objectFit: 'cover',
-                              objectPosition: 'center'
-                            }}
-                            loading="lazy"
-                          />
-                        </Box>
+                        {/* Venue Image with smooth transitions */}
+                        <VenueImage
+                          src={location.raw.image_url}
+                          alt={location.name}
+                          width="100%"
+                          height="150px"
+                          borderRadius={1}
+                          fallbackText={location.name}
+                          sx={{ mb: 1 }}
+                        />
                         
                         {/* Sport types */}
                         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>

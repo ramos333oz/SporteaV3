@@ -20,7 +20,7 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import { useRealtime } from '../hooks/useRealtime';
+import { useOptimizedRealtime } from '../hooks/useOptimizedRealtime';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, friendshipService } from '../services/supabase';
 import { participantService } from '../services/supabase';
@@ -38,7 +38,7 @@ const NotificationPanel = () => {
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [actionLoading, setActionLoading] = useState(null);
-  const { connectionState, subscribeToUserNotifications } = useRealtime();
+  const { connectionState, subscribeToUserNotifications } = useOptimizedRealtime();
   const { user } = useAuth();
   const { showInfoToast, showSuccessToast, showErrorToast } = useToast();
   const navigate = useNavigate();
@@ -152,13 +152,12 @@ const NotificationPanel = () => {
     }
 
     const handleNotification = (update) => {
-      console.log('[NotificationPanel] Received realtime update:', update);
-      
-      if (update.type === 'notification') {
-        const { data, eventType } = update;
-        console.log(`[NotificationPanel] Processing notification: ${eventType}`, data);
-        
-        if (eventType === 'INSERT') {
+      console.log('[NotificationPanel] Received optimized realtime update:', update);
+
+      const { data, eventType } = update;
+      console.log(`[NotificationPanel] Processing notification: ${eventType}`, data);
+
+      if (eventType === 'INSERT') {
           // Add new notification to the top of the list
           setNotifications(prev => [data, ...prev]);
           setUnreadCount(prev => {
@@ -191,7 +190,6 @@ const NotificationPanel = () => {
           updateUnreadCount();
           console.log(`[NotificationPanel] Removed notification: ${data.id}`);
         }
-      }
     };
     
     // Subscribe to notifications
