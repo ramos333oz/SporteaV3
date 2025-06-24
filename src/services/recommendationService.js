@@ -5,7 +5,7 @@ import { supabase } from './supabase';
  */
 
 // Configuration
-const DEBUG_MODE = true;
+const DEBUG_MODE = process.env.NODE_ENV !== 'production'; // Only log in development
 const LOG_PREFIX = '[Sportea Recommendation Service]';
 const USE_COMBINED_RECOMMENDATIONS = true; // Use the new combined system (Direct + Collaborative)
 const USE_DIRECT_PREFERENCE_MATCHING = true;

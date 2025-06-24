@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="1600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="1600" fill="#f8f9fa"/>
+  
+  <!-- Title -->
+  <text x="600" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#2c3e50">
+    Recommendation System Rebuild Plan
+  </text>
+  
+  <!-- Phase 1: Assessment and Cleanup -->
+  <rect x="100" y="100" width="1000" height="300" rx="10" fill="#e3f2fd" stroke="#1976d2" stroke-width="2"/>
+  <text x="600" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#1976d2">
+    Phase 1: Assessment and Cleanup
+  </text>
+  
+  <!-- Current System Analysis -->
+  <rect x="130" y="150" width="450" height="220" rx="5" fill="#ffffff" stroke="#90caf9" stroke-width="1"/>
+  <text x="355" y="170" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1976d2">
+    Current System Analysis
+  </text>
+  <text x="140" y="195" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Multiple recommendation approaches
+  </text>
+  <text x="140" y="215" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Vector-based embeddings (pgvector)
+  </text>
+  <text x="140" y="235" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Direct preference matching
+  </text>
+  <text x="140" y="255" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Combined recommendations
+  </text>
+  <text x="140" y="275" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Key files: recommendationService.js, RecommendationCard.jsx
+  </text>
+  <text x="140" y="295" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Edge functions: direct-preference-v2, combined-recommendations
+  </text>
+  <text x="140" y="315" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Database: Vector columns, HNSW indexes
+  </text>
+  
+  <!-- Cleanup Plan -->
+  <rect x="620" y="150" width="450" height="220" rx="5" fill="#ffffff" stroke="#90caf9" stroke-width="1"/>
+  <text x="845" y="170" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1976d2">
+    Cleanup Plan
+  </text>
+  <text x="630" y="195" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Frontend: Remove recommendationService.js
+  </text>
+  <text x="630" y="215" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Frontend: Keep but modify UI components
+  </text>
+  <text x="630" y="235" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Supabase: Delete edge functions
+  </text>
+  <text x="630" y="255" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Supabase: Execute rollback migration script
+  </text>
+  <text x="630" y="275" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Supabase: Remove vector extensions if not used elsewhere
+  </text>
+  <text x="630" y="295" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Backup important data before deletion
+  </text>
+  <text x="630" y="315" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Document removed components for reference
+  </text>
+  
+  <!-- Phase 2: New Recommendation System Design -->
+  <rect x="100" y="430" width="1000" height="700" rx="10" fill="#e8f5e9" stroke="#4caf50" stroke-width="2"/>
+  <text x="600" y="460" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#4caf50">
+    Phase 2: New Recommendation System Design
+  </text>
+  
+  <!-- Direct Preferences Matching -->
+  <rect x="130" y="490" width="940" height="200" rx="5" fill="#ffffff" stroke="#a5d6a7" stroke-width="1"/>
+  <text x="600" y="510" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#4caf50">
+    1. Direct Preferences Matching (60%)
+  </text>
+  
+  <rect x="150" y="530" width="280" height="140" rx="5" fill="#f1f8e9" stroke="#c5e1a5" stroke-width="1"/>
+  <text x="290" y="550" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#558b2f">
+    User Preferences Data
+  </text>
+  <text x="160" y="570" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • available_days, available_hours
+  </text>
+  <text x="160" y="585" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • preferred_facilities, home_location
+  </text>
+  <text x="160" y="600" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • play_style (casual/competitive)
+  </text>
+  <text x="160" y="615" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • sport_preferences with skill levels
+  </text>
+  <text x="160" y="630" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • gender, age, duration_preference
+  </text>
+  <text x="160" y="645" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • From ProfilePreferences.jsx, Profile.jsx
+  </text>
+  
+  <rect x="450" y="530" width="280" height="140" rx="5" fill="#f1f8e9" stroke="#c5e1a5" stroke-width="1"/>
+  <text x="590" y="550" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#558b2f">
+    Matching Algorithm
+  </text>
+  <text x="460" y="570" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Sports Matching (30% of total)
+  </text>
+  <text x="460" y="585" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Facility/Location Matching (12%)
+  </text>
+  <text x="460" y="600" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Availability Matching (9%)
+  </text>
+  <text x="460" y="615" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Play Style Matching (9%)
+  </text>
+  <text x="460" y="630" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Direct comparison between preferences
+  </text>
+  <text x="460" y="645" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Normalized scores for each category
+  </text>
+  
+  <rect x="750" y="530" width="300" height="140" rx="5" fill="#f1f8e9" stroke="#c5e1a5" stroke-width="1"/>
+  <text x="900" y="550" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#558b2f">
+    Database Schema
+  </text>
+  <text x="760" y="570" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • user_preferences table
+  </text>
+  <text x="760" y="585" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Normalized preference structure
+  </text>
+  <text x="760" y="600" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Indexed for fast querying
+  </text>
+  <text x="760" y="615" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Linked to user profiles
+  </text>
+  <text x="760" y="630" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Versioned for preference history
+  </text>
+  <text x="760" y="645" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Separate from match characteristics
+  </text>
+  
+  <!-- Collaborative Filtering -->
+  <rect x="130" y="710" width="940" height="200" rx="5" fill="#ffffff" stroke="#a5d6a7" stroke-width="1"/>
+  <text x="600" y="730" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#4caf50">
+    2. Collaborative Filtering (30%)
+  </text>
+  
+  <rect x="150" y="750" width="280" height="140" rx="5" fill="#f1f8e9" stroke="#c5e1a5" stroke-width="1"/>
+  <text x="290" y="770" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#558b2f">
+    Vector Embedding Analysis
+  </text>
+  <text x="160" y="790" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • preference_vector in users table
+  </text>
+  <text x="160" y="805" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • characteristic_vector in matches
+  </text>
+  <text x="160" y="820" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • HNSW indexes for performance
+  </text>
+  <text x="160" y="835" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Vector similarity functions
+  </text>
+  <text x="160" y="850" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • pgvector extension in Supabase
+  </text>
+  <text x="160" y="865" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Existing embedding generation
+  </text>
+  
+  <rect x="450" y="750" width="280" height="140" rx="5" fill="#f1f8e9" stroke="#c5e1a5" stroke-width="1"/>
+  <text x="590" y="770" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#558b2f">
+    New Implementation
+  </text>
+  <text x="460" y="790" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • User preference vectors
+  </text>
+  <text x="460" y="805" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Match characteristic vectors
+  </text>
+  <text x="460" y="820" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Cosine similarity calculation
+  </text>
+  <text x="460" y="835" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Find similar users and their matches
+  </text>
+  <text x="460" y="850" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Weighted vector components
+  </text>
+  <text x="460" y="865" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Periodic vector updates
+  </text>
+  
+  <rect x="750" y="750" width="300" height="140" rx="5" fill="#f1f8e9" stroke="#c5e1a5" stroke-width="1"/>
+  <text x="900" y="770" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#558b2f">
+    Storage and Computation
+  </text>
+  <text x="760" y="790" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Store vectors in Supabase with pgvector
+  </text>
+  <text x="760" y="805" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Edge functions for similarity computation
+  </text>
+  <text x="760" y="820" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Caching for performance
+  </text>
+  <text x="760" y="835" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Batch processing for updates
+  </text>
+  <text x="760" y="850" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Optimized queries with indexes
+  </text>
+  <text x="760" y="865" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Fallback mechanisms
+  </text>
+  
+  <!-- Activity-based Scoring -->
+  <rect x="130" y="930" width="940" height="180" rx="5" fill="#ffffff" stroke="#a5d6a7" stroke-width="1"/>
+  <text x="600" y="950" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#4caf50">
+    3. Activity-based Scoring (10%)
+  </text>
+  
+  <rect x="150" y="970" width="280" height="120" rx="5" fill="#f1f8e9" stroke="#c5e1a5" stroke-width="1"/>
+  <text x="290" y="990" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#558b2f">
+    Data Tracking Requirements
+  </text>
+  <text x="160" y="1010" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Match participation (joined/hosted)
+  </text>
+  <text x="160" y="1025" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Match completions and ratings
+  </text>
+  <text x="160" y="1040" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Profile views and search patterns
+  </text>
+  <text x="160" y="1055" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • User engagement metrics
+  </text>
+  <text x="160" y="1070" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Historical activity analysis
+  </text>
+  
+  <rect x="450" y="970" width="280" height="120" rx="5" fill="#f1f8e9" stroke="#c5e1a5" stroke-width="1"/>
+  <text x="590" y="990" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#558b2f">
+    Storage Schema
+  </text>
+  <text x="460" y="1010" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • user_activities table
+  </text>
+  <text x="460" y="1025" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Fields: user_id, activity_type, entity_id
+  </text>
+  <text x="460" y="1040" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • metadata, created_at
+  </text>
+  <text x="460" y="1055" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Indexed for time-series queries
+  </text>
+  <text x="460" y="1070" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Retention policy for old data
+  </text>
+  
+  <rect x="750" y="970" width="300" height="120" rx="5" fill="#f1f8e9" stroke="#c5e1a5" stroke-width="1"/>
+  <text x="900" y="990" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#558b2f">
+    Scoring Mechanism
+  </text>
+  <text x="760" y="1010" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Recency weighting
+  </text>
+  <text x="760" y="1025" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Frequency analysis
+  </text>
+  <text x="760" y="1040" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Positive feedback loop
+  </text>
+  <text x="760" y="1055" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Decay function for old activities
+  </text>
+  <text x="760" y="1070" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Normalized activity scores
+  </text>
+  
+  <!-- Phase 3: Implementation Plan -->
+  <rect x="100" y="1160" width="1000" height="380" rx="10" fill="#fff3e0" stroke="#ff9800" stroke-width="2"/>
+  <text x="600" y="1190" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#ff9800">
+    Phase 3: Implementation Plan
+  </text>
+  
+  <!-- Database Setup -->
+  <rect x="130" y="1220" width="300" height="140" rx="5" fill="#ffffff" stroke="#ffcc80" stroke-width="1"/>
+  <text x="280" y="1240" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#ff9800">
+    1. Database Setup
+  </text>
+  <text x="140" y="1265" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Create new tables:
+  </text>
+  <text x="150" y="1285" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    - user_preferences
+  </text>
+  <text x="150" y="1305" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    - user_activities
+  </text>
+  <text x="150" y="1325" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    - recommendation_scores
+  </text>
+  <text x="140" y="1345" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Set up pgvector extension
+  </text>
+  
+  <!-- Edge Functions -->
+  <rect x="450" y="1220" width="300" height="140" rx="5" fill="#ffffff" stroke="#ffcc80" stroke-width="1"/>
+  <text x="600" y="1240" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#ff9800">
+    2. Edge Functions
+  </text>
+  <text x="460" y="1265" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Create new edge functions:
+  </text>
+  <text x="470" y="1285" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    - get-recommendations
+  </text>
+  <text x="470" y="1305" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    - update-user-vectors
+  </text>
+  <text x="470" y="1325" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    - track-activity
+  </text>
+  <text x="460" y="1345" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Deploy and test functions
+  </text>
+  
+  <!-- Frontend Service -->
+  <rect x="770" y="1220" width="300" height="140" rx="5" fill="#ffffff" stroke="#ffcc80" stroke-width="1"/>
+  <text x="920" y="1240" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#ff9800">
+    3. Frontend Integration
+  </text>
+  <text x="780" y="1265" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Create new recommendationService.js
+  </text>
+  <text x="780" y="1285" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Update UI components
+  </text>
+  <text x="780" y="1305" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Implement activity tracking
+  </text>
+  <text x="780" y="1325" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Add preference update methods
+  </text>
+  <text x="780" y="1345" font-family="Arial, sans-serif" font-size="12" fill="#333">
+    • Test with real user data
+  </text>
+  
+  <!-- Next Steps -->
+  <rect x="130" y="1380" width="940" height="140" rx="5" fill="#ffffff" stroke="#ffcc80" stroke-width="1"/>
+  <text x="600" y="1400" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#ff9800">
+    Next Steps and Considerations
+  </text>
+  
+  <rect x="150" y="1420" width="280" height="80" rx="5" fill="#fff8e1" stroke="#ffe082" stroke-width="1"/>
+  <text x="290" y="1440" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#ff8f00">
+    Data Migration
+  </text>
+  <text x="160" y="1460" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Preserve existing user preference data
+  </text>
+  <text x="160" y="1475" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Plan migration path if needed
+  </text>
+  <text x="160" y="1490" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Backup before migration
+  </text>
+  
+  <rect x="450" y="1420" width="280" height="80" rx="5" fill="#fff8e1" stroke="#ffe082" stroke-width="1"/>
+  <text x="590" y="1440" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#ff8f00">
+    Testing Strategy
+  </text>
+  <text x="460" y="1460" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Create test users with varied preferences
+  </text>
+  <text x="460" y="1475" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Validate recommendation quality
+  </text>
+  <text x="460" y="1490" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • A/B testing framework
+  </text>
+  
+  <rect x="750" y="1420" width="300" height="80" rx="5" fill="#fff8e1" stroke="#ffe082" stroke-width="1"/>
+  <text x="900" y="1440" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#ff8f00">
+    Monitoring and Feedback
+  </text>
+  <text x="760" y="1460" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Track recommendation quality metrics
+  </text>
+  <text x="760" y="1475" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Collect user feedback on recommendations
+  </text>
+  <text x="760" y="1490" font-family="Arial, sans-serif" font-size="11" fill="#333">
+    • Iterative improvement process
+  </text>
+  
+  <!-- Connecting arrows -->
+  <path d="M 600 400 L 600 430" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <path d="M 600 1130 L 600 1160" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+  </defs>
+</svg>

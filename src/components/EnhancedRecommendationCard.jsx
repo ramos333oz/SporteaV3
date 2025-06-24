@@ -100,11 +100,17 @@ const EnhancedRecommendationCard = ({
   const sportName = match.sport?.name || match.sports?.name || 'Sport';
   const sportIcon = sportIcons[sportId] || <SportsSoccer />;
   
-  // Get venue image
-  const venueImage = match.location?.image || match.locations?.image || defaultVenueImages[sportId];
-  
-  // Calculate spots remaining
-  const spotsRemaining = match.max_participants - (match.participants?.count || 0);
+  // Get venue image - prioritize actual venue image from location, fallback to sport-based default
+  const venueImage = match.locations?.image_url ||
+                     match.location?.image_url ||
+                     match.location?.image ||
+                     match.locations?.image ||
+                     defaultVenueImages[sportId] ||
+                     '/images/venues/default-field.jpg';
+
+  // Calculate spots remaining - use current_participants field like live matches
+  const currentParticipants = match.current_participants || 0;
+  const spotsRemaining = match.max_participants - currentParticipants;
   
   const handleFeedback = async (type) => {
     if (feedback === type) {
@@ -151,55 +157,51 @@ const EnhancedRecommendationCard = ({
   // Extract preference factors for detailed breakdown
   const getPreferenceFactors = () => {
     const factors = [];
-    
+
     if (score_breakdown && (direct_preference || collaborative_filtering || activity_based)) {
-      if (direct_preference?.breakdown) {
+      // Direct Preference System (35% total weight)
+      if (direct_preference) {
         factors.push({
           icon: <SportsSoccer color="primary" />,
-          label: 'Sports Match',
-          score: direct_preference.breakdown.sports_score || 0,
-          weight: '30%',
-          color: 'primary'
-        });
-        
-        factors.push({
-          icon: <LocationOn color="primary" />,
-          label: 'Venue Match',
-          score: direct_preference.breakdown.venue_score || 0,
-          weight: '12%',
-          color: 'primary'
-        });
-        
-        factors.push({
-          icon: <CalendarMonth color="primary" />,
-          label: 'Schedule Match',
-          score: direct_preference.breakdown.schedule_score || 0,
-          weight: '9%',
-          color: 'primary'
+          label: 'Direct Preferences',
+          description: 'Based on your sport, venue, and schedule preferences',
+          score: direct_preference.score || 0,
+          weight: '35%',
+          color: 'primary',
+          system: 'Direct Matching',
+          systemColor: '#1976d2'
         });
       }
-      
+
+      // Collaborative Filtering System (45% total weight)
       if (collaborative_filtering) {
         factors.push({
           icon: <Group color="secondary" />,
-          label: 'Community Match',
+          label: 'Community Similarity',
+          description: 'Based on users with similar preferences to you',
           score: collaborative_filtering.score || 0,
-          weight: '30%',
-          color: 'secondary'
+          weight: '45%',
+          color: 'secondary',
+          system: 'Collaborative Filtering',
+          systemColor: '#9c27b0'
         });
       }
-      
+
+      // Activity-Based System (20% total weight)
       if (activity_based) {
         factors.push({
           icon: <TrendingUp color="info" />,
-          label: 'Activity Pattern',
+          label: 'Activity Patterns',
+          description: 'Based on match popularity and your activity history',
           score: activity_based.score || 0,
-          weight: '10%',
-          color: 'info'
+          weight: '20%',
+          color: 'info',
+          system: 'Activity Analysis',
+          systemColor: '#0288d1'
         });
       }
     }
-    
+
     return factors;
   };
   
@@ -259,7 +261,7 @@ const EnhancedRecommendationCard = ({
       {/* Participants Info */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="body2" color="text.secondary">
-          {match.participants?.count || 0}/{match.max_participants} players • {spotsRemaining} spots left
+          {currentParticipants}/{match.max_participants} players • {spotsRemaining} spots left
         </Typography>
       </Box>
       
@@ -281,31 +283,71 @@ const EnhancedRecommendationCard = ({
           </Button>
           
           <Collapse in={expanded}>
-            <List dense sx={{ mt: 1 }}>
-              {preferenceFactors.map((factor, index) => (
-                <ListItem key={index} sx={{ px: 0 }}>
-                  <ListItemIcon sx={{ minWidth: 32 }}>
-                    {factor.icon}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="caption">{factor.label}</Typography>
-                        <Chip label={factor.weight} size="small" variant="outlined" />
-                      </Box>
-                    }
-                    secondary={
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={factor.score * 100}
-                        color={factor.color}
-                        sx={{ mt: 0.5, height: 4, borderRadius: 2 }}
-                      />
-                    }
-                  />
-                </ListItem>
-              ))}
-            </List>
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                Recommendation Algorithm Breakdown (Total: 100%)
+              </Typography>
+
+              <List dense sx={{ mt: 1 }}>
+                {preferenceFactors.map((factor, index) => (
+                  <ListItem key={index} sx={{ px: 0, py: 1 }}>
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      {factor.icon}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {factor.label}
+                          </Typography>
+                          <Chip
+                            label={factor.weight}
+                            size="small"
+                            variant="filled"
+                            sx={{
+                              bgcolor: factor.systemColor,
+                              color: 'white',
+                              fontWeight: 'bold',
+                              fontSize: '0.7rem'
+                            }}
+                          />
+                        </Box>
+                      }
+                      secondary={
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                            {factor.description}
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <LinearProgress
+                              variant="determinate"
+                              value={factor.score * 100}
+                              color={factor.color}
+                              sx={{
+                                flexGrow: 1,
+                                height: 6,
+                                borderRadius: 3,
+                                bgcolor: 'grey.200'
+                              }}
+                            />
+                            <Typography variant="caption" sx={{ minWidth: 35, textAlign: 'right', fontWeight: 500 }}>
+                              {Math.round(factor.score * 100)}%
+                            </Typography>
+                          </Box>
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+
+              {/* Summary */}
+              <Box sx={{ mt: 2, pt: 1, borderTop: 1, borderColor: 'grey.300' }}>
+                <Typography variant="caption" color="text.secondary">
+                  Final Score: {Math.round(displayScore * 100)}% match based on all factors
+                </Typography>
+              </Box>
+            </Box>
           </Collapse>
         </Box>
       )}

@@ -183,13 +183,19 @@ const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoin
     // Check if current user is the host
     const isHost = match.host_id && match.host_id === currentUserId;
 
-    // Debug logging to verify host detection
-    console.log(`[MatchCard] Host detection for match ${match.id}:`, {
-      match_host_id: match.host_id,
-      current_user_id: currentUserId,
-      is_host: isHost,
-      match_title: match.title
-    });
+    // Debug logging only in development and only once per match
+    if (process.env.NODE_ENV !== 'production' && !window.loggedMatches) {
+      window.loggedMatches = new Set();
+    }
+    if (process.env.NODE_ENV !== 'production' && !window.loggedMatches.has(match.id)) {
+      console.log(`[MatchCard] Host detection for match ${match.id}:`, {
+        match_host_id: match.host_id,
+        current_user_id: currentUserId,
+        is_host: isHost,
+        match_title: match.title
+      });
+      window.loggedMatches.add(match.id);
+    }
 
     if (isHost) return { text: "You're the Hoster", disabled: true, color: '#9C27B0' };
     if (isFull) return { text: 'Full', disabled: true, color: 'grey' };
@@ -410,7 +416,9 @@ const LiveMatchBoard = () => {
   // Define fetchMatches function at component level so it's accessible everywhere
   const fetchMatches = async () => {
     try {
-      console.log('Fetching live matches...');
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Fetching live matches...');
+      }
       setLoading(true);
       
       // Get matches that are happening now or soon
@@ -507,7 +515,9 @@ const LiveMatchBoard = () => {
   // Hook into real-time updates
   useEffect(() => {
     // Subscribe even if not connected yet - the useRealtime hook will handle reconnection
-    console.log('Setting up real-time subscriptions for matches, connection state:', connectionState);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Setting up real-time subscriptions for matches, connection state:', connectionState);
+    }
 
     // Remove the 30-second refresh interval to reduce server load
     // Real-time updates should handle data freshness

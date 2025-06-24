@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 
 // Debug mode flag for enhanced logging
-const DEBUG_MODE = false; // Set to false to reduce logging in production
+const DEBUG_MODE = process.env.NODE_ENV !== 'production'; // Only log in development
 const VERBOSE_DEBUG = false; // Set to true only when actively debugging realtime issues
 const LOG_PREFIX = '[Sportea Realtime Service]';
 

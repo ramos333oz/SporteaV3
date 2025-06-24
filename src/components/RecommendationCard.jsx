@@ -193,76 +193,42 @@ const RecommendationCard = ({
 
     // For the new complete combined recommendation system (100% coverage)
     if (score_breakdown && (direct_preference || collaborative_filtering || activity_based)) {
-      // Direct Preference components (60% total)
-      if (direct_preference?.breakdown) {
+      // Direct Preference System (35% total weight)
+      if (direct_preference) {
         preferenceFactors.push({
           icon: <SportsSoccer color="primary" />,
-          label: 'Sports Matching',
-          description: 'Match based on your favorite sports and skill level',
-          score: direct_preference.breakdown.sports_score || 0,
-          weight: '30%',
-          system: 'Direct Preference',
-          systemColor: 'primary'
-        });
-
-        preferenceFactors.push({
-          icon: <LocationOn color="primary" />,
-          label: 'Venue Matching',
-          description: 'Match based on your preferred facilities',
-          score: direct_preference.breakdown.venue_score || 0,
-          weight: '12%',
-          system: 'Direct Preference',
-          systemColor: 'primary'
-        });
-
-        preferenceFactors.push({
-          icon: <CalendarMonth color="primary" />,
-          label: 'Schedule Matching',
-          description: 'Match based on your availability',
-          score: direct_preference.breakdown.schedule_score || 0,
-          weight: '9%',
-          system: 'Direct Preference',
-          systemColor: 'primary'
-        });
-
-        preferenceFactors.push({
-          icon: <EmojiPeople color="primary" />,
-          label: 'Other Preferences',
-          description: 'Play style, age, and duration compatibility',
-          score: direct_preference.breakdown.other_score || 0,
-          weight: '9%',
-          system: 'Direct Preference',
-          systemColor: 'primary'
+          label: 'Direct Preferences',
+          description: 'Based on your sport, venue, and schedule preferences',
+          score: direct_preference.score || 0,
+          weight: '35%',
+          system: 'Direct Matching',
+          systemColor: '#1976d2'
         });
       }
 
-      // Collaborative Filtering component (30% total)
+      // Collaborative Filtering System (45% total weight)
       if (collaborative_filtering) {
         preferenceFactors.push({
           icon: <Group color="secondary" />,
-          label: 'Community Preference',
-          description: collaborative_filtering.explanation || 'Based on users similar to you',
+          label: 'Community Similarity',
+          description: 'Based on users with similar preferences to you',
           score: collaborative_filtering.score || 0,
-          weight: '30%',
+          weight: '45%',
           system: 'Collaborative Filtering',
-          systemColor: 'secondary'
+          systemColor: '#9c27b0'
         });
       }
 
-      // Activity-based component (10% total)
+      // Activity-Based System (20% total weight)
       if (activity_based) {
-        const activityDescription = activity_based.activity_factors?.sport_experience
-          ? `You have experience with ${match?.sports?.name || 'this sport'}`
-          : activity_based.explanation || 'Based on your participation history';
-
         preferenceFactors.push({
           icon: <TrendingUp color="info" />,
-          label: 'Activity Pattern',
-          description: activityDescription,
+          label: 'Activity Patterns',
+          description: 'Based on match popularity and your activity history',
           score: activity_based.score || 0,
-          weight: '10%',
-          system: 'Activity-based',
-          systemColor: 'info'
+          weight: '20%',
+          system: 'Activity Analysis',
+          systemColor: '#0288d1'
         });
       }
 
@@ -271,40 +237,40 @@ const RecommendationCard = ({
 
     // For the legacy direct preference matching system with breakdown
     if (breakdown) {
-      // Sports matching factor (30% of total)
+      // Sports matching factor (35% of total - simplified legacy display)
       preferenceFactors.push({
         icon: <SportsSoccer color="primary" />,
         label: 'Sports Matching',
         description: 'Match based on your favorite sports and skill level',
         score: breakdown.sports_score || 0,
-        weight: '30%'
+        weight: '35%'
       });
 
-      // Venue matching factor (12% of total)
+      // Venue matching factor (25% of total)
       preferenceFactors.push({
         icon: <LocationOn color="primary" />,
         label: 'Venue Matching',
         description: 'Match based on your preferred facilities',
         score: breakdown.venue_score || 0,
-        weight: '12%'
+        weight: '25%'
       });
 
-      // Schedule matching factor (9% of total)
+      // Schedule matching factor (25% of total)
       preferenceFactors.push({
         icon: <CalendarMonth color="primary" />,
         label: 'Schedule Matching',
         description: 'Match based on your availability',
         score: breakdown.schedule_score || 0,
-        weight: '9%'
+        weight: '25%'
       });
 
-      // Other preferences factor (9% of total)
+      // Other preferences factor (15% of total)
       preferenceFactors.push({
         icon: <EmojiPeople color="primary" />,
         label: 'Other Preferences',
         description: 'Play style, age, and duration compatibility',
         score: breakdown.other_score || 0,
-        weight: '9%'
+        weight: '15%'
       });
 
       return preferenceFactors;
