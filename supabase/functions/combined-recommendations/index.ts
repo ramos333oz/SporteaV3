@@ -114,8 +114,21 @@ Deno.serve(async (req) => {
       console.error('Error fetching user vector:', vectorError);
     }
 
-    // Get available matches with participant counts and venue images
-    const { data: matches, error: matchesError } = await supabaseClient
+    // Get matches the user has already joined
+    const { data: userParticipations, error: participationError } = await supabaseClient
+      .from('participants')
+      .select('match_id')
+      .eq('user_id', userId)
+      .in('status', ['confirmed', 'pending']);
+
+    if (participationError) {
+      console.error('Error fetching user participations:', participationError);
+    }
+
+    const joinedMatchIds = userParticipations?.map((p: any) => p.match_id) || [];
+
+    // Build the query for available matches
+    let matchQuery = supabaseClient
       .from('matches')
       .select(`
         id,
@@ -141,7 +154,14 @@ Deno.serve(async (req) => {
       `)
       .eq('status', 'upcoming')
       .neq('host_id', userId) // Don't recommend user's own matches
-      .gte('start_time', new Date().toISOString())
+      .gte('start_time', new Date().toISOString());
+
+    // Only add the joined matches filter if there are joined matches
+    if (joinedMatchIds.length > 0) {
+      matchQuery = matchQuery.not('id', 'in', `(${joinedMatchIds.join(',')})`);
+    }
+
+    const { data: matches, error: matchesError } = await matchQuery
       .order('start_time', { ascending: true })
       .limit(50); // Get more matches to filter from
 
@@ -170,7 +190,7 @@ Deno.serve(async (req) => {
     }
 
     // Get participant counts for each match
-    const matchIds = matches.map(m => m.id);
+    const matchIds = matches.map((m: any) => m.id);
     const { data: participantCounts, error: participantError } = await supabaseClient
       .from('participants')
       .select('match_id')
@@ -184,14 +204,14 @@ Deno.serve(async (req) => {
     // Count participants per match
     const participantCountMap = new Map();
     if (participantCounts) {
-      participantCounts.forEach(p => {
+      participantCounts.forEach((p: any) => {
         const count = participantCountMap.get(p.match_id) || 0;
         participantCountMap.set(p.match_id, count + 1);
       });
     }
 
     // Add participant counts to matches
-    const matchesWithParticipants: DatabaseMatch[] = matches.map(match => ({
+    const matchesWithParticipants: DatabaseMatch[] = matches.map((match: any) => ({
       ...match,
       current_participants: participantCountMap.get(match.id) || 0
     }));
@@ -237,37 +257,105 @@ Deno.serve(async (req) => {
       // 2. Vector Embedding Collaborative Filtering (45% weight)
       let collaborativeScore = 0.5; // Default score if no vector available
 
-      if (userVector?.preference_vector && match.sport_id) {
-        // Use a deterministic collaborative filtering score based on user preferences
-        // Calculate based on sport preference strength and user activity
-        const userSports = userPreferences.sport_preferences?.map((sport: any) => sport.name) || [];
-        const matchSportName = match.sports?.name;
-        const sportPreferenceStrength = (matchSportName && userSports.includes(matchSportName)) ? 0.8 : 0.4;
-        const userActivityLevel = userPreferences.time_preferences?.days?.length || 3; // Default to 3 days
-        const activityBonus = Math.min(userActivityLevel / 7, 0.3); // Max 30% bonus for high activity
+      if (userVector?.preference_vector) {
+        try {
+          // Find similar users using vector similarity (cosine distance)
+          const { data: similarUsers, error: similarUsersError } = await supabaseClient
+            .from('users')
+            .select('id, preference_vector')
+            .neq('id', userId)
+            .not('preference_vector', 'is', null)
+            .order('preference_vector <=> ' + JSON.stringify(userVector.preference_vector))
+            .limit(10); // Get top 10 similar users
 
-        collaborativeScore = Math.min(sportPreferenceStrength + activityBonus, 1.0);
+          if (!similarUsersError && similarUsers && similarUsers.length > 0) {
+            // Get match interactions from similar users (participants who joined matches)
+            const similarUserIds = similarUsers.map((u: any) => u.id);
+            const { data: similarUserInteractions, error: interactionsError } = await supabaseClient
+              .from('participants')
+              .select('user_id, match_id, status')
+              .in('user_id', similarUserIds)
+              .eq('status', 'confirmed')
+              .eq('match_id', match.id);
+
+            if (!interactionsError && similarUserInteractions) {
+              // Calculate collaborative score based on similar users' interactions
+              const interactionCount = similarUserInteractions.length;
+              const totalSimilarUsers = similarUsers.length;
+
+              // Base collaborative score from similar users' interactions
+              const interactionRatio = interactionCount / totalSimilarUsers;
+              collaborativeScore = Math.min(0.3 + (interactionRatio * 0.7), 1.0);
+
+              // Boost score if similar users have joined this specific match
+              if (interactionCount > 0) {
+                collaborativeScore = Math.min(collaborativeScore + 0.2, 1.0);
+              }
+            }
+          }
+
+          // Fallback: Use sport preference similarity if no interaction data
+          if (collaborativeScore === 0.5) {
+            const userSports = userPreferences.sport_preferences?.map((sport: any) => sport.name) || [];
+            const matchSportName = match.sports?.name;
+            const sportPreferenceStrength = (matchSportName && userSports.includes(matchSportName)) ? 0.8 : 0.4;
+            const userActivityLevel = userPreferences.time_preferences?.days?.length || 3;
+            const activityBonus = Math.min(userActivityLevel / 7, 0.3);
+            collaborativeScore = Math.min(sportPreferenceStrength + activityBonus, 1.0);
+          }
+        } catch (error) {
+          console.error('Error in collaborative filtering:', error);
+          // Fallback to simple calculation
+          const userSports = userPreferences.sport_preferences?.map((sport: any) => sport.name) || [];
+          const matchSportName = match.sports?.name;
+          const sportPreferenceStrength = (matchSportName && userSports.includes(matchSportName)) ? 0.8 : 0.4;
+          collaborativeScore = sportPreferenceStrength;
+        }
       }
 
       // 3. Activity-based Scoring (20% weight)
       let activityScore = 0;
-      
-      // Match popularity (more participants = higher score)
+
+      // Match popularity (optimal participation level gets highest score)
       const participantRatio = match.current_participants / match.max_participants;
-      activityScore += Math.min(participantRatio * 0.5, 0.3);
-      
-      // Recency bonus (newer matches get higher scores)
-      const hoursUntilMatch = (new Date(match.start_time).getTime() - Date.now()) / (1000 * 60 * 60);
-      if (hoursUntilMatch < 24) {
+      if (participantRatio >= 0.3 && participantRatio <= 0.7) {
+        // Sweet spot: not too empty, not too full
+        activityScore += 0.4;
+      } else if (participantRatio < 0.3) {
+        // New matches or less popular - moderate score
         activityScore += 0.2;
-      } else if (hoursUntilMatch < 72) {
-        activityScore += 0.1;
-      }
-      
-      // Availability (not full)
-      if (match.current_participants < match.max_participants) {
+      } else if (participantRatio < 1.0) {
+        // Almost full but still joinable - good score
         activityScore += 0.3;
       }
+
+      // Recency bonus (matches happening soon get higher priority)
+      const hoursUntilMatch = (new Date(match.start_time).getTime() - Date.now()) / (1000 * 60 * 60);
+      if (hoursUntilMatch < 6) {
+        // Very soon - highest urgency
+        activityScore += 0.3;
+      } else if (hoursUntilMatch < 24) {
+        // Today - high priority
+        activityScore += 0.2;
+      } else if (hoursUntilMatch < 72) {
+        // This week - moderate priority
+        activityScore += 0.1;
+      }
+
+      // Skill level matching bonus
+      const userSkillLevel = userPreferences.sport_preferences?.find((sport: any) =>
+        sport.name === match.sports?.name)?.level || 'Beginner';
+      if (userSkillLevel === match.skill_level) {
+        activityScore += 0.2;
+      }
+
+      // Availability bonus (ensure match is joinable)
+      if (match.current_participants < match.max_participants) {
+        activityScore += 0.1;
+      }
+
+      // Cap the activity score at 1.0
+      activityScore = Math.min(activityScore, 1.0);
 
       // Calculate final weighted score
       const finalScore = (

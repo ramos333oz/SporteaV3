@@ -437,6 +437,7 @@ const LiveMatchBoard = () => {
         `)
         .not('status', 'eq', 'cancelled')
         .not('status', 'eq', 'completed')
+        .gte('start_time', new Date().toISOString())
         .order('start_time', { ascending: true })
         .limit(20);
         
