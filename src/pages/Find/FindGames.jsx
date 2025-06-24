@@ -99,6 +99,7 @@ import { participantService } from "../../services/supabase";
 import recommendationService from "../../services/recommendationService";
 import interactionService from "../../services/interactionService";
 import { useNavigate } from "react-router-dom";
+import RecommendationsList from "../../components/RecommendationsList";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import { Calendar, momentLocalizer } from "react-big-calendar";
@@ -161,6 +162,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
   const { user, supabase } = useAuth();
   const [matches, setMatches] = useState(propMatches || []);
   const [userCreatedMatches, setUserCreatedMatches] = useState([]);
+  const [userParticipations, setUserParticipations] = useState({});
   const [loading, setLoading] = useState(!propMatches);
   const [joinLoading, setJoinLoading] = useState({});
   const [viewMode, setViewMode] = useState(0); // 0: List, 1: Map, 2: Calendar
@@ -184,8 +186,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
   
   // For backward compatibility with existing code
   const selectedSportFilter = getActiveSportFilter();
-  
-  const [recommendedMatches, setRecommendedMatches] = useState([]);
+
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState(null);
   const navigate = useNavigate();
@@ -225,76 +226,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       }),
   ];
 
-  // Load personalized recommendations when component mounts or user changes
-  useEffect(() => {
-    const loadRecommendations = async () => {
-      if (!user) {
-        // For non-logged in users, just show the newest matches
-        if (propMatches) {
-          const sortedByDate = [...propMatches].sort(
-            (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0),
-          );
-          setRecommendedMatches(sortedByDate.slice(0, 3));
-        }
-        return;
-      }
 
-      try {
-        // Fetch personalized recommendations - we added error handling in the service itself
-        // so this should no longer throw errors
-        const { recommendations, type, message } =
-          await recommendationService.getRecommendations(user.id, 5);
-
-        if (recommendations && recommendations.length > 0) {
-          // Filter out matches where the user is the host
-          const filteredRecommendations = recommendations.filter(
-            (match) => match.host_id !== user.id,
-          );
-
-          // Set the recommended matches with their explanation and metadata
-          setRecommendedMatches(filteredRecommendations);
-
-          // If we got a message from the recommendation service, show it as a notification
-          if (message) {
-            setNotification({
-              severity: "info",
-              message: message,
-            });
-          }
-        } else {
-          // Fall back to sorting by date if recommendations are empty
-          console.log(
-            "No recommendations returned, falling back to default sorting",
-          );
-          if (propMatches) {
-            const sortedByDate = [...propMatches]
-              .filter((match) => match.host_id !== user.id) // Filter out user's own matches
-              .sort(
-                (a, b) =>
-                  new Date(b.created_at || 0) - new Date(a.created_at || 0),
-              );
-
-            setRecommendedMatches(sortedByDate.slice(0, 3));
-          }
-        }
-      } catch (error) {
-        console.error("Error in recommendation handling:", error);
-        // Fall back to sorting by date if recommendations fail
-        if (propMatches) {
-          const sortedByDate = [...propMatches]
-            .filter((match) => match.host_id !== user.id) // Filter out user's own matches
-            .sort(
-              (a, b) =>
-                new Date(b.created_at || 0) - new Date(a.created_at || 0),
-            );
-
-          setRecommendedMatches(sortedByDate.slice(0, 3));
-        }
-      }
-    };
-
-    loadRecommendations();
-  }, [user, propMatches]);
 
   // Apply all filters to matches
   const applyFilters = useCallback(
@@ -529,16 +461,23 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
     fetchUserMatches();
   }, [user, supabase]);
 
+  // Fetch user participations when user and matches are available
+  useEffect(() => {
+    if (user && matches.length > 0) {
+      fetchUserParticipations();
+    }
+  }, [user, matches.length]);
+
   // Update matches when props, user matches, or filter changes
   useEffect(() => {
     if (propMatches) {
       console.log("Running match update effect with propMatches:", propMatches.length);
       setLoading(false);
-      
-      // Make a fresh copy of prop matches 
+
+      // Make a fresh copy of prop matches
       const allMatches = propMatches.slice();
       console.log('Initial propMatches count:', allMatches.length);
-      
+
       // Mark any matches the user has created in the prop matches
       if (user) {
         allMatches.forEach(match => {
@@ -679,50 +618,11 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       case 0: // List View
         return (
           <>
-            {/* Recommended Matches Section - Only shown in List View */}
-            {recommendedMatches.length > 0 && (
-              <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                  <Typography variant="h5" component="h2" fontWeight="600">
-                    Recommended for You
-                  </Typography>
-                  <Tooltip title="These matches are selected based on your preferences and past activity">
-                    <Chip
-                      label="For You"
-                      size="small"
-                      color="secondary"
-                      sx={{ ml: 2 }}
-                    />
-                  </Tooltip>
-                </Box>
-
-                <Grid container spacing={2}>
-                  {loading
-                    ? Array(3)
-                        .fill()
-                        .map((_, index) => (
-                          <Grid
-                            item
-                            xs={12}
-                            sm={6}
-                            md={4}
-                            key={`skeleton-rec-${index}`}
-                          >
-                            <Skeleton
-                              variant="rectangular"
-                              height={320}
-                              sx={{ borderRadius: 3 }}
-                            />
-                          </Grid>
-                        ))
-                    : recommendedMatches.map((match) => (
-                        <Grid item xs={12} sm={6} md={4} key={match.id}>
-                          {renderMatchCard(match)}
-                        </Grid>
-                      ))}
-                </Grid>
-              </Paper>
-            )}
+            {/* Personalized Recommendations Section - Only shown in List View */}
+            <RecommendationsList
+              limit={3}
+              onError={(err) => console.error('Recommendation error:', err)}
+            />
 
             {/* Available Matches Section */}
             <Paper sx={{ p: 3, borderRadius: 2 }}>
@@ -890,6 +790,42 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
     return <SportsIcon />;
   };
 
+  // Fetch user participations for all matches
+  const fetchUserParticipations = async () => {
+    if (!user || matches.length === 0) {
+      return;
+    }
+
+    try {
+      const matchIds = matches.map(m => m.id);
+
+      const { data, error } = await supabase
+        .from('participants')
+        .select('match_id, status, user_id, joined_at')
+        .eq('user_id', user.id)
+        .in('match_id', matchIds);
+
+      if (error) {
+        console.error('[fetchUserParticipations] Database error:', error);
+        throw error;
+      }
+
+      const participationMap = {};
+      if (data && data.length > 0) {
+        data.forEach(p => {
+          participationMap[p.match_id] = p;
+        });
+      }
+
+      setUserParticipations(participationMap);
+    } catch (error) {
+      console.error('[fetchUserParticipations] Error fetching user participations:', error);
+      // Don't clear existing participations on error
+    }
+  };
+
+
+
   // Handle join match
   const handleJoinMatch = async (match) => {
     if (!user) return;
@@ -910,35 +846,26 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
 
       const result = await participantService.joinMatch(match.id, user.id);
 
-      // Update the match in state
-      const updatedMatches = matches.map((m) => {
-        if (m.id === match.id) {
-          return {
-            ...m,
-            is_joined: true,
-            join_status: "pending", // Always set to pending for new joins
-            current_participants: m.current_participants, // Don't increment here as pending requests don't count
-          };
-        }
-        return m;
-      });
+      if (result && result.success) {
+        // Update user participation state immediately
+        setUserParticipations(prev => ({
+          ...prev,
+          [match.id]: { status: 'pending', match_id: match.id, user_id: user.id }
+        }));
 
-      // If this is a recommended match, update it in the recommended matches list too
-      if (match.recommendation_type) {
-        const updatedRecommendations = recommendedMatches.map((m) => {
-          if (m.id === match.id) {
-            return {
-              ...m,
-              is_joined: true,
-              join_status: "pending", // Always set to pending for new joins
-              current_participants: m.current_participants, // Don't increment here as pending requests don't count
-            };
-          }
-          return m;
+        // Refresh user participations to ensure consistency
+        setTimeout(() => fetchUserParticipations(), 500);
+      } else {
+        setNotification({
+          severity: "error",
+          message: result?.message || "Failed to join match",
+          duration: 5000,
         });
-        setRecommendedMatches(updatedRecommendations);
+        return; // Exit early if join failed
+      }
 
-        // Track recommendation interaction (non-blocking)
+      // Track recommendation interaction if this is a recommended match (non-blocking)
+      if (match.recommendation_type) {
         try {
           recommendationService
             .trackRecommendationAction(
@@ -962,9 +889,6 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         }
       }
 
-      setMatches(updatedMatches);
-
-      // Show more prominent notification
       setNotification({
         severity: "success",
         message: "Request sent! Waiting for host approval.",
@@ -1062,22 +986,8 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         return m;
       });
 
-      // If this is a recommended match, update it in the recommended matches list too
+      // Track recommendation interaction if this is a recommended match (non-blocking)
       if (match.recommendation_type) {
-        const updatedRecommendations = recommendedMatches.map((m) => {
-          if (m.id === match.id) {
-            return {
-              ...m,
-              is_joined: false,
-              join_status: null,
-              current_participants: Math.max(0, m.current_participants - 1),
-            };
-          }
-          return m;
-        });
-        setRecommendedMatches(updatedRecommendations);
-
-        // Track recommendation interaction in a try-catch to ensure it doesn't break main flow
         try {
           recommendationService
             .trackRecommendationAction(
@@ -1101,11 +1011,21 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         }
       }
 
+      // Update user participation state to 'left'
+      setUserParticipations(prev => ({
+        ...prev,
+        [match.id]: { status: 'left', match_id: match.id, user_id: user.id }
+      }));
+
       setMatches(updatedMatches);
       setNotification({
-        severity: "info",
-        message: result?.message || "Successfully left the match",
+        severity: "success",
+        message: "You have successfully left the match",
+        duration: 5000,
       });
+
+      // Refresh user participations to ensure consistency
+      setTimeout(() => fetchUserParticipations(), 500);
 
       // Track the leave interaction with improved error handling
       try {
@@ -1155,32 +1075,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
     navigate(`/match/${match.id}`);
   };
 
-  // Refresh recommendations
-  const handleRefreshRecommendations = async () => {
-    if (!user) return;
 
-    try {
-      setLoading(true);
-      const { recommendations, type, message } =
-        await recommendationService.getRecommendations(user.id, 5);
-      setRecommendedMatches(recommendations);
-
-      if (message) {
-        setNotification({
-          severity: "info",
-          message: message,
-        });
-      }
-    } catch (error) {
-      console.error("Error refreshing recommendations:", error);
-      setNotification({
-        severity: "error",
-        message: "Failed to refresh recommendations",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Apply filters to matches
   const filteredMatches = React.useMemo(() => {
@@ -1433,8 +1328,9 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
     // Determine match status
     const isFull = spotsAvailable <= 0;
     const isAboutToFill = spotsAvailable <= 2 && !isFull;
-    const isJoined = match.is_joined;
-    const joinStatus = match.join_status || null;
+    const userParticipation = userParticipations[match.id];
+    const isJoined = userParticipation?.status === 'confirmed' || userParticipation?.status === 'pending';
+    const joinStatus = userParticipation?.status || null;
     const isLoading = joinLoading[match.id] || false;
     const skillLevel = match.skill_level || match.skillLevel || "Intermediate";
     // Check if the current user is the host of this match
@@ -1654,7 +1550,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                 color={joinStatus === "pending" ? "warning" : "error"}
                 size="small"
                 fullWidth
-                disabled={isLoading}
+                disabled={joinStatus === "pending" || isLoading}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleLeaveMatch(match);
@@ -1665,7 +1561,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                 {isLoading
                   ? "Processing..."
                   : joinStatus === "pending"
-                    ? "Cancel Request"
+                    ? "Requested"
                     : "Leave Match"}
               </Button>
             ) : (
@@ -1715,8 +1611,9 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
     // Determine match status
     const isFull = spotsAvailable <= 0;
     const isAboutToFill = spotsAvailable <= 2 && !isFull;
-    const isJoined = match.is_joined;
-    const joinStatus = match.join_status || null;
+    const userParticipation = userParticipations[match.id];
+    const isJoined = userParticipation?.status === 'confirmed' || userParticipation?.status === 'pending';
+    const joinStatus = userParticipation?.status || null;
     const isLoading = joinLoading[match.id] || false;
     const skillLevel = match.skill_level || match.skillLevel || "Intermediate";
     // Check if the current user is the host of this match
@@ -1748,12 +1645,26 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           display: "flex",
           flexDirection: "column",
           borderRadius: 3,
-          transition: "all 0.3s ease-in-out",
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           position: "relative",
           overflow: "visible",
+          cursor: "pointer",
+          border: "1px solid",
+          borderColor: "divider",
+          background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
           "&:hover": {
-            transform: "translateY(-8px)",
-            boxShadow: 6,
+            transform: "translateY(-12px) scale(1.02)",
+            boxShadow: "0 20px 40px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.08)",
+            borderColor: "primary.main",
+            "& .card-sport-chip": {
+              transform: "scale(1.05)",
+            },
+            "& .card-title": {
+              color: "primary.main",
+            },
+          },
+          "&:active": {
+            transform: "translateY(-8px) scale(1.01)",
           },
           ...(match.isUpdated && {
             animation: "pulse 2s",
@@ -1764,6 +1675,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
             },
           }),
         }}
+        onClick={() => navigate(`/match/${match.id}`)}
       >
         {/* New indicator badge */}
         {isNew && (
@@ -1805,11 +1717,19 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
             }}
           >
             <Chip
+              className="card-sport-chip"
               icon={getSportIcon(match.sport?.name || "")}
               label={match.sport?.name || "Sport"}
               size="small"
               color="primary"
               variant="filled"
+              sx={{
+                transition: "all 0.2s ease-in-out",
+                fontWeight: 600,
+                "& .MuiChip-icon": {
+                  fontSize: "1.1rem",
+                },
+              }}
             />
 
             {/* Private/Public indicator */}
@@ -1831,7 +1751,19 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           </Box>
 
           {/* Match title */}
-          <Typography variant="h6" component="h2" gutterBottom>
+          <Typography
+            className="card-title"
+            variant="h6"
+            component="h2"
+            gutterBottom
+            sx={{
+              fontWeight: 700,
+              fontSize: "1.2rem",
+              lineHeight: 1.3,
+              transition: "color 0.2s ease-in-out",
+              mb: 2,
+            }}
+          >
             {match.title || "Untitled Match"}
           </Typography>
 
@@ -1903,15 +1835,18 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                 variant="determinate"
                 value={fillPercentage}
                 sx={{
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: "rgba(0,0,0,0.05)",
+                  height: 10,
+                  borderRadius: 5,
+                  backgroundColor: "rgba(0,0,0,0.08)",
+                  boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)",
                   "& .MuiLinearProgress-bar": {
                     backgroundColor: isFull
                       ? "error.main"
                       : isAboutToFill
                         ? "warning.main"
                         : "success.main",
+                    borderRadius: 5,
+                    transition: "all 0.3s ease-in-out",
                   },
                 }}
               />
@@ -1936,18 +1871,30 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           )}
         </CardContent>
 
-        <CardActions sx={{ flexDirection: "column", gap: 1, p: 2 }}>
+        <CardActions sx={{
+          flexDirection: "column",
+          gap: 1.5,
+          p: 2,
+          borderTop: "1px solid",
+          borderColor: "divider",
+          backgroundColor: "rgba(0,0,0,0.02)",
+        }}>
           {/* Join/Leave match button */}
           {user &&
             (isUserHost ? (
               <Button
                 variant="contained"
                 color="secondary"
-                size="small"
+                size="medium"
                 fullWidth
                 startIcon={<PersonIcon />}
                 disabled
-                sx={{ mb: 1 }}
+                sx={{
+                  mb: 1,
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  textTransform: "none",
+                }}
               >
                 You're Hosting
               </Button>
@@ -1955,28 +1902,56 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
               <Button
                 variant="outlined"
                 color={joinStatus === "pending" ? "warning" : "error"}
-                size="small"
+                size="medium"
                 fullWidth
-                disabled={isLoading}
-                onClick={() => handleLeaveMatch(match)}
+                disabled={joinStatus === "pending" || isLoading}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLeaveMatch(match);
+                }}
                 startIcon={isLoading ? <CircularProgress size={20} /> : null}
-                sx={{ mb: 1 }}
+                sx={{
+                  mb: 1,
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  textTransform: "none",
+                  transition: "all 0.2s ease-in-out",
+                  "&:hover": {
+                    transform: joinStatus === "pending" ? "none" : "scale(1.02)",
+                  },
+                }}
               >
                 {isLoading
                   ? "Processing..."
                   : joinStatus === "pending"
-                    ? "Cancel Request"
+                    ? "Requested"
                     : "Leave Match"}
               </Button>
             ) : (
               <Button
                 variant="contained"
-                size="small"
+                size="medium"
                 color={isFull ? "inherit" : "primary"}
                 fullWidth
                 disabled={isFull || isLoading}
-                onClick={() => handleJoinMatch(match)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleJoinMatch(match);
+                }}
                 startIcon={isLoading ? <CircularProgress size={20} /> : null}
+                sx={{
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  textTransform: "none",
+                  transition: "all 0.2s ease-in-out",
+                  "&:hover": {
+                    transform: "scale(1.02)",
+                    boxShadow: 3,
+                  },
+                  "&:disabled": {
+                    backgroundColor: "grey.300",
+                  },
+                }}
               >
                 {isLoading
                   ? "Processing..."
@@ -1988,10 +1963,24 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
 
           <Button
             variant="outlined"
-            size="small"
+            size="medium"
             fullWidth
             startIcon={<AccessTimeIcon />}
-            onClick={() => navigate(`/match/${match.id}`)}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/match/${match.id}`);
+            }}
+            sx={{
+              fontWeight: 500,
+              borderRadius: 2,
+              textTransform: "none",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                backgroundColor: "primary.main",
+                color: "white",
+                transform: "scale(1.02)",
+              },
+            }}
           >
             View Details
           </Button>
