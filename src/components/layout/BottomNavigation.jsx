@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import HomeIcon from '@mui/icons-material/Home';
 import SearchIcon from '@mui/icons-material/Search';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
+import PeopleIcon from '@mui/icons-material/People';
 import { useAuth } from '../../hooks/useAuth';
 
 const BottomNavigation = () => {
@@ -17,7 +18,8 @@ const BottomNavigation = () => {
     if (pathname === '/home' || pathname === '/') return 0;
     if (pathname.startsWith('/find')) return 1;
     if (pathname.startsWith('/host')) return 2;
-    if (pathname.startsWith('/profile')) return 3;
+    if (pathname.startsWith('/friends')) return 3;
+    if (pathname.startsWith('/profile')) return 4;
     return 0; // Default to home
   }
   
@@ -41,6 +43,9 @@ const BottomNavigation = () => {
         navigate('/host');
         break;
       case 3:
+        navigate('/friends');
+        break;
+      case 4:
         navigate('/profile');
         break;
       default:
@@ -100,14 +105,18 @@ const BottomNavigation = () => {
               },
             }}
           />
-          <BottomNavigationAction 
-            label="Profile" 
+          <BottomNavigationAction
+            label="Friends"
+            icon={<PeopleIcon />}
+          />
+          <BottomNavigationAction
+            label="Profile"
             icon={
-              <Avatar 
+              <Avatar
                 src={user?.user_metadata?.avatar_url}
                 alt={user?.user_metadata?.full_name}
-                sx={{ 
-                  width: 28, 
+                sx={{
+                  width: 28,
                   height: 28,
                   bgcolor: 'primary.main',
                   fontSize: '0.875rem',
@@ -115,7 +124,7 @@ const BottomNavigation = () => {
               >
                 {user?.user_metadata?.full_name?.charAt(0) || 'U'}
               </Avatar>
-            } 
+            }
           />
         </MuiBottomNavigation>
       </Paper>
