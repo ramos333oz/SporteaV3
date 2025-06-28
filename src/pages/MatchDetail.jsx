@@ -51,6 +51,7 @@ import { useRealtime } from '../hooks/useRealtime';
 import { useToast } from '../contexts/ToastContext';
 import { matchService, participantService } from '../services/supabase';
 import { notificationService } from '../services/notifications';
+import FriendInvitationModal from '../components/FriendInvitationModal';
 
 // Match Status Indicator component
 const MatchStatusIndicator = ({ match }) => {
@@ -267,6 +268,7 @@ const MatchDetail = () => {
   const [openJoinDialog, setOpenJoinDialog] = useState(false);
   const [openLeaveDialog, setOpenLeaveDialog] = useState(false);
   const [buttonLoading, setButtonLoading] = useState(false);
+  const [showFriendInvitationModal, setShowFriendInvitationModal] = useState(false);
   
   // Calculate active participants count (only confirmed participants)
   const activeParticipantsCount = participants.filter(p => p.status === 'confirmed').length;
@@ -294,7 +296,7 @@ const MatchDetail = () => {
     return `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`;
   };
   
-  // Modify the handleJoinMatch to open the dialog first
+  // Modify the handleJoinMatchClick to open the dialog first
   const handleJoinMatchClick = () => {
     setOpenJoinDialog(true);
   };
@@ -946,6 +948,17 @@ const MatchDetail = () => {
                         >
                           Edit Match
                         </Button>
+                        
+                        <Button 
+                          variant="contained"
+                          color="primary"
+                          startIcon={<InviteIcon />}
+                          onClick={() => setShowFriendInvitationModal(true)}
+                          fullWidth
+                        >
+                          Invite Friends
+                        </Button>
+                        
                         <Button 
                           variant="outlined" 
                           color="error"
@@ -1130,6 +1143,16 @@ const MatchDetail = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      
+      {/* Friend Invitation Modal */}
+      <FriendInvitationModal
+        open={showFriendInvitationModal}
+        onClose={() => setShowFriendInvitationModal(false)}
+        match={match}
+        onInvitationsSent={(count) => {
+          showToast(`Invitations sent to ${count} friends`);
+        }}
+      />
     </Box>
   );
 };

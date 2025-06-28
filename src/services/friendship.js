@@ -831,5 +831,50 @@ export const friendshipService = {
         error
       };
     }
+  },
+  
+  // Get blocked users
+  getBlockedUsers: async () => {
+    try {
+      const { data: currentUser } = await supabase.auth.getUser();
+      
+      if (!currentUser || !currentUser.user) {
+        return {
+          success: false,
+          message: 'You must be logged in to view blocked users',
+          data: []
+        };
+      }
+      
+      const user = currentUser.user;
+      
+      const { data, error } = await supabase
+        .from('friendships')
+        .select(`
+          id,
+          status,
+          created_at,
+          user_id,
+          friend_id,
+          friends:friend_id(id, username, full_name, avatar_url)
+        `)
+        .eq('status', 'blocked')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        data
+      };
+    } catch (error) {
+      console.error('Error getting blocked users:', error);
+      return {
+        success: false,
+        message: 'Failed to get blocked users',
+        data: [],
+        error
+      };
+    }
   }
 }; 

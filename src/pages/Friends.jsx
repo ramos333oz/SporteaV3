@@ -231,18 +231,16 @@ const Friends = () => {
   const { user } = useAuth();
   const { showSuccessToast, showErrorToast } = useToast();
   const [activeTab, setActiveTab] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [friends, setFriends] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
   const [blockedUsers, setBlockedUsers] = useState([]);
-  const [actionLoading, setActionLoading] = useState(null); // Track which friendship is being processed
-  const navigate = useNavigate();
-
-  // Add friend dialog
+  const [actionLoading, setActionLoading] = useState(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [friendEmail, setFriendEmail] = useState('');
-  const [addingFriend, setAddingFriend] = useState(false);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
@@ -252,26 +250,46 @@ const Friends = () => {
 
   const fetchFriends = async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Use friendshipService to get all relevant friendship data
-      const { success, data, error } = await friendshipService.getAllFriendships();
-      
-      if (!success) {
-        throw new Error(error || 'Failed to fetch friendship data');
+      // Get friends
+      const friendsResult = await friendshipService.getFriends();
+      if (!friendsResult.success) {
+        throw new Error(friendsResult.error || 'Failed to fetch friends');
       }
+      setFriends(friendsResult.data || []);
       
-      // Process friendship data
-      setFriends(data.friends || []);
-      setPendingRequests(data.pendingRequests || []);
-      setSentRequests(data.sentRequests || []);
+      // Get pending requests
+      const pendingResult = await friendshipService.getPendingRequests();
+      if (!pendingResult.success) {
+        throw new Error(pendingResult.error || 'Failed to fetch pending requests');
+      }
+      setPendingRequests(pendingResult.data || []);
+      
+      // Get sent requests
+      const sentResult = await friendshipService.getSentRequests();
+      if (!sentResult.success) {
+        throw new Error(sentResult.error || 'Failed to fetch sent requests');
+      }
+      setSentRequests(sentResult.data || []);
       
       // Get blocked users
-      const blockedData = await friendshipService.getBlockedUsers();
-      if (blockedData.success) {
-        setBlockedUsers(blockedData.data || []);
+      try {
+        const blockedData = await friendshipService.getBlockedUsers();
+        if (!blockedData.success) {
+          console.warn('Failed to fetch blocked users:', blockedData.error);
+          setBlockedUsers([]);
+        } else {
+          setBlockedUsers(blockedData.data || []);
+        }
+      } catch (blockError) {
+        console.warn('Error fetching blocked users:', blockError);
+        setBlockedUsers([]);
       }
+      
     } catch (error) {
-      console.error('Error fetching friends:', error);
+      console.error('Error getting friends:', error);
+      setError(error.message || 'Failed to load friends');
       showErrorToast('Failed to load friends');
     } finally {
       setLoading(false);
@@ -599,7 +617,7 @@ const Friends = () => {
     if (!friendEmail.trim()) return;
     
     try {
-      setAddingFriend(true);
+      setActionLoading(true);
       
       // First find the user by email
       const { data: userData, error: userError } = await supabase
@@ -610,7 +628,7 @@ const Friends = () => {
         
       if (userError) {
         showErrorToast('User not found with that email');
-        setAddingFriend(false);
+        setActionLoading(false);
         return;
       }
       
@@ -628,7 +646,7 @@ const Friends = () => {
       console.error('Error sending friend request:', error);
       showErrorToast('Failed to send friend request');
     } finally {
-      setAddingFriend(false);
+      setActionLoading(false);
     }
   };
 
@@ -643,53 +661,71 @@ const Friends = () => {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Paper elevation={2}>
-        <Box sx={{ p: 3 }}>
-          <Typography variant="h4" gutterBottom>
-            Friends
-          </Typography>
-          
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            indicatorColor="primary"
-            textColor="primary"
-            variant="fullWidth"
-            sx={{ mb: 3 }}
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4" component="h1">Friends</Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<PersonAddIcon />}
+          onClick={handleOpenAddDialog}
+        >
+          Add Friend
+        </Button>
+      </Box>
+
+      {/* Add error display */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+          <Button 
+            size="small" 
+            sx={{ ml: 2 }} 
+            onClick={fetchFriends}
           >
-            <Tab label="Friends" />
-            <Tab 
-              label={
-                <Badge color="error" badgeContent={pendingRequests.length} showZero={false}>
-                  Requests
-                </Badge>
-              } 
-            />
-            <Tab label="Sent" />
-            <Tab 
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <BlockIcon fontSize="small" sx={{ mr: 0.5 }} />
-                  Blocked
-                </Box>
-              } 
-            />
-          </Tabs>
-          
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <>
-              {activeTab === 0 && renderFriendsList()}
-              {activeTab === 1 && renderPendingRequests()}
-              {activeTab === 2 && renderSentRequests()}
-              {activeTab === 3 && renderBlockedUsers()}
-            </>
-          )}
-        </Box>
+            Retry
+          </Button>
+        </Alert>
+      )}
+      
+      <Paper sx={{ mb: 4 }}>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          variant="fullWidth"
+          indicatorColor="primary"
+          textColor="primary"
+        >
+          <Tab label="Friends" />
+          <Tab 
+            label={
+              <Badge badgeContent={pendingRequests.length} color="error" showZero={false}>
+                Requests
+              </Badge>
+            } 
+          />
+          <Tab 
+            label={
+              <Badge badgeContent={sentRequests.length} color="primary" showZero={false}>
+                Sent
+              </Badge>
+            } 
+          />
+          <Tab label="Blocked" />
+        </Tabs>
       </Paper>
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <>
+          {activeTab === 0 && renderFriendsList()}
+          {activeTab === 1 && renderPendingRequests()}
+          {activeTab === 2 && renderSentRequests()}
+          {activeTab === 3 && renderBlockedUsers()}
+        </>
+      )}
 
       {/* Add Friend Dialog */}
       <Dialog open={openAddDialog} onClose={handleCloseAddDialog}>
@@ -707,7 +743,7 @@ const Friends = () => {
             variant="outlined"
             value={friendEmail}
             onChange={(e) => setFriendEmail(e.target.value)}
-            disabled={addingFriend}
+            disabled={actionLoading}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -718,15 +754,15 @@ const Friends = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseAddDialog} disabled={addingFriend}>
+          <Button onClick={handleCloseAddDialog} disabled={actionLoading}>
             Cancel
           </Button>
           <Button 
             onClick={handleSendFriendRequest} 
             variant="contained" 
-            disabled={!friendEmail.trim() || addingFriend}
+            disabled={!friendEmail.trim() || actionLoading}
           >
-            {addingFriend ? <CircularProgress size={24} /> : 'Send Request'}
+            {actionLoading ? <CircularProgress size={24} /> : 'Send Request'}
           </Button>
         </DialogActions>
       </Dialog>

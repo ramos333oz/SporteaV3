@@ -58,11 +58,15 @@ const FriendInvitationModal = ({ open, onClose, match, onInvitationsSent }) => {
       if (result.success) {
         setFriends(result.data);
       } else {
-        setError(result.error);
+        if (result.error && result.error.includes('relationship between')) {
+          setError('Database schema issue. Please contact support with error code: FRIEND-REL-001');
+        } else {
+          setError(result.error || 'Failed to load friends');
+        }
       }
     } catch (error) {
       console.error('Error loading friends:', error);
-      setError('Failed to load friends');
+      setError(error.message || 'Failed to load friends');
     } finally {
       setLoading(false);
     }
@@ -138,7 +142,20 @@ const FriendInvitationModal = ({ open, onClose, match, onInvitationsSent }) => {
 
       <DialogContent sx={{ pt: 1 }}>
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert 
+            severity="error" 
+            sx={{ mb: 2 }}
+            action={
+              <Button 
+                color="inherit" 
+                size="small" 
+                onClick={loadAvailableFriends}
+                disabled={loading}
+              >
+                Retry
+              </Button>
+            }
+          >
             {error}
           </Alert>
         )}

@@ -235,47 +235,72 @@ export const matchInvitationService = {
     }
   },
 
-  // Get friends available for invitation (not already invited or joined)
+  // Get all friends who can be invited to a match (not already invited or participants)
   getAvailableFriends: async (matchId) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Get all friends
+      // Get current participants to exclude them
+      const { data: participants, error: partError } = await supabase
+        .from('participants')
+        .select('user_id')
+        .eq('match_id', matchId);
+
+      if (partError) throw partError;
+
+      // Get already invited friends to exclude them
+      const { data: invitations, error: invError } = await supabase
+        .from('match_invitations')
+        .select('invitee_id')
+        .eq('match_id', matchId);
+
+      if (invError) throw invError;
+
+      // Create sets for quick lookups
+      const participantIds = new Set(participants.map(p => p.user_id));
+      const invitedIds = new Set(invitations.map(i => i.invitee_id));
+
+      // Get user's friends - using a two-step query approach to avoid foreign key issues
       const { data: friendships, error: friendError } = await supabase
         .from('friendships')
-        .select(`
-          *,
-          friend:users!friend_id(id, full_name, username, avatar_url)
-        `)
+        .select('id, status, user_id, friend_id')
         .eq('user_id', user.id)
         .eq('status', 'accepted');
 
       if (friendError) throw friendError;
 
-      // Get already invited friends
-      const { data: invitations } = await supabase
-        .from('match_invitations')
-        .select('invitee_id')
-        .eq('match_id', matchId)
-        .eq('inviter_id', user.id);
+      if (!friendships || friendships.length === 0) {
+        return { success: true, data: [] };
+      }
 
-      // Get already joined participants
-      const { data: participants } = await supabase
-        .from('participants')
-        .select('user_id')
-        .eq('match_id', matchId);
+      // Get friend details in a separate query
+      const friendIds = friendships.map(f => f.friend_id);
+      const { data: friendDetails, error: detailsError } = await supabase
+        .from('users')
+        .select('id, username, full_name, avatar_url')
+        .in('id', friendIds);
 
-      const invitedIds = new Set(invitations?.map(inv => inv.invitee_id) || []);
-      const participantIds = new Set(participants?.map(p => p.user_id) || []);
+      if (detailsError) throw detailsError;
 
-      // Filter out already invited or joined friends
-      const availableFriends = friendships?.filter(friendship => 
-        !invitedIds.has(friendship.friend_id) && 
-        !participantIds.has(friendship.friend_id)
-      ) || [];
+      // Create a map of friend details for easy lookup
+      const friendDetailsMap = {};
+      friendDetails?.forEach(friend => {
+        friendDetailsMap[friend.id] = friend;
+      });
 
-      return { success: true, data: availableFriends };
+      // Filter out friends who are already participants or have been invited
+      const availableFriends = friendships
+        .filter(friendship => 
+          !invitedIds.has(friendship.friend_id) &&
+          !participantIds.has(friendship.friend_id)
+        )
+        .map(friendship => ({
+          ...friendship,
+          friend: friendDetailsMap[friendship.friend_id] || { id: friendship.friend_id }
+        }));
+
+      return { success: true, data: availableFriends || [] };
     } catch (error) {
       console.error('Error getting available friends:', error);
       return { success: false, error: error.message };

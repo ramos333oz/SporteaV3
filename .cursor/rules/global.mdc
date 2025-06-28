@@ -3,8 +3,12 @@ description:
 globs: 
 alwaysApply: true
 ---
-1. use clearthought mcp to think of a solution when needing to solve a problem.
-2. use supabase mcp for every backend thing. 
-3. use context7 for up to dated coding documentations and exa mcp too. 
-4. use exa mcp for web searches and deep research
+1. USE PLAYWRIGHT MCP TO GAIN CONTEXT and browse to localhost3000 then start examining the app. If the app failed to load, make sure to run npm run dev into the terminal to run it. if theres an error in the terminal, continue to fix in implementation and debugging phase. 
 
+2. IMPLEMENTATION AND DEBUGGING PHASE, USE EXA AND CONTEXT7 MCP FOR LATEST DOCUMENTATION before any implementation for guidelines and best practices whenever implementing features to avoid future errors and version mismatch. 
+
+3. during implementation and debugging phase, if you encounter unfixable bugs, try to use SUPABASE MCP to look into the backend. if you want to work with the database schema or anything related to basckend ALWAYS USE SUPABASE MCP. USE IT EVERY SINGLE TIME. use it for migrations too
+
+4. TO COME OUT WITH implementation and debugging, USE SEQUENTIAL MCP FOR TH PLANNING. after implementing the code, rerun the playwright mcp to check the UI functionalities to see if theres any error. if none, continue with the progress.
+
+5. MAKE SURE TO STORE IMPORTANT INFORMATIONS INTO YOUR MEMORIES THAT INVOLVES PLANNING AND USER QUERIES ABOUT THE DEVELOPMENT ON THE FEATURE OF MY PROJECT.
