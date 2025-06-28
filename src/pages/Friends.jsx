@@ -27,9 +27,13 @@ import {
   DialogContentText,
   DialogActions,
   Snackbar,
-  Badge
+  Badge,
+  ToggleButton,
+  ToggleButtonGroup,
+  FormControl,
+  FormLabel
 } from '@mui/material';
-import { 
+import {
   PersonAdd as PersonAddIcon,
   Search as SearchIcon,
   Check as CheckIcon,
@@ -38,11 +42,13 @@ import {
   PersonRemove as PersonRemoveIcon,
   Email as EmailIcon,
   CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon
+  Cancel as CancelIcon,
+  Badge as BadgeIcon,
+  AlternateEmail as AlternateEmailIcon
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../contexts/ToastContext';
-import { friendshipService } from '../services/supabase';
+import { friendshipService, supabase } from '../services/supabase';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
@@ -239,6 +245,8 @@ const Friends = () => {
   const [actionLoading, setActionLoading] = useState(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [friendEmail, setFriendEmail] = useState('');
+  const [friendInput, setFriendInput] = useState('');
+  const [inputMethod, setInputMethod] = useState('student_id'); // 'email' or 'id'
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
@@ -430,6 +438,15 @@ const Friends = () => {
                   >
                     View Profile
                   </Button>
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    onClick={() => handleBlockUser(friend)}
+                    disabled={actionLoading === friend.id}
+                    sx={{ mr: 1 }}
+                  >
+                    Block
+                  </Button>
                   <IconButton
                     edge="end"
                     aria-label="remove"
@@ -502,13 +519,13 @@ const Friends = () => {
               }
             >
               <ListItemAvatar>
-                <Avatar src={request.users.avatar_url} alt={request.users.full_name || request.users.username}>
-                  {(request.users.full_name || request.users.username || '?')[0].toUpperCase()}
+                <Avatar src={request.avatar_url} alt={request.full_name || request.username}>
+                  {(request.full_name || request.username || '?')[0].toUpperCase()}
                 </Avatar>
               </ListItemAvatar>
               <ListItemText
-                primary={request.users.full_name || request.users.username}
-                secondary={`@${request.users.username || 'unknown'} · Requested ${new Date(request.created_at).toLocaleDateString()}`}
+                primary={request.full_name || request.username}
+                secondary={`@${request.username || 'unknown'} · Requested ${new Date(request.created_at).toLocaleDateString()}`}
               />
             </ListItem>
             <Divider variant="inset" component="li" />
@@ -545,13 +562,13 @@ const Friends = () => {
               }
             >
               <ListItemAvatar>
-                <Avatar src={request.friends.avatar_url} alt={request.friends.full_name || request.friends.username}>
-                  {(request.friends.full_name || request.friends.username || '?')[0].toUpperCase()}
+                <Avatar src={request.avatar_url} alt={request.full_name || request.username}>
+                  {(request.full_name || request.username || '?')[0].toUpperCase()}
                 </Avatar>
               </ListItemAvatar>
               <ListItemText
-                primary={request.friends.full_name || request.friends.username}
-                secondary={`@${request.friends.username || 'unknown'} · Sent ${new Date(request.created_at).toLocaleDateString()}`}
+                primary={request.full_name || request.username}
+                secondary={`@${request.username || 'unknown'} · Sent ${new Date(request.created_at).toLocaleDateString()}`}
               />
             </ListItem>
             <Divider variant="inset" component="li" />
@@ -564,11 +581,15 @@ const Friends = () => {
   const handleOpenAddDialog = () => {
     setOpenAddDialog(true);
     setFriendEmail('');
+    setFriendInput('');
+    setInputMethod('student_id');
   };
 
   const handleCloseAddDialog = () => {
     setOpenAddDialog(false);
     setFriendEmail('');
+    setFriendInput('');
+    setInputMethod('student_id');
   };
 
   const renderBlockedUsers = () => {
@@ -614,29 +635,71 @@ const Friends = () => {
   };
   
   const handleSendFriendRequest = async () => {
-    if (!friendEmail.trim()) return;
-    
+    const inputValue = friendInput.trim();
+    if (!inputValue) return;
+
     try {
       setActionLoading(true);
-      
-      // First find the user by email
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, email')
-        .eq('email', friendEmail.trim())
-        .single();
-        
-      if (userError) {
-        showErrorToast('User not found with that email');
-        setActionLoading(false);
-        return;
+      let userData;
+
+      if (inputMethod === 'email') {
+        // Find user by email
+        const { data, error: userError } = await supabase
+          .from('users')
+          .select('id, email, username, full_name')
+          .eq('email', inputValue)
+          .single();
+
+        if (userError) {
+          showErrorToast('User not found with that email address');
+          setActionLoading(false);
+          return;
+        }
+        userData = data;
+      } else if (inputMethod === 'student_id') {
+        // Find user by student ID (extract from email)
+        const studentEmail = `${inputValue}@student.uitm.edu.my`;
+        const { data, error: userError } = await supabase
+          .from('users')
+          .select('id, email, username, full_name')
+          .eq('email', studentEmail)
+          .single();
+
+        if (userError) {
+          showErrorToast('Student not found with that ID');
+          setActionLoading(false);
+          return;
+        }
+        userData = data;
+      } else {
+        // Legacy support for username/UUID search
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(inputValue);
+
+        let query = supabase
+          .from('users')
+          .select('id, email, username, full_name');
+
+        if (isUUID) {
+          query = query.eq('id', inputValue);
+        } else {
+          query = query.ilike('username', inputValue);
+        }
+
+        const { data, error: userError } = await query.single();
+
+        if (userError) {
+          showErrorToast('User not found with that ID or username');
+          setActionLoading(false);
+          return;
+        }
+        userData = data;
       }
-      
+
       // Send friend request
       const result = await friendshipService.sendFriendRequest(userData.id);
-      
+
       if (result.success) {
-        showSuccessToast('Friend request sent successfully');
+        showSuccessToast(`Friend request sent to ${userData.full_name || userData.username || userData.email}`);
         handleCloseAddDialog();
         fetchFriends(); // Reload all friend data
       } else {
@@ -728,39 +791,86 @@ const Friends = () => {
       )}
 
       {/* Add Friend Dialog */}
-      <Dialog open={openAddDialog} onClose={handleCloseAddDialog}>
+      <Dialog open={openAddDialog} onClose={handleCloseAddDialog} maxWidth="sm" fullWidth>
         <DialogTitle>Add Friend</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            Enter the email address of the user you want to add as a friend.
+          <DialogContentText sx={{ mb: 3 }}>
+            Add a friend by their student ID or email address.
           </DialogContentText>
+
+          <FormControl component="fieldset" sx={{ mb: 3 }}>
+            <FormLabel component="legend" sx={{ mb: 1 }}>Search Method</FormLabel>
+            <ToggleButtonGroup
+              value={inputMethod}
+              exclusive
+              onChange={(e, newMethod) => {
+                if (newMethod !== null) {
+                  setInputMethod(newMethod);
+                  setFriendInput('');
+                }
+              }}
+              aria-label="input method"
+              size="small"
+              fullWidth
+            >
+              <ToggleButton value="student_id" aria-label="student id">
+                <BadgeIcon sx={{ mr: 1 }} />
+                Student ID
+              </ToggleButton>
+              <ToggleButton value="email" aria-label="email">
+                <EmailIcon sx={{ mr: 1 }} />
+                Email Address
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </FormControl>
+
           <TextField
             autoFocus
             margin="dense"
-            label="Email Address"
-            type="email"
+            label={
+              inputMethod === 'student_id'
+                ? 'Student ID'
+                : inputMethod === 'email'
+                ? 'Email Address'
+                : 'User ID or Username'
+            }
+            type={inputMethod === 'email' ? 'email' : 'text'}
             fullWidth
             variant="outlined"
-            value={friendEmail}
-            onChange={(e) => setFriendEmail(e.target.value)}
+            value={friendInput}
+            onChange={(e) => setFriendInput(e.target.value)}
             disabled={actionLoading}
+            placeholder={
+              inputMethod === 'student_id'
+                ? '2022812795'
+                : inputMethod === 'email'
+                ? 'example@student.uitm.edu.my'
+                : 'Enter user ID or username'
+            }
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <EmailIcon />
+                  {inputMethod === 'email' ? <AlternateEmailIcon /> : <BadgeIcon />}
                 </InputAdornment>
               ),
             }}
+            helperText={
+              inputMethod === 'student_id'
+                ? 'Enter the student ID (the number before @student.uitm.edu.my)'
+                : inputMethod === 'email'
+                ? 'Enter the email address of the user you want to add'
+                : 'Enter the user ID or username of the user you want to add'
+            }
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseAddDialog} disabled={actionLoading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleSendFriendRequest} 
-            variant="contained" 
-            disabled={!friendEmail.trim() || actionLoading}
+          <Button
+            onClick={handleSendFriendRequest}
+            variant="contained"
+            disabled={!friendInput.trim() || actionLoading}
           >
             {actionLoading ? <CircularProgress size={24} /> : 'Send Request'}
           </Button>

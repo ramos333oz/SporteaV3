@@ -20,6 +20,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import FindGames from './FindGames';
 import FindPlayers from './FindPlayers';
 import { supabase, sportService, matchService } from '../../services/supabase';
+import blockingService from '../../services/blockingService';
 import { useRealtime } from '../../hooks/useRealtime';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -190,10 +191,17 @@ const Find = () => {
           .from('users')
           .select('*')
           .or(`username.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%`)
-          .limit(10);
-          
+          .neq('id', user.id) // Exclude current user
+          .limit(50); // Increase limit to account for filtering
+
         if (error) throw error;
-        setPlayers(data || []);
+
+        // Filter out blocked users
+        let filteredPlayers = data || [];
+        filteredPlayers = await blockingService.filterBlockedUsers(filteredPlayers, user.id);
+
+        // Limit to 10 after filtering
+        setPlayers(filteredPlayers.slice(0, 10));
       }
     } catch (err) {
       console.error('Search error:', err);

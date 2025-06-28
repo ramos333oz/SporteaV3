@@ -53,6 +53,7 @@ import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import AccessibilityNewIcon from '@mui/icons-material/AccessibilityNew';
 import TimerIcon from '@mui/icons-material/Timer';
 import { userService, participantService, matchService, friendshipService, locationService } from '../services/supabase';
+import blockingService from '../services/blockingService';
 import { useToast } from '../contexts/ToastContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
@@ -60,6 +61,7 @@ import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import CancelIcon from '@mui/icons-material/Cancel';
+import BlockIcon from '@mui/icons-material/Block';
 
 // Utility function to normalize avatar URLs
 const normalizeAvatarUrl = (url) => {
@@ -196,11 +198,21 @@ const Profile = () => {
     const fetchProfile = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         if (!profileId) throw new Error('Profile ID is required');
         if (!user) throw new Error('User not authenticated');
-        
+
+        // Check if user can view this profile (blocking restrictions)
+        if (!isOwnProfile) {
+          const { canView, reason } = await blockingService.canViewProfile(user.id, profileId);
+          if (!canView) {
+            setError(reason || 'You cannot view this profile');
+            setLoading(false);
+            return;
+          }
+        }
+
         // Fetch user profile from Supabase - use the profileId (from URL), not the current user's ID
         const profileData = await userService.getProfile(profileId);
         
@@ -428,6 +440,29 @@ const Profile = () => {
     }
   };
 
+  // Function to handle blocking user
+  const handleBlockUser = async () => {
+    if (!profileId) return;
+
+    setActionLoading('block-user');
+    try {
+      const { success, message } = await friendshipService.blockUser(profileId);
+
+      if (success) {
+        showSuccessToast('User blocked successfully');
+        // Navigate back to previous page or home
+        navigate(-1);
+      } else {
+        showErrorToast(message || 'Failed to block user');
+      }
+    } catch (error) {
+      console.error('Error blocking user:', error);
+      showErrorToast('Failed to block user');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   // Render friendship action button based on status
   const renderFriendshipButton = () => {
     if (isOwnProfile) return null;
@@ -448,14 +483,24 @@ const Profile = () => {
     switch (friendshipStatus) {
       case 'friends':
         return (
-          <Button
-            variant="outlined"
-            color="error"
-            startIcon={<PersonRemoveIcon />}
-            onClick={handleRemoveFriend}
-          >
-            Remove Friend
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<PersonRemoveIcon />}
+              onClick={handleRemoveFriend}
+            >
+              Remove Friend
+            </Button>
+            <Button
+              variant="outlined"
+              color="warning"
+              startIcon={<BlockIcon />}
+              onClick={handleBlockUser}
+            >
+              Block
+            </Button>
+          </Box>
         );
       case 'request-sent':
         return (
@@ -470,7 +515,7 @@ const Profile = () => {
         );
       case 'request-received':
         return (
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button
               variant="contained"
               color="success"
@@ -487,19 +532,37 @@ const Profile = () => {
             >
               Decline
             </Button>
+            <Button
+              variant="outlined"
+              color="warning"
+              startIcon={<BlockIcon />}
+              onClick={handleBlockUser}
+            >
+              Block
+            </Button>
           </Box>
         );
       case 'not-friends':
       default:
         return (
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<PersonAddIcon />}
-            onClick={handleSendFriendRequest}
-          >
-            Add Friend
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<PersonAddIcon />}
+              onClick={handleSendFriendRequest}
+            >
+              Add Friend
+            </Button>
+            <Button
+              variant="outlined"
+              color="warning"
+              startIcon={<BlockIcon />}
+              onClick={handleBlockUser}
+            >
+              Block
+            </Button>
+          </Box>
         );
     }
   };
