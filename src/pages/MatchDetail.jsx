@@ -49,7 +49,7 @@ import { format, formatDistance, formatDistanceToNow, isPast, isFuture, isAfter,
 import { useAuth } from '../hooks/useAuth';
 import { useRealtime } from '../hooks/useRealtime';
 import { useToast } from '../contexts/ToastContext';
-import { matchService, participantService } from '../services/supabase';
+import { matchService, participantService, supabase } from '../services/supabase';
 import { notificationService } from '../services/notifications';
 import FriendInvitationModal from '../components/FriendInvitationModal';
 
@@ -269,12 +269,34 @@ const MatchDetail = () => {
   const [openLeaveDialog, setOpenLeaveDialog] = useState(false);
   const [buttonLoading, setButtonLoading] = useState(false);
   const [showFriendInvitationModal, setShowFriendInvitationModal] = useState(false);
+  const [hasDirectInvitation, setHasDirectInvitation] = useState(false);
   
   // Calculate active participants count (only confirmed participants)
   const activeParticipantsCount = participants.filter(p => p.status === 'confirmed').length;
   
   // Check if match is full
   const isMatchFull = activeParticipantsCount >= match?.max_participants;
+
+  // Check if user has a Direct Join invitation for this match
+  const checkDirectInvitation = useCallback(async () => {
+    if (!user?.id || !matchId) return;
+
+    try {
+      const { data: invitation, error } = await supabase
+        .from('match_invitations')
+        .select('*')
+        .eq('match_id', matchId)
+        .eq('invitee_id', user.id)
+        .eq('status', 'pending')
+        .eq('invitation_type', 'direct')
+        .single();
+
+      setHasDirectInvitation(!!invitation && !error);
+    } catch (error) {
+      console.error('Error checking direct invitation:', error);
+      setHasDirectInvitation(false);
+    }
+  }, [user?.id, matchId]);
   
   // Check if user is host
   const isHost = match?.host_id === user?.id;
@@ -311,12 +333,25 @@ const MatchDetail = () => {
 
       // Update local state immediately to reflect the change
       if (result && result.success) {
-        setUserParticipation({
-          user_id: user.id,
-          match_id: matchId,
-          status: 'pending' // Always set to pending for new joins
-        });
-        showSuccessToast('Request Sent', 'Successfully sent request to join match. Waiting for host approval.');
+        if (result.joinType === 'direct_invitation') {
+          // Direct Join invitation was accepted - user is immediately confirmed
+          setUserParticipation({
+            user_id: user.id,
+            match_id: matchId,
+            status: 'confirmed'
+          });
+          showSuccessToast('Joined Successfully!', 'You have successfully joined the match via Direct Join invitation!');
+          // Force refetch to update participant count
+          fetchParticipants();
+        } else {
+          // Regular join request - user is pending approval
+          setUserParticipation({
+            user_id: user.id,
+            match_id: matchId,
+            status: 'pending'
+          });
+          showSuccessToast('Request Sent', 'Successfully sent request to join match. Waiting for host approval.');
+        }
       } else if (result && !result.success) {
         // Handle cases where request failed but we need to update UI state
         if (result.status === 'pending') {
@@ -596,8 +631,9 @@ const MatchDetail = () => {
     if (matchId && user) {
       fetchMatch();
       fetchParticipants();
+      checkDirectInvitation();
     }
-  }, [matchId, user]);
+  }, [matchId, user, checkDirectInvitation]);
   
   // Set up real-time subscriptions
   useEffect(() => {
@@ -998,7 +1034,7 @@ const MatchDetail = () => {
                         disabled={isMatchFull || buttonLoading}
                         fullWidth
                       >
-                        {buttonLoading ? <CircularProgress size={24} /> : isMatchFull ? 'Match is Full' : 'Request to Join'}
+                        {buttonLoading ? <CircularProgress size={24} /> : isMatchFull ? 'Match is Full' : hasDirectInvitation ? 'Accept Invitation' : 'Request to Join'}
                       </Button>
                     )}
                   </>
@@ -1106,17 +1142,27 @@ const MatchDetail = () => {
         onClose={() => setOpenJoinDialog(false)}
         aria-labelledby="join-match-dialog-title"
       >
-        <DialogTitle id="join-match-dialog-title">Request to Join Match</DialogTitle>
+        <DialogTitle id="join-match-dialog-title">
+          {hasDirectInvitation ? 'Join Match' : 'Request to Join Match'}
+        </DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to send a request to join "{match?.title}"? The host will need to approve your request.
-            {match?.is_private && " This is a private match and will require an access code."}
+            {hasDirectInvitation ? (
+              <>
+                Are you sure you want to join "{match?.title}"? You have a Direct Join invitation, so you will be added to the match immediately.
+              </>
+            ) : (
+              <>
+                Are you sure you want to send a request to join "{match?.title}"? The host will need to approve your request.
+                {match?.is_private && " This is a private match and will require an access code."}
+              </>
+            )}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenJoinDialog(false)}>Cancel</Button>
           <Button onClick={handleJoinMatch} color="primary" variant="contained" disabled={buttonLoading}>
-            {buttonLoading ? <CircularProgress size={24} /> : 'Send Request'}
+            {buttonLoading ? <CircularProgress size={24} /> : (hasDirectInvitation ? 'Accept Invitation' : 'Send Request')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1150,7 +1196,7 @@ const MatchDetail = () => {
         onClose={() => setShowFriendInvitationModal(false)}
         match={match}
         onInvitationsSent={(count) => {
-          showToast(`Invitations sent to ${count} friends`);
+          showSuccessToast('Invitations Sent', `Successfully sent invitations to ${count} friend${count !== 1 ? 's' : ''}`);
         }}
       />
     </Box>

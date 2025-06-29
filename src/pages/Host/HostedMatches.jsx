@@ -154,6 +154,7 @@ const HostedMatches = () => {
   };
   
   const handleMenuOpen = (event, match) => {
+    console.log('handleMenuOpen called with:', { event: event.type, match });
     setMenuAnchorEl(event.currentTarget);
     setSelectedMatch(match);
   };
@@ -162,27 +163,54 @@ const HostedMatches = () => {
     setMenuAnchorEl(null);
   };
   
-  const handleEditMatch = () => {
-    console.log('Edit match:', selectedMatch);
-    handleMenuClose();
+  const handleEditMatch = (matchFromButton = null) => {
+    // Use the match passed from button click, or fall back to selectedMatch from menu
+    const matchToEdit = matchFromButton || selectedMatch;
+    console.log('Edit match:', matchToEdit);
+
+    // Safety check - ensure we have a valid match object
+    if (!matchToEdit || !matchToEdit.id) {
+      console.error('No valid match object found for editing');
+      showErrorToast('Error', 'Unable to edit match. Please try again.');
+      return;
+    }
+
+    // Only close menu if it was opened (selectedMatch exists)
+    if (!matchFromButton) {
+      handleMenuClose();
+    }
+
     // Navigate to edit match page
-    navigate(`/edit-match/${selectedMatch.id}`);
+    navigate(`/edit-match/${matchToEdit.id}`);
   };
   
-  const handleCancelMatch = async () => {
-    console.log('Cancel match:', selectedMatch);
-    handleMenuClose();
-    
+  const handleCancelMatch = async (matchFromMenu = null) => {
+    // Use the match passed from menu click, or fall back to selectedMatch
+    const matchToCancel = matchFromMenu || selectedMatch;
+    console.log('Cancel match:', matchToCancel);
+
+    // Safety check - ensure we have a valid match object
+    if (!matchToCancel || !matchToCancel.id) {
+      console.error('No valid match object found for cancelling');
+      showErrorToast('Error', 'Unable to cancel match. Please try again.');
+      return;
+    }
+
+    // Only close menu if it was opened (selectedMatch exists)
+    if (!matchFromMenu) {
+      handleMenuClose();
+    }
+
     if (window.confirm('Are you sure you want to cancel this match? This action cannot be undone.')) {
       try {
-        const result = await matchService.cancelMatch(selectedMatch.id);
-        
+        const result = await matchService.cancelMatch(matchToCancel.id);
+
         if (result && result.error) {
           throw new Error(result.message || 'Failed to cancel the match');
         }
-        
+
         showSuccessToast('Match Cancelled', 'The match has been cancelled successfully');
-        
+
         // Refresh the matches list
         fetchHostedMatches();
       } catch (error) {
@@ -192,20 +220,33 @@ const HostedMatches = () => {
     }
   };
   
-  const handleDeleteMatch = async () => {
-    console.log('Delete match:', selectedMatch);
-    handleMenuClose();
-    
+  const handleDeleteMatch = async (matchFromMenu = null) => {
+    // Use the match passed from menu click, or fall back to selectedMatch
+    const matchToDelete = matchFromMenu || selectedMatch;
+    console.log('Delete match:', matchToDelete);
+
+    // Safety check - ensure we have a valid match object
+    if (!matchToDelete || !matchToDelete.id) {
+      console.error('No valid match object found for deleting');
+      showErrorToast('Error', 'Unable to delete match. Please try again.');
+      return;
+    }
+
+    // Only close menu if it was opened (selectedMatch exists)
+    if (!matchFromMenu) {
+      handleMenuClose();
+    }
+
     if (window.confirm('Are you sure you want to delete this match? This action cannot be undone and all match data will be permanently deleted.')) {
       try {
-        const result = await matchService.deleteMatch(selectedMatch.id);
-        
+        const result = await matchService.deleteMatch(matchToDelete.id);
+
         if (!result.success) {
           throw new Error(result.message || 'Failed to delete the match');
         }
-        
+
         showSuccessToast('Match Deleted', 'The match has been permanently deleted');
-        
+
         // Refresh the matches list
         fetchHostedMatches();
       } catch (error) {
@@ -246,11 +287,25 @@ const HostedMatches = () => {
     }
   };
   
-  const handleViewParticipants = () => {
-    console.log('View participants for match:', selectedMatch);
-    handleMenuClose();
+  const handleViewParticipants = (matchFromButton = null) => {
+    // Use the match passed from button click, or fall back to selectedMatch from menu
+    const matchToView = matchFromButton || selectedMatch;
+    console.log('View participants for match:', matchToView);
+
+    // Safety check - ensure we have a valid match object
+    if (!matchToView || !matchToView.id) {
+      console.error('No valid match object found for viewing participants');
+      showErrorToast('Error', 'Unable to view participants. Please try again.');
+      return;
+    }
+
+    // Only close menu if it was opened (selectedMatch exists)
+    if (!matchFromButton) {
+      handleMenuClose();
+    }
+
     // Navigate to match detail page
-    navigate(`/match/${selectedMatch.id}`);
+    navigate(`/match/${matchToView.id}`);
   };
   
   // Format date and time
@@ -353,27 +408,27 @@ const HostedMatches = () => {
         <CardActions sx={{ px: 2, pb: 2 }}>
           {match.status === 'upcoming' && (
             <>
-              <Button 
-                size="small" 
+              <Button
+                size="small"
                 variant="outlined"
-                onClick={handleViewParticipants}
+                onClick={() => handleViewParticipants(match)}
               >
                 View Participants
               </Button>
-              <Button 
-                size="small" 
+              <Button
+                size="small"
                 variant="contained"
-                onClick={handleEditMatch}
+                onClick={() => handleEditMatch(match)}
               >
                 Edit Match
               </Button>
             </>
           )}
           {match.status === 'completed' && (
-            <Button 
-              size="small" 
+            <Button
+              size="small"
               variant="outlined"
-              onClick={handleViewParticipants}
+              onClick={() => handleViewParticipants(match)}
             >
               Match Summary
             </Button>
@@ -460,18 +515,18 @@ const HostedMatches = () => {
         onClose={handleMenuClose}
       >
         {selectedMatch?.status === 'upcoming' && (
-          <MenuItem onClick={handleEditMatch}>Edit Match</MenuItem>
+          <MenuItem onClick={() => handleEditMatch(selectedMatch)}>Edit Match</MenuItem>
         )}
         {selectedMatch?.status === 'upcoming' && (
-          <MenuItem onClick={handleCancelMatch}>Cancel Match</MenuItem>
+          <MenuItem onClick={() => handleCancelMatch(selectedMatch)}>Cancel Match</MenuItem>
         )}
         {selectedMatch?.status === 'cancelled' && (
           <MenuItem onClick={() => handleRestoreMatch(selectedMatch)}>Restore Match</MenuItem>
         )}
         {(selectedMatch?.status === 'cancelled' || selectedMatch?.status === 'completed') && (
-          <MenuItem onClick={handleDeleteMatch}>Delete Match</MenuItem>
+          <MenuItem onClick={() => handleDeleteMatch(selectedMatch)}>Delete Match</MenuItem>
         )}
-        <MenuItem onClick={handleViewParticipants}>
+        <MenuItem onClick={() => handleViewParticipants(selectedMatch)}>
           {selectedMatch?.status === 'completed' ? 'View Summary' : 'View Participants'}
         </MenuItem>
       </Menu>

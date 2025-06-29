@@ -17,12 +17,7 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  Divider,
-  FormControlLabel,
-  Radio,
-  RadioGroup,
-  FormControl,
-  FormLabel
+  Divider
 } from '@mui/material';
 import { 
   People as PeopleIcon,
@@ -36,7 +31,7 @@ const FriendInvitationModal = ({ open, onClose, match, onInvitationsSent }) => {
   const [friends, setFriends] = useState([]);
   const [selectedFriends, setSelectedFriends] = useState([]);
   const [message, setMessage] = useState('');
-  const [invitationType, setInvitationType] = useState('direct');
+
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
@@ -97,8 +92,7 @@ const FriendInvitationModal = ({ open, onClose, match, onInvitationsSent }) => {
       const result = await matchInvitationService.sendInvitations(
         match.id,
         selectedFriends,
-        message,
-        invitationType
+        message
       );
 
       if (result.success) {
@@ -160,43 +154,14 @@ const FriendInvitationModal = ({ open, onClose, match, onInvitationsSent }) => {
           </Alert>
         )}
 
-        {/* Invitation Type Selection */}
+        {/* Direct Join Information */}
         <Box sx={{ mb: 3 }}>
-          <FormControl component="fieldset">
-            <FormLabel component="legend" sx={{ fontSize: '0.875rem', mb: 1 }}>
-              Invitation Type
-            </FormLabel>
-            <RadioGroup
-              row
-              value={invitationType}
-              onChange={(e) => setInvitationType(e.target.value)}
-            >
-              <FormControlLabel 
-                value="direct" 
-                control={<Radio size="small" />} 
-                label={
-                  <Box>
-                    <Typography variant="body2" fontWeight="medium">Direct Join</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Friends join immediately when they accept
-                    </Typography>
-                  </Box>
-                }
-              />
-              <FormControlLabel 
-                value="request" 
-                control={<Radio size="small" />} 
-                label={
-                  <Box>
-                    <Typography variant="body2" fontWeight="medium">Join Request</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Friends send join request when they accept
-                    </Typography>
-                  </Box>
-                }
-              />
-            </RadioGroup>
-          </FormControl>
+          <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
+            <Typography variant="body2" fontWeight="medium">Direct Join Invitations</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Friends will join the match immediately when they accept your invitation.
+            </Typography>
+          </Alert>
         </Box>
 
         <Divider sx={{ mb: 2 }} />

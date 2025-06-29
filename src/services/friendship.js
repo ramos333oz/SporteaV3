@@ -301,16 +301,17 @@ export const friendshipService = {
 
       // Determine who the other user is in this friendship
       const otherUserId = friendship.user_id === user.id ? friendship.friend_id : friendship.user_id;
-      
-      // Only notify if this was an accepted friendship (not a pending request being canceled)
+
+      // Handle notifications based on friendship status
       if (friendship.status === 'accepted') {
+        // For accepted friendships, notify the other user about removal
         // Get user details for notification
         const { data: userData } = await supabase
           .from('users')
           .select('username, full_name')
           .eq('id', user.id)
           .single();
-          
+
         const removerName = userData?.full_name || userData?.username || user.email;
 
         // Create notification for the other user
@@ -324,6 +325,21 @@ export const friendshipService = {
             remover_name: removerName
           })
         });
+      } else if (friendship.status === 'pending') {
+        // For pending requests being cancelled, clean up the friend request notification
+        // Find and delete the friend request notification for the recipient
+        // We need to find notifications where the content contains the sender_id
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .delete()
+          .eq('user_id', otherUserId)
+          .eq('type', 'friend_request')
+          .like('content', `%"sender_id":"${user.id}"%`);
+
+        if (notificationError) {
+          console.error('Error cleaning up friend request notification:', notificationError);
+          // Don't throw here - we still want to delete the friendship record
+        }
       }
 
       // Delete the friendship record

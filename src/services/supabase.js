@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { matchInvitationService } from './matchInvitationService.js';
 import { notificationService, createNotificationContent } from './notifications';
 
 // Initialize Supabase client with environment variables
@@ -1048,6 +1049,57 @@ export const participantService = {
       if (!allowed) {
         throw new Error(reason);
       }
+
+      // First, check if user has a "Direct Join" invitation for this match
+      const { data: invitation, error: invitationError } = await supabase
+        .from('match_invitations')
+        .select('*')
+        .eq('match_id', matchId)
+        .eq('invitee_id', userId)
+        .in('status', ['pending', 'accepted'])
+        .eq('invitation_type', 'direct')
+        .single();
+
+      // If user has a "Direct Join" invitation, handle it appropriately
+      if (invitation && !invitationError) {
+        console.log('Found Direct Join invitation with status:', invitation.status);
+
+        if (invitation.status === 'pending') {
+          // Accept the pending invitation
+          console.log('Accepting pending Direct Join invitation...');
+          const acceptResult = await matchInvitationService.respondToInvitation(invitation.id, 'accepted');
+
+          if (acceptResult.success) {
+            return {
+              success: true,
+              message: 'Successfully joined match via Direct Join invitation!',
+              status: 'confirmed',
+              joinType: 'direct_invitation'
+            };
+          } else {
+            throw new Error('Failed to accept Direct Join invitation');
+          }
+        } else if (invitation.status === 'accepted') {
+          // Invitation was already accepted, but user might not be in participants
+          // Try to add them directly using the handleAcceptedInvitation function
+          console.log('Retrying accepted Direct Join invitation...');
+          const joinResult = await matchInvitationService.handleAcceptedInvitation(invitation);
+
+          if (joinResult.success) {
+            return {
+              success: true,
+              message: 'Successfully joined match via Direct Join invitation!',
+              status: 'confirmed',
+              joinType: 'direct_invitation'
+            };
+          } else {
+            throw new Error('Failed to process Direct Join invitation');
+          }
+        }
+      }
+
+      // No Direct Join invitation found, proceed with regular join request flow
+      console.log('No Direct Join invitation found, using regular join flow...');
 
       // Call the database transaction function
       const { data: result, error } = await supabase.rpc('join_match_transaction', {

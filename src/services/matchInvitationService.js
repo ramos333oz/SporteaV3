@@ -2,8 +2,8 @@ import { supabase } from './supabase';
 import { notificationService } from './notifications';
 
 export const matchInvitationService = {
-  // Send invitations to multiple friends
-  sendInvitations: async (matchId, friendIds, message = '', invitationType = 'direct') => {
+  // Send invitations to multiple friends (always direct join)
+  sendInvitations: async (matchId, friendIds, message = '') => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -25,23 +25,58 @@ export const matchInvitationService = {
         throw new Error('Cannot invite to past matches');
       }
 
-      // Prepare invitations
-      const invitations = friendIds.map(friendId => ({
-        match_id: matchId,
-        inviter_id: user.id,
-        invitee_id: friendId,
-        invitation_type: invitationType,
-        message: message,
-        expires_at: new Date(match.start_time).toISOString()
-      }));
+      // Handle invitations (upsert for existing ones)
+      const invitationResults = [];
 
-      // Insert invitations
-      const { data, error } = await supabase
-        .from('match_invitations')
-        .insert(invitations)
-        .select();
+      for (const friendId of friendIds) {
+        // Check if invitation already exists
+        const { data: existingInvitation, error: checkError } = await supabase
+          .from('match_invitations')
+          .select('id, status')
+          .eq('match_id', matchId)
+          .eq('invitee_id', friendId)
+          .maybeSingle();
 
-      if (error) throw error;
+        if (checkError) throw checkError;
+
+        let invitationData;
+
+        if (existingInvitation) {
+          // Update existing invitation
+          const { data: updatedInvitation, error: updateError } = await supabase
+            .from('match_invitations')
+            .update({
+              status: 'pending',
+              invitation_type: 'direct',
+              message: message,
+              expires_at: new Date(match.start_time).toISOString(),
+              responded_at: null
+            })
+            .eq('id', existingInvitation.id)
+            .select();
+
+          if (updateError) throw updateError;
+          invitationData = updatedInvitation[0]; // Take the first (and should be only) result
+        } else {
+          // Create new invitation
+          const { data: newInvitation, error: insertError } = await supabase
+            .from('match_invitations')
+            .insert({
+              match_id: matchId,
+              inviter_id: user.id,
+              invitee_id: friendId,
+              invitation_type: 'direct',
+              message: message,
+              expires_at: new Date(match.start_time).toISOString()
+            })
+            .select();
+
+          if (insertError) throw insertError;
+          invitationData = newInvitation[0]; // Take the first (and should be only) result
+        }
+
+        invitationResults.push(invitationData);
+      }
 
       // Get user details for notifications
       const { data: userData } = await supabase
@@ -67,7 +102,7 @@ export const matchInvitationService = {
         })
       ));
 
-      return { success: true, data };
+      return { success: true, data: invitationResults };
     } catch (error) {
       console.error('Error sending invitations:', error);
       return { success: false, error: error.message };
@@ -100,7 +135,7 @@ export const matchInvitationService = {
 
       // If accepted, handle joining the match
       if (response === 'accepted') {
-        const joinResult = await this.handleAcceptedInvitation(invitation);
+        const joinResult = await matchInvitationService.handleAcceptedInvitation(invitation);
         if (!joinResult.success) {
           throw new Error(joinResult.error);
         }
@@ -134,11 +169,30 @@ export const matchInvitationService = {
     }
   },
 
-  // Handle accepted invitation
+  // Handle accepted invitation (direct join only)
   handleAcceptedInvitation: async (invitation) => {
     try {
-      if (invitation.invitation_type === 'direct') {
-        // Direct join - add to participants immediately
+      // Check if participant record already exists
+      const { data: existingParticipant } = await supabase
+        .from('participants')
+        .select('id, status')
+        .eq('match_id', invitation.match_id)
+        .eq('user_id', invitation.invitee_id)
+        .single();
+
+      if (existingParticipant) {
+        // Update existing participant record
+        const { error } = await supabase
+          .from('participants')
+          .update({
+            status: 'confirmed',
+            joined_at: new Date().toISOString()
+          })
+          .eq('id', existingParticipant.id);
+
+        if (error) throw error;
+      } else {
+        // Create new participant record
         const { error } = await supabase
           .from('participants')
           .insert({
@@ -147,22 +201,7 @@ export const matchInvitationService = {
             status: 'confirmed'
           });
 
-        if (error && error.code !== '23505') { // Ignore duplicate key error
-          throw error;
-        }
-      } else {
-        // Request type - create join request
-        const { error } = await supabase
-          .from('match_join_requests')
-          .insert({
-            match_id: invitation.match_id,
-            user_id: invitation.invitee_id,
-            message: 'Accepted invitation'
-          });
-
-        if (error && error.code !== '23505') {
-          throw error;
-        }
+        if (error) throw error;
       }
 
       return { success: true };
@@ -241,19 +280,21 @@ export const matchInvitationService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Get current participants to exclude them
+      // Get current active participants to exclude them (exclude those who left)
       const { data: participants, error: partError } = await supabase
         .from('participants')
         .select('user_id')
-        .eq('match_id', matchId);
+        .eq('match_id', matchId)
+        .neq('status', 'left');
 
       if (partError) throw partError;
 
-      // Get already invited friends to exclude them
+      // Get friends with pending invitations to exclude them (don't exclude those who accepted but left)
       const { data: invitations, error: invError } = await supabase
         .from('match_invitations')
         .select('invitee_id')
-        .eq('match_id', matchId);
+        .eq('match_id', matchId)
+        .eq('status', 'pending');
 
       if (invError) throw invError;
 

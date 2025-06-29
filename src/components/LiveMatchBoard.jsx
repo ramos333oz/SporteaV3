@@ -97,7 +97,7 @@ class MatchCardErrorBoundary extends React.Component {
 }
 
 // Compact live match card with same size as popular sport cards
-const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoinRequest, onLeaveRequest, currentUserId }) => {
+const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoinRequest, onLeaveRequest, currentUserId, hasInvitation }) => {
   // Safety check for match data
   if (!match || !match.id) {
     return null;
@@ -199,6 +199,12 @@ const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoin
 
     if (isHost) return { text: "You're the Hoster", disabled: true, color: '#9C27B0' };
     if (isFull) return { text: 'Full', disabled: true, color: 'grey' };
+
+    // Check if user has an invitation
+    if (hasInvitation && !userParticipation) {
+      return { text: 'Accept Invitation', disabled: false, color: '#4CAF50' };
+    }
+
     if (!userParticipation) return { text: 'Join Match', disabled: false, color: sportInfo.color };
 
     switch (userParticipation.status) {
@@ -402,6 +408,7 @@ const LiveMatchBoard = () => {
   const [userParticipations, setUserParticipations] = useState({});
   const [joinDialog, setJoinDialog] = useState({ open: false, match: null });
   const [joinLoading, setJoinLoading] = useState(false);
+  const [directInvitations, setDirectInvitations] = useState({});
   const {
     connectionState,
     subscribeToMatchUpdates,
@@ -649,6 +656,7 @@ const LiveMatchBoard = () => {
   useEffect(() => {
     if (user && matches.length > 0) {
       fetchUserParticipations();
+      fetchDirectInvitations();
     }
   }, [user, matches.length]); // Run when user or matches.length changes
 
@@ -657,6 +665,7 @@ const LiveMatchBoard = () => {
     if (user && matches.length > 0 && Object.keys(userParticipations).length === 0) {
       const retryTimer = setTimeout(() => {
         fetchUserParticipations();
+        fetchDirectInvitations();
       }, 1000);
       return () => clearTimeout(retryTimer);
     }
@@ -809,13 +818,28 @@ const LiveMatchBoard = () => {
       const result = await participantService.joinMatch(match.id, user.id);
 
       if (result && result.success) {
-        // Update user participation state
-        setUserParticipations(prev => ({
-          ...prev,
-          [match.id]: { status: 'pending', match_id: match.id, user_id: user.id }
-        }));
+        if (result.joinType === 'direct_invitation') {
+          // Direct Join invitation was accepted - user is immediately confirmed
+          setUserParticipations(prev => ({
+            ...prev,
+            [match.id]: { status: 'confirmed', match_id: match.id, user_id: user.id }
+          }));
+          showSuccessToast('Joined Successfully!', 'You have successfully joined the match via Direct Join invitation!');
 
-        showSuccessToast('Request Sent', 'Successfully sent request to join match. Waiting for host approval.');
+          // Remove the direct invitation since it's been used
+          setDirectInvitations(prev => {
+            const updated = { ...prev };
+            delete updated[match.id];
+            return updated;
+          });
+        } else {
+          // Regular join request - user is pending approval
+          setUserParticipations(prev => ({
+            ...prev,
+            [match.id]: { status: 'pending', match_id: match.id, user_id: user.id }
+          }));
+          showSuccessToast('Request Sent', 'Successfully sent request to join match. Waiting for host approval.');
+        }
       } else {
         showErrorToast('Request Failed', result?.message || 'Failed to send join request');
       }
@@ -861,6 +885,71 @@ const LiveMatchBoard = () => {
     }
   };
 
+  // Fetch Direct Join invitations for all matches
+  const fetchDirectInvitations = async () => {
+    if (!user || matches.length === 0) {
+      return;
+    }
+
+    try {
+      const matchIds = matches.map(m => m.id);
+
+      // Get Direct Join invitations that are either pending OR accepted but user hasn't joined yet
+      const { data: invitations, error: invitationError } = await supabase
+        .from('match_invitations')
+        .select('match_id, invitation_type, status')
+        .eq('invitee_id', user.id)
+        .eq('invitation_type', 'direct')
+        .in('status', ['pending', 'accepted'])
+        .in('match_id', matchIds);
+
+      if (invitationError) {
+        console.error('[fetchDirectInvitations] Database error:', invitationError);
+        throw invitationError;
+      }
+
+      // For accepted invitations, check if user is actually in participants table
+      const invitationMap = {};
+
+      if (invitations && invitations.length > 0) {
+        // Get user's current participations for these matches
+        const { data: participations, error: participationError } = await supabase
+          .from('participants')
+          .select('match_id, status')
+          .eq('user_id', user.id)
+          .in('match_id', matchIds)
+          .in('status', ['confirmed', 'pending']);
+
+        if (participationError) {
+          console.error('[fetchDirectInvitations] Error fetching participations:', participationError);
+          // Continue without participation check
+        }
+
+        const participationMap = {};
+        if (participations) {
+          participations.forEach(p => {
+            participationMap[p.match_id] = p.status;
+          });
+        }
+
+        invitations.forEach(invitation => {
+          // Include invitation if:
+          // 1. It's pending (user hasn't responded yet)
+          // 2. It's accepted but user is not in participants (join failed)
+          if (invitation.status === 'pending' ||
+              (invitation.status === 'accepted' && !participationMap[invitation.match_id])) {
+            invitationMap[invitation.match_id] = true;
+          }
+        });
+      }
+
+      setDirectInvitations(invitationMap);
+    } catch (error) {
+      console.error('[fetchDirectInvitations] Error fetching direct invitations:', error);
+      // Don't clear existing invitations on error
+    }
+  };
+
   return (
     <Box sx={{ mt: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -891,6 +980,7 @@ const LiveMatchBoard = () => {
                 onJoinRequest={handleJoinRequest}
                 onLeaveRequest={handleLeaveRequest}
                 currentUserId={user?.id}
+                hasInvitation={!!directInvitations[match.id]}
               />
             </MatchCardErrorBoundary>
           ))}
@@ -903,16 +993,26 @@ const LiveMatchBoard = () => {
         onClose={() => setJoinDialog({ open: false, match: null })}
         aria-labelledby="join-match-dialog-title"
       >
-        <DialogTitle id="join-match-dialog-title">Request to Join Match</DialogTitle>
+        <DialogTitle id="join-match-dialog-title">
+          {directInvitations[joinDialog.match?.id] ? 'Join Match' : 'Request to Join Match'}
+        </DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to send a request to join "{joinDialog.match?.title}"? The host will need to approve your request.
+            {directInvitations[joinDialog.match?.id] ? (
+              <>
+                Are you sure you want to join "{joinDialog.match?.title}"? You have a Direct Join invitation, so you will be added to the match immediately.
+              </>
+            ) : (
+              <>
+                Are you sure you want to send a request to join "{joinDialog.match?.title}"? The host will need to approve your request.
+              </>
+            )}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setJoinDialog({ open: false, match: null })}>Cancel</Button>
           <Button onClick={handleJoinConfirm} color="primary" variant="contained" disabled={joinLoading}>
-            {joinLoading ? <CircularProgress size={24} /> : 'Send Request'}
+            {joinLoading ? <CircularProgress size={24} /> : (directInvitations[joinDialog.match?.id] ? 'Join Match' : 'Send Request')}
           </Button>
         </DialogActions>
       </Dialog>

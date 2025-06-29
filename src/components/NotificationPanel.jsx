@@ -50,6 +50,8 @@ const NotificationPanel = () => {
         return 'Match Update';
       case 'match_join_request':
         return 'Join Request';
+      case 'match_invitation':
+        return 'Match Invitation';
       case 'join_request_accepted':
         return 'Join Request Accepted';
       case 'join_request_rejected':
@@ -66,6 +68,32 @@ const NotificationPanel = () => {
         return 'System Notification';
       default:
         return 'Notification';
+    }
+  };
+
+  // Helper function to format notification messages
+  const getNotificationMessage = (notification) => {
+    const contentData = parseNotificationContent(notification);
+
+    switch (notification.type) {
+      case 'match_invitation':
+        if (contentData) {
+          const inviterName = contentData.inviter_name || 'Someone';
+          const matchTitle = contentData.match_title || 'a match';
+          return `${inviterName} invited you to join "${matchTitle}". Click to view match details.`;
+        }
+        return 'You have been invited to join a match';
+
+      case 'match_join_request':
+        if (contentData) {
+          const requesterName = contentData.requester_name || 'Someone';
+          const matchTitle = contentData.match_title || 'your match';
+          return `${requesterName} wants to join "${matchTitle}"`;
+        }
+        return 'Someone wants to join your match';
+
+      default:
+        return contentData?.message || notification.content || "New notification";
     }
   };
   
@@ -168,7 +196,7 @@ const NotificationPanel = () => {
 
           // Show toast notification
           const title = getNotificationTitle(data);
-          const message = data.content || data.message || 'You have a new notification';
+          const message = getNotificationMessage(data);
           showInfoToast(title, message);
           console.log(`[NotificationPanel] Added new notification: ${title}`);
         } else if (eventType === 'UPDATE') {
@@ -363,6 +391,9 @@ const NotificationPanel = () => {
     // Handle navigation based on notification type
     if (notification.type === 'match_update' && notification.resource_id) {
       navigate(`/match/${notification.resource_id}`);
+      handleClose();
+    } else if (notification.type === 'match_invitation' && contentData?.match_id) {
+      navigate(`/match/${contentData.match_id}`);
       handleClose();
     } else if (notification.type === 'match_join_request' && notification.match_id) {
       navigate(`/match/${notification.match_id}`);
@@ -799,7 +830,7 @@ const NotificationPanel = () => {
                           color="text.primary"
                           sx={{ display: 'block' }}
                         >
-                          {parseNotificationContent(notification)?.message || notification.content || "New notification"}
+                          {getNotificationMessage(notification)}
                         </Typography>
                         <Typography
                           component="span"
