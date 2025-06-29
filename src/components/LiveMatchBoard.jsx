@@ -428,7 +428,19 @@ const LiveMatchBoard = () => {
       }
       setLoading(true);
       
-      // Get matches that are happening now or soon
+      // Create a date object for Malaysia timezone (UTC+8)
+      // This ensures we're working with the correct local date
+      const malaysiaOptions = { timeZone: 'Asia/Kuala_Lumpur' };
+      const malaysiaDateStr = new Date().toLocaleDateString('en-US', malaysiaOptions);
+      const malaysiaDate = new Date(malaysiaDateStr);
+      
+      // Get today's date in YYYY-MM-DD format for Malaysia timezone
+      const todayDateStr = malaysiaDate.toISOString().split('T')[0];
+      console.log('Current date in Malaysia timezone:', todayDateStr);
+      
+      console.log('Fetching matches for date:', todayDateStr);
+      
+      // Get all active matches (not filtering by date in the query)
       const { data, error } = await supabase
         .from('matches')
         .select(`
@@ -444,19 +456,55 @@ const LiveMatchBoard = () => {
         `)
         .not('status', 'eq', 'cancelled')
         .not('status', 'eq', 'completed')
-        .gte('start_time', new Date().toISOString())
-        .order('start_time', { ascending: true })
-        .limit(20);
+        .order('start_time', { ascending: true });
         
       if (error) throw error;
       
-      console.log('Fetched matches data:', data);
+      console.log('Fetched potential matches data:', data ? data.length : 0);
       
-      // Log full data structure received from server to help debugging
-      console.log('Raw matches data received:', JSON.stringify(data));
+      // Filter matches to only include ones happening on the current date in Malaysia
+      const activeMatches = data.filter(match => {
+        if (!match.start_time) return false;
+        
+        // Convert match start time to Malaysia timezone and get date part only
+        const matchDateInMalaysia = new Date(match.start_time)
+          .toLocaleDateString('en-US', malaysiaOptions);
+        const matchDateObj = new Date(matchDateInMalaysia);
+        const matchDateStr = matchDateObj.toISOString().split('T')[0];
+        
+        // Check if match date equals today's date
+        const isToday = matchDateStr === todayDateStr;
+        
+        // Also filter out matches that have already ended
+        const now = new Date();
+        const startTime = new Date(match.start_time);
+        // Use duration_minutes if available, otherwise calculate from end_time, or use default of 60
+        const durationInMinutes = match.duration_minutes || 
+          (match.end_time ? (new Date(match.end_time) - startTime) / 60000 : 60);
+        const endTime = match.end_time 
+          ? new Date(match.end_time) 
+          : new Date(startTime.getTime() + durationInMinutes * 60000);
+        const isActive = endTime > now;
+        
+        if (!isToday) {
+          console.log(`Match ${match.id} (${match.title}) on ${matchDateStr} - not today ${todayDateStr}`);
+        }
+        
+        if (!isActive) {
+          console.log(`Match ${match.id} (${match.title}) already ended`);
+        }
+        
+        if (isToday && isActive) {
+          console.log(`Including match ${match.id} (${match.title}) - happening today and active`);
+        }
+        
+        return isToday && isActive;
+      });
+      
+      console.log('Matches for today in Malaysia timezone:', activeMatches.length);
       
       // Transform data to include location and sport names
-      const transformedMatches = data.map(match => ({
+      const transformedMatches = activeMatches.map(match => ({
         ...match,
         location_name: match.locations?.name,
         sport_name: match.sports?.name,
@@ -464,13 +512,11 @@ const LiveMatchBoard = () => {
         current_participants: 0 // Will be filled in later
       }));
       
-      console.log('Formatted matches:', transformedMatches);
-      
       // Check if we have matches before setting state
       if (transformedMatches.length === 0) {
-        console.log('No matches found to display in LiveMatchBoard. This could be normal if there are no active matches.');
+        console.log('No live matches found for today. This could be normal if there are no active matches today.');
       } else {
-        console.log(`Found ${transformedMatches.length} matches to display in LiveMatchBoard.`);
+        console.log(`Found ${transformedMatches.length} live matches for today.`);
       }
       
       setMatches(transformedMatches);

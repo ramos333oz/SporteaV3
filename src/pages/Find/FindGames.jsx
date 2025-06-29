@@ -260,6 +260,21 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
             return true;
           }
           
+          // Filter out matches that have already ended
+          const now = new Date();
+          if (match.start_time) {
+            const startTime = new Date(match.start_time);
+            const endTime = match.end_time 
+              ? new Date(match.end_time) 
+              : new Date(startTime.getTime() + (match.duration_minutes || 60) * 60000);
+            
+            // If the match has ended, don't include it unless it's the user's match
+            if (endTime < now) {
+              console.log(`Filtering out ended match: ${match.id}, ${match.title}, ended at: ${endTime.toLocaleString()}`);
+              return false;
+            }
+          }
+          
           // Apply sport filter
           if (viewMode === 0) {
             // List view - handle array of sport filters
@@ -1208,6 +1223,21 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           console.log(`User match ${match.id} filtered out - match is private and showPrivate is false`);
         }
         return false;
+      }
+
+      // Filter out matches that have already ended
+      const now = new Date();
+      if (match.start_time) {
+        const startTime = new Date(match.start_time);
+        const endTime = match.end_time 
+          ? new Date(match.end_time) 
+          : new Date(startTime.getTime() + (match.duration_minutes || 60) * 60000);
+        
+        // If the match has ended, don't include it
+        if (endTime < now) {
+          console.log(`Filtering out ended match: ${match.id}, ${match.title}, ended at: ${endTime.toLocaleString()}`);
+          return false;
+        }
       }
 
       // Apply date range filter
