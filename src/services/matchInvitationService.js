@@ -158,7 +158,8 @@ export const matchInvitationService = {
         content: JSON.stringify({
           match_id: invitation.match_id,
           match_title: invitation.match.title,
-          responder_name: responderName
+          responder_name: responderName,
+          responder: responderName  // Added for backward compatibility
         })
       });
 
@@ -172,15 +173,32 @@ export const matchInvitationService = {
   // Handle accepted invitation (direct join only)
   handleAcceptedInvitation: async (invitation) => {
     try {
+      console.log('Processing accepted invitation:', invitation);
+
+      // Ensure we have the required fields
+      const matchId = invitation.match_id;
+      const userId = invitation.invitee_id;
+
+      if (!matchId || !userId) {
+        console.error('Missing required fields in invitation:', { invitation });
+        return { success: false, error: 'Invalid invitation data' };
+      }
+
       // Check if participant record already exists
-      const { data: existingParticipant } = await supabase
+      const { data: existingParticipant, error: selectError } = await supabase
         .from('participants')
         .select('id, status')
-        .eq('match_id', invitation.match_id)
-        .eq('user_id', invitation.invitee_id)
+        .eq('match_id', matchId)
+        .eq('user_id', userId)
         .single();
 
+      if (selectError && selectError.code !== 'PGRST116') { // PGRST116 is "not found" which is expected
+        console.error('Error checking for existing participant:', selectError);
+        throw selectError;
+      }
+
       if (existingParticipant) {
+        console.log('Existing participant found, updating status:', existingParticipant);
         // Update existing participant record
         const { error } = await supabase
           .from('participants')
@@ -190,22 +208,47 @@ export const matchInvitationService = {
           })
           .eq('id', existingParticipant.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating participant:', error);
+          throw error;
+        }
       } else {
+        console.log('No existing participant, creating new record');
         // Create new participant record
         const { error } = await supabase
           .from('participants')
           .insert({
-            match_id: invitation.match_id,
-            user_id: invitation.invitee_id,
-            status: 'confirmed'
+            match_id: matchId,
+            user_id: userId,
+            status: 'confirmed',
+            joined_at: new Date().toISOString()
           });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error creating participant:', error);
+          throw error;
+        }
+      }
+
+      // Always update the invitation to 'accepted' status
+      if (invitation.id) {
+        const { error: updateInvitationError } = await supabase
+          .from('match_invitations')
+          .update({ 
+            status: 'accepted',
+            responded_at: new Date().toISOString()
+          })
+          .eq('id', invitation.id);
+
+        if (updateInvitationError) {
+          console.warn('Error updating invitation status:', updateInvitationError);
+          // Continue anyway - the participant record is more important
+        }
       }
 
       return { success: true };
     } catch (error) {
+      console.error('Error in handleAcceptedInvitation:', error);
       return { success: false, error: error.message };
     }
   },

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Box, 
   Typography, 
@@ -256,6 +256,7 @@ const MatchStatusIndicator = ({ match }) => {
 const MatchDetail = () => {
   const { matchId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { subscribeToMatch } = useRealtime();
   const { showInfoToast, showSuccessToast, showWarningToast } = useToast();
@@ -282,21 +283,40 @@ const MatchDetail = () => {
     if (!user?.id || !matchId) return;
 
     try {
+      // Check for direct invitation from URL parameters (for notification clicks)
+      const searchParams = new URLSearchParams(location.search);
+      const fromNotification = searchParams.get('from') === 'notification';
+      const invitationType = searchParams.get('type') === 'match_invitation';
+      
+      // Always check the database for a direct invitation regardless of URL params
       const { data: invitation, error } = await supabase
         .from('match_invitations')
         .select('*')
         .eq('match_id', matchId)
         .eq('invitee_id', user.id)
-        .eq('status', 'pending')
+        .in('status', ['pending', 'accepted']) // Check for both pending and accepted invitations
         .eq('invitation_type', 'direct')
         .single();
 
-      setHasDirectInvitation(!!invitation && !error);
+      // Set hasDirectInvitation to true if:
+      // 1. Either the user arrived from a match_invitation notification OR
+      // 2. There is an active direct invitation in the database
+      const hasDirectInvite = (fromNotification && invitationType) || (!!invitation && !error);
+      
+      console.log('Direct invitation check:', { 
+        fromNotification, 
+        invitationType, 
+        hasInvitationInDb: !!invitation && !error,
+        invitationStatus: invitation?.status,
+        hasDirectInvite 
+      });
+      
+      setHasDirectInvitation(hasDirectInvite);
     } catch (error) {
       console.error('Error checking direct invitation:', error);
       setHasDirectInvitation(false);
     }
-  }, [user?.id, matchId]);
+  }, [user?.id, matchId, location.search]);
   
   // Check if user is host
   const isHost = match?.host_id === user?.id;
@@ -329,7 +349,9 @@ const MatchDetail = () => {
       setOpenJoinDialog(false);
       setButtonLoading(true);
 
+      console.log('Proceeding with join process');
       const result = await participantService.joinMatch(matchId, user.id);
+      console.log('Join result:', result);
 
       // Update local state immediately to reflect the change
       if (result && result.success) {

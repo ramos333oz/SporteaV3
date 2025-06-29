@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { matchInvitationService } from './matchInvitationService.js';
 import { notificationService, createNotificationContent } from './notifications';
 
 // Initialize Supabase client with environment variables
@@ -1064,36 +1063,73 @@ export const participantService = {
       if (invitation && !invitationError) {
         console.log('Found Direct Join invitation with status:', invitation.status);
 
-        if (invitation.status === 'pending') {
-          // Accept the pending invitation
-          console.log('Accepting pending Direct Join invitation...');
-          const acceptResult = await matchInvitationService.respondToInvitation(invitation.id, 'accepted');
+        if (invitation.status === 'pending' || invitation.status === 'accepted') {
+          // For both pending and accepted invitations, we'll handle them directly here
+          // to avoid circular dependency with matchInvitationService
+          
+          try {
+            // Update invitation status if needed
+            if (invitation.status === 'pending') {
+              console.log('Updating invitation status to accepted...');
+              const { error: updateError } = await supabase
+                .from('match_invitations')
+                .update({ 
+                  status: 'accepted', 
+                  responded_at: new Date().toISOString() 
+                })
+                .eq('id', invitation.id);
+                
+              if (updateError) throw updateError;
+            }
+            
+            // Check if participant record already exists
+            const { data: existingParticipant, error: selectError } = await supabase
+              .from('participants')
+              .select('id, status')
+              .eq('match_id', matchId)
+              .eq('user_id', userId)
+              .single();
 
-          if (acceptResult.success) {
+            if (selectError && selectError.code !== 'PGRST116') { // PGRST116 is "not found" which is expected
+              throw selectError;
+            }
+
+            if (existingParticipant) {
+              console.log('Existing participant found, updating status:', existingParticipant);
+              // Update existing participant record
+              const { error } = await supabase
+                .from('participants')
+                .update({
+                  status: 'confirmed',
+                  joined_at: new Date().toISOString()
+                })
+                .eq('id', existingParticipant.id);
+
+              if (error) throw error;
+            } else {
+              console.log('No existing participant, creating new record');
+              // Create new participant record
+              const { error } = await supabase
+                .from('participants')
+                .insert({
+                  match_id: matchId,
+                  user_id: userId,
+                  status: 'confirmed',
+                  joined_at: new Date().toISOString()
+                });
+
+              if (error) throw error;
+            }
+            
             return {
               success: true,
               message: 'Successfully joined match via Direct Join invitation!',
               status: 'confirmed',
               joinType: 'direct_invitation'
             };
-          } else {
-            throw new Error('Failed to accept Direct Join invitation');
-          }
-        } else if (invitation.status === 'accepted') {
-          // Invitation was already accepted, but user might not be in participants
-          // Try to add them directly using the handleAcceptedInvitation function
-          console.log('Retrying accepted Direct Join invitation...');
-          const joinResult = await matchInvitationService.handleAcceptedInvitation(invitation);
-
-          if (joinResult.success) {
-            return {
-              success: true,
-              message: 'Successfully joined match via Direct Join invitation!',
-              status: 'confirmed',
-              joinType: 'direct_invitation'
-            };
-          } else {
-            throw new Error('Failed to process Direct Join invitation');
+          } catch (directJoinError) {
+            console.error('Error processing direct invitation:', directJoinError);
+            throw new Error('Failed to process Direct Join invitation: ' + directJoinError.message);
           }
         }
       }

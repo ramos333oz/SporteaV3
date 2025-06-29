@@ -20,6 +20,7 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import LogoutIcon from '@mui/icons-material/Logout';
 import { useOptimizedRealtime } from '../hooks/useOptimizedRealtime';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, friendshipService } from '../services/supabase';
@@ -56,6 +57,10 @@ const NotificationPanel = () => {
         return 'Join Request Accepted';
       case 'join_request_rejected':
         return 'Join Request Declined';
+      case 'invitation_accepted':
+        return 'Invitation Accepted';
+      case 'invitation_declined':
+        return 'Invitation Declined';
       case 'friend_request':
         return 'Friend Request';
       case 'friend_request_accepted':
@@ -64,6 +69,8 @@ const NotificationPanel = () => {
         return 'Friend Request Declined';
       case 'friend_removed':
         return 'Friend Removed';
+      case 'participant_left':
+        return 'Participant Left';
       case 'system':
         return 'System Notification';
       default:
@@ -91,6 +98,44 @@ const NotificationPanel = () => {
           return `${requesterName} wants to join "${matchTitle}"`;
         }
         return 'Someone wants to join your match';
+        
+      case 'invitation_accepted':
+        if (contentData) {
+          const responderName = contentData.responder_name || contentData.responder || 'Someone';
+          const matchTitle = contentData.match_title || 'your match';
+          return `${responderName} has accepted your invitation and joined "${matchTitle}"`;
+        }
+        return 'Someone has accepted your match invitation';
+        
+      case 'invitation_declined':
+        if (contentData) {
+          const responderName = contentData.responder_name || contentData.responder || 'Someone';
+          const matchTitle = contentData.match_title || 'your match';
+          return `${responderName} has declined your invitation to join "${matchTitle}"`;
+        }
+        return 'Someone has declined your match invitation';
+      
+      case 'participant_left':
+        if (contentData) {
+          const participantName = contentData.participant_name || 'Someone';
+          const matchTitle = contentData.match_title || 'your match';
+          return `${participantName} has left your match "${matchTitle}"`;
+        }
+        return 'Someone has left your match';
+        
+      case 'join_request_accepted':
+        if (contentData) {
+          const matchTitle = contentData.match_title || 'the match';
+          return `Your request to join "${matchTitle}" has been accepted`;
+        }
+        return 'Your join request has been accepted';
+        
+      case 'join_request_rejected':
+        if (contentData) {
+          const matchTitle = contentData.match_title || 'the match';
+          return `Your request to join "${matchTitle}" has been declined`;
+        }
+        return 'Your join request has been declined';
 
       default:
         return contentData?.message || notification.content || "New notification";
@@ -393,7 +438,8 @@ const NotificationPanel = () => {
       navigate(`/match/${notification.resource_id}`);
       handleClose();
     } else if (notification.type === 'match_invitation' && contentData?.match_id) {
-      navigate(`/match/${contentData.match_id}`);
+      console.log('Navigating to match from invitation notification:', contentData);
+      navigate(`/match/${contentData.match_id}?from=notification&type=match_invitation`);
       handleClose();
     } else if (notification.type === 'match_join_request' && notification.match_id) {
       navigate(`/match/${notification.match_id}`);
@@ -487,9 +533,13 @@ const NotificationPanel = () => {
       case 'match_join_request':
         return <PersonAddIcon />;
       case 'join_request_accepted':
+      case 'invitation_accepted':
         return <CheckCircleIcon />;
       case 'join_request_rejected':
+      case 'invitation_declined':
         return <CancelIcon />;
+      case 'participant_left':
+        return <LogoutIcon />;
       case 'system':
       default:
         return <EventAvailableIcon />;
