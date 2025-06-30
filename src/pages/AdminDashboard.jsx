@@ -35,6 +35,28 @@ import {
   TrendingDown,
   Assessment
 } from '@mui/icons-material';
+import {
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  Area,
+  AreaChart
+} from 'recharts';
 import { supabase } from '../services/supabase';
 
 const AdminDashboard = () => {
@@ -949,6 +971,9 @@ const ClusteringAnalysisTab = ({ clusterData, loading, error, onRefresh }) => {
         </Card>
       </Grid>
 
+      {/* Clustering Visualizations */}
+      <ClusteringVisualizationsSection clusterProfiles={clusterProfiles} totalUsers={totalUsers} />
+
       {/* Cluster Profiles */}
       {clusterProfiles?.map((cluster, index) => (
         <Grid item xs={12} md={6} key={cluster.id}>
@@ -956,6 +981,229 @@ const ClusteringAnalysisTab = ({ clusterData, loading, error, onRefresh }) => {
         </Grid>
       ))}
     </Grid>
+  );
+};
+
+// Clustering Visualizations Section Component
+const ClusteringVisualizationsSection = ({ clusterProfiles, totalUsers }) => {
+  // Prepare data for different chart types
+  const prepareRadarData = () => {
+    if (!clusterProfiles || clusterProfiles.length === 0) return [];
+
+    const features = [
+      'Satisfaction',
+      'Engagement',
+      'Frequency',
+      'Response Time',
+      'Acceptance Rate'
+    ];
+
+    return features.map(feature => {
+      const dataPoint = { feature };
+      clusterProfiles.forEach(cluster => {
+        const characteristics = cluster.characteristics;
+        let value = 0;
+
+        switch(feature) {
+          case 'Satisfaction':
+            value = Math.round((characteristics?.avgSatisfactionRate || 0) * 100);
+            break;
+          case 'Engagement':
+            value = Math.round((characteristics?.avgEngagementLevel || 0) * 100);
+            break;
+          case 'Frequency':
+            value = Math.round((characteristics?.avgFeedbackFrequency || 0) * 10); // Scale to 0-100
+            break;
+          case 'Response Time':
+            value = Math.max(0, 100 - Math.round((characteristics?.avgResponseTime || 0) * 4)); // Invert and scale
+            break;
+          case 'Acceptance Rate':
+            value = Math.round((characteristics?.avgAcceptanceRate || 0) * 100);
+            break;
+        }
+        dataPoint[cluster.label] = value;
+      });
+      return dataPoint;
+    });
+  };
+
+  const prepareBarData = () => {
+    if (!clusterProfiles || clusterProfiles.length === 0) return [];
+
+    return clusterProfiles.map(cluster => ({
+      name: cluster.label.replace(' Users', ''),
+      satisfaction: Math.round((cluster.characteristics?.avgSatisfactionRate || 0) * 100),
+      engagement: Math.round((cluster.characteristics?.avgEngagementLevel || 0) * 100),
+      frequency: Math.round((cluster.characteristics?.avgFeedbackFrequency || 0) * 10),
+      acceptance: Math.round((cluster.characteristics?.avgAcceptanceRate || 0) * 100),
+      size: cluster.size
+    }));
+  };
+
+  const preparePieData = () => {
+    if (!clusterProfiles || clusterProfiles.length === 0) return [];
+
+    return clusterProfiles.map((cluster, index) => ({
+      name: cluster.label,
+      value: cluster.size,
+      percentage: Math.round((cluster.size / totalUsers) * 100)
+    }));
+  };
+
+  const prepareTimePatternData = () => {
+    if (!clusterProfiles || clusterProfiles.length === 0) return [];
+
+    const timeSlots = ['Morning', 'Afternoon', 'Evening', 'Night'];
+    return timeSlots.map(slot => {
+      const dataPoint = { timeSlot: slot };
+      clusterProfiles.forEach(cluster => {
+        const patterns = cluster.characteristics?.dominantTimePatterns || [];
+        dataPoint[cluster.label] = patterns.includes(slot) ? cluster.size : 0;
+      });
+      return dataPoint;
+    });
+  };
+
+  const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00', '#ff00ff'];
+
+  const radarData = prepareRadarData();
+  const barData = prepareBarData();
+  const pieData = preparePieData();
+  const timePatternData = prepareTimePatternData();
+
+  return (
+    <>
+      {/* Cluster Characteristics Radar Chart */}
+      <Grid item xs={12} lg={6}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              <Analytics sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Cluster Characteristics Comparison
+            </Typography>
+            <Typography variant="body2" color="textSecondary" paragraph>
+              Compare behavioral patterns across all user clusters
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <RadarChart data={radarData}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="feature" />
+                <PolarRadiusAxis angle={90} domain={[0, 100]} />
+                {clusterProfiles?.map((cluster, index) => (
+                  <Radar
+                    key={cluster.id}
+                    name={cluster.label}
+                    dataKey={cluster.label}
+                    stroke={COLORS[index % COLORS.length]}
+                    fill={COLORS[index % COLORS.length]}
+                    fillOpacity={0.1}
+                    strokeWidth={2}
+                  />
+                ))}
+                <Legend />
+                <Tooltip formatter={(value) => [`${value}%`, '']} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Cluster Metrics Bar Chart */}
+      <Grid item xs={12} lg={6}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              <Assessment sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Key Metrics by Cluster
+            </Typography>
+            <Typography variant="body2" color="textSecondary" paragraph>
+              Satisfaction, engagement, and activity levels comparison
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={barData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(value) => [`${value}%`, '']} />
+                <Legend />
+                <Bar dataKey="satisfaction" fill="#8884d8" name="Satisfaction %" />
+                <Bar dataKey="engagement" fill="#82ca9d" name="Engagement %" />
+                <Bar dataKey="acceptance" fill="#ffc658" name="Acceptance %" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Cluster Distribution Pie Chart */}
+      <Grid item xs={12} md={6}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              <Groups sx={{ mr: 1, verticalAlign: 'middle' }} />
+              User Distribution
+            </Typography>
+            <Typography variant="body2" color="textSecondary" paragraph>
+              Percentage of users in each cluster
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percentage }) => `${name}: ${percentage}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => [`${value} users`, 'Count']} />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Time Pattern Analysis */}
+      <Grid item xs={12} md={6}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              <TrendingUp sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Activity Time Patterns
+            </Typography>
+            <Typography variant="body2" color="textSecondary" paragraph>
+              When different user clusters are most active
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={timePatternData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="timeSlot" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                {clusterProfiles?.map((cluster, index) => (
+                  <Area
+                    key={cluster.id}
+                    type="monotone"
+                    dataKey={cluster.label}
+                    stackId="1"
+                    stroke={COLORS[index % COLORS.length]}
+                    fill={COLORS[index % COLORS.length]}
+                    fillOpacity={0.6}
+                  />
+                ))}
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </Grid>
+    </>
   );
 };
 
