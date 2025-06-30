@@ -46,22 +46,44 @@ serve(async (req) => {
 
     // Check for cached results (unless force recalculate)
     if (!forceRecalculate) {
-      const { data: cachedResult } = await supabase
+      const { data: cachedProfiles } = await supabase
         .from('cluster_profiles')
         .select('*')
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()) // Last 24 hours
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .order('created_at', { ascending: false });
 
-      if (cachedResult && cachedResult.length > 0) {
+      if (cachedProfiles && cachedProfiles.length > 0) {
         console.log('Returning cached clustering results');
+
+        // Get user cluster assignments count
+        const { data: userClusters } = await supabase
+          .from('user_clusters')
+          .select('user_id')
+          .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+        // Format cached results to match fresh analysis structure
+        const formattedResult = {
+          clusterProfiles: cachedProfiles.map(profile => ({
+            id: profile.cluster_id,
+            label: profile.cluster_label,
+            size: profile.size,
+            centroid: profile.centroid,
+            characteristics: profile.characteristics
+          })),
+          optimalK: cachedProfiles.length,
+          totalUsers: userClusters ? userClusters.length : 0,
+          cached: true
+        };
+
         return new Response(
-          JSON.stringify({ 
+          JSON.stringify({
             cached: true,
-            result: cachedResult[0],
+            result: formattedResult,
+            totalUsers: userClusters ? userClusters.length : 0,
+            analysisDate: cachedProfiles[0].created_at,
             message: 'Returned cached clustering results from last 24 hours'
           }),
-          { 
+          {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200
           }
