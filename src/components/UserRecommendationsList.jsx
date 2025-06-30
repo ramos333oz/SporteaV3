@@ -16,6 +16,7 @@ import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../services/supabase';
 import UserRecommendationCard from './UserRecommendationCard';
@@ -24,13 +25,14 @@ import UserRecommendationCard from './UserRecommendationCard';
  * Component for displaying a horizontal scrollable list of user recommendations
  * Similar to Instagram's "People you may know" section
  */
-const UserRecommendationsList = ({ 
-  limit = 10, 
-  onError = () => {},
+const UserRecommendationsList = ({
+  limit = 10,
+  onError,
   title = "People you may know",
-  showTitle = true 
+  showTitle = true
 }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -75,11 +77,11 @@ const UserRecommendationsList = ({
     } catch (err) {
       console.error('Error fetching user recommendations:', err);
       setError(err.message);
-      onError(err);
+      onError?.(err);
     } finally {
       setLoading(false);
     }
-  }, [user?.id, limit, onError]);
+  }, [user?.id, limit]);
 
   // Initial fetch
   useEffect(() => {
@@ -178,7 +180,7 @@ const UserRecommendationsList = ({
     // Mark as viewed
     supabase
       .from('user_user_recommendations')
-      .update({ 
+      .update({
         viewed_at: new Date().toISOString()
       })
       .eq('user_id', user.id)
@@ -186,6 +188,9 @@ const UserRecommendationsList = ({
       .then(() => {
         console.log('Marked recommendation as viewed');
       });
+
+    // Navigate to user profile
+    navigate(`/profile/${userId}`);
   };
 
   if (loading) {
