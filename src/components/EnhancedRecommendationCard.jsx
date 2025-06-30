@@ -72,7 +72,7 @@ const defaultVenueImages = {
   8: '/images/venues/badminton-court.jpg',
 };
 
-const EnhancedRecommendationCard = ({ 
+const EnhancedRecommendationCard = ({
   recommendation,
   isFallback = false,
   metrics = null,
@@ -80,10 +80,16 @@ const EnhancedRecommendationCard = ({
   onFeedback = () => {}
 }) => {
   const navigate = useNavigate();
-  const [feedback, setFeedback] = useState(null);
+  const [feedback, setFeedback] = useState(recommendation?.existingFeedback || null);
   const [expanded, setExpanded] = useState(false);
-  const [feedbackSent, setFeedbackSent] = useState(false);
-  
+  const [feedbackSent, setFeedbackSent] = useState(!!recommendation?.existingFeedback);
+
+  // Update feedback state when recommendation changes (e.g., after giving feedback)
+  React.useEffect(() => {
+    setFeedback(recommendation?.existingFeedback || null);
+    setFeedbackSent(!!recommendation?.existingFeedback);
+  }, [recommendation?.existingFeedback]);
+
   if (!recommendation?.match) return null;
   
   const { match, score, explanation, final_score, direct_preference, collaborative_filtering, activity_based, score_breakdown } = recommendation;
@@ -113,8 +119,14 @@ const EnhancedRecommendationCard = ({
   const spotsRemaining = match.max_participants - currentParticipants;
   
   const handleFeedback = async (type) => {
+    // If feedback already exists, don't allow changes (locking mechanism)
+    if (feedbackSent && feedback) {
+      return;
+    }
+
     if (feedback === type) {
       setFeedback(null);
+      setFeedbackSent(false);
       onFeedback(null, match.id);
       return;
     }
@@ -379,60 +391,90 @@ const EnhancedRecommendationCard = ({
         
         {/* Feedback Buttons */}
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip title="Like this recommendation">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleFeedback('liked');
-              }}
-              color={feedback === 'liked' ? 'success' : 'default'}
-              sx={{
-                borderRadius: 2,
-                border: '1.5px solid',
-                borderColor: feedback === 'liked' ? 'success.main' : 'divider',
-                backgroundColor: feedback === 'liked' ? 'success.light' : 'transparent',
-                '&:hover': {
-                  backgroundColor: feedback === 'liked' ? 'success.light' : 'success.lighter',
-                  borderColor: 'success.main',
-                  transform: 'translateY(-1px)',
-                }
-              }}
-            >
-              {feedback === 'liked' ? <ThumbUp /> : <ThumbUpOutlined />}
-            </IconButton>
+          <Tooltip title={feedbackSent && feedback ? "Feedback already given" : "Like this recommendation"}>
+            <span>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFeedback('liked');
+                }}
+                disabled={feedbackSent && feedback && feedback !== 'liked'}
+                color={feedback === 'liked' ? 'success' : 'default'}
+                sx={{
+                  borderRadius: 2,
+                  border: '1.5px solid',
+                  borderColor: feedback === 'liked' ? 'success.main' : 'divider',
+                  backgroundColor: feedback === 'liked' ? 'success.light' : 'transparent',
+                  opacity: feedbackSent && feedback && feedback !== 'liked' ? 0.5 : 1,
+                  cursor: feedbackSent && feedback && feedback !== 'liked' ? 'not-allowed' : 'pointer',
+                  '&:hover': {
+                    backgroundColor: feedbackSent && feedback && feedback !== 'liked'
+                      ? 'transparent'
+                      : feedback === 'liked' ? 'success.light' : 'success.lighter',
+                    borderColor: feedbackSent && feedback && feedback !== 'liked'
+                      ? 'divider'
+                      : 'success.main',
+                    transform: feedbackSent && feedback && feedback !== 'liked'
+                      ? 'none'
+                      : 'translateY(-1px)',
+                  },
+                  '&.Mui-disabled': {
+                    borderColor: 'divider',
+                    color: 'text.disabled'
+                  }
+                }}
+              >
+                {feedback === 'liked' ? <ThumbUp /> : <ThumbUpOutlined />}
+              </IconButton>
+            </span>
           </Tooltip>
 
-          <Tooltip title="Dislike this recommendation">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleFeedback('disliked');
-              }}
-              color={feedback === 'disliked' ? 'error' : 'default'}
-              sx={{
-                borderRadius: 2,
-                border: '1.5px solid',
-                borderColor: feedback === 'disliked' ? 'error.main' : 'divider',
-                backgroundColor: feedback === 'disliked' ? 'error.light' : 'transparent',
-                '&:hover': {
-                  backgroundColor: feedback === 'disliked' ? 'error.light' : 'error.lighter',
-                  borderColor: 'error.main',
-                  transform: 'translateY(-1px)',
-                }
-              }}
-            >
-              {feedback === 'disliked' ? <ThumbDown /> : <ThumbDownOutlined />}
-            </IconButton>
+          <Tooltip title={feedbackSent && feedback ? "Feedback already given" : "Dislike this recommendation"}>
+            <span>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFeedback('disliked');
+                }}
+                disabled={feedbackSent && feedback && feedback !== 'disliked'}
+                color={feedback === 'disliked' ? 'error' : 'default'}
+                sx={{
+                  borderRadius: 2,
+                  border: '1.5px solid',
+                  borderColor: feedback === 'disliked' ? 'error.main' : 'divider',
+                  backgroundColor: feedback === 'disliked' ? 'error.light' : 'transparent',
+                  opacity: feedbackSent && feedback && feedback !== 'disliked' ? 0.5 : 1,
+                  cursor: feedbackSent && feedback && feedback !== 'disliked' ? 'not-allowed' : 'pointer',
+                  '&:hover': {
+                    backgroundColor: feedbackSent && feedback && feedback !== 'disliked'
+                      ? 'transparent'
+                      : feedback === 'disliked' ? 'error.light' : 'error.lighter',
+                    borderColor: feedbackSent && feedback && feedback !== 'disliked'
+                      ? 'divider'
+                      : 'error.main',
+                    transform: feedbackSent && feedback && feedback !== 'disliked'
+                      ? 'none'
+                      : 'translateY(-1px)',
+                  },
+                  '&.Mui-disabled': {
+                    borderColor: 'divider',
+                    color: 'text.disabled'
+                  }
+                }}
+              >
+                {feedback === 'disliked' ? <ThumbDown /> : <ThumbDownOutlined />}
+              </IconButton>
+            </span>
           </Tooltip>
         </Box>
       </Box>
       
       {/* Feedback confirmation */}
-      {feedbackSent && (
+      {feedbackSent && feedback && (
         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, textAlign: 'center', display: 'block' }}>
-          Thanks for your feedback!
+          Thanks for your feedback! You {feedback} this recommendation.
         </Typography>
       )}
     </UnifiedCard>

@@ -88,7 +88,33 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
         setRecommendationType(result.type || 'standard');
 
         if (result.recommendations?.length > 0) {
-          setRecommendations(result.recommendations);
+          // Fetch existing feedback for all recommended matches
+          const matchIds = result.recommendations.map(rec => rec.match.id);
+          const { data: existingFeedback, error: feedbackError } = await supabase
+            .from('recommendation_feedback')
+            .select('match_id, feedback_type')
+            .eq('user_id', user.id)
+            .in('match_id', matchIds);
+
+          if (feedbackError) {
+            console.warn('Error fetching existing feedback:', feedbackError);
+          }
+
+          // Create a map of match_id to feedback_type for quick lookup
+          const feedbackMap = {};
+          if (existingFeedback) {
+            existingFeedback.forEach(feedback => {
+              feedbackMap[feedback.match_id] = feedback.feedback_type;
+            });
+          }
+
+          // Add existing feedback to each recommendation
+          const recommendationsWithFeedback = result.recommendations.map(rec => ({
+            ...rec,
+            existingFeedback: feedbackMap[rec.match.id] || null
+          }));
+
+          setRecommendations(recommendationsWithFeedback);
           setMessage(result.message || 'Based on your preferences');
 
           // If using fallback data from the recommendation service, show an indicator
@@ -205,6 +231,13 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
 
     try {
       console.log('Submitting feedback:', { feedbackType, matchId, userId: user.id });
+
+      // Update local state immediately for better UX
+      setRecommendations(prev => prev.map(rec =>
+        rec.match.id === matchId
+          ? { ...rec, existingFeedback: feedbackType }
+          : rec
+      ));
 
       // Show feedback message
       if (feedbackType === 'liked') {
