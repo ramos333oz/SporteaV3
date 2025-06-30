@@ -28,6 +28,7 @@ import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import EventIcon from '@mui/icons-material/Event';
 import LiveMatchBoard from '../components/LiveMatchBoard';
 import RecommendationsList from '../components/RecommendationsList';
+import UserRecommendationsList from '../components/UserRecommendationsList';
 import EnhancedMatchCard from '../components/EnhancedMatchCard';
 import SportCard from '../components/SportCard';
 import { supabase } from '../services/supabase';
@@ -243,7 +244,14 @@ const Home = () => {
           </Button>
         </Grid>
       </Grid>
-      
+
+      {/* User-to-User Recommendations - Instagram style "People you may know" */}
+      <UserRecommendationsList
+        limit={8}
+        title="Connect with fellow athletes"
+        onError={(err) => console.error('User recommendation error:', err)}
+      />
+
       {/* Live match board with real-time updates */}
       <Box sx={{ mb: 4 }}>
         <LiveMatchBoard />
