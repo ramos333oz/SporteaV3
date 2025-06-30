@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Box, 
   Typography, 
@@ -38,7 +38,17 @@ const HostedMatches = () => {
   const { user, supabase } = useAuth();
   const navigate = useNavigate();
   const { showSuccessToast, showErrorToast } = useToast();
-  const [tabValue, setTabValue] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Get tab value from URL params, default to 0 (Upcoming)
+  const getTabFromParams = () => {
+    const tab = searchParams.get('tab');
+    if (tab === 'past') return 1;
+    if (tab === 'cancelled') return 2;
+    return 0;
+  };
+
+  const [tabValue, setTabValue] = useState(getTabFromParams());
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
@@ -144,6 +154,14 @@ const HostedMatches = () => {
     }
   };
 
+  // Update tab value when URL params change (e.g., when navigating back)
+  useEffect(() => {
+    const newTabValue = getTabFromParams();
+    if (newTabValue !== tabValue) {
+      setTabValue(newTabValue);
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     // Fetch hosted matches when component mounts or tab changes
     fetchHostedMatches();
@@ -151,6 +169,17 @@ const HostedMatches = () => {
   
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
+
+    // Update URL params to persist tab state
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (newValue === 1) {
+      newSearchParams.set('tab', 'past');
+    } else if (newValue === 2) {
+      newSearchParams.set('tab', 'cancelled');
+    } else {
+      newSearchParams.delete('tab'); // Remove tab param for upcoming (default)
+    }
+    setSearchParams(newSearchParams);
   };
   
   const handleMenuOpen = (event, match) => {
