@@ -15,7 +15,6 @@ import Find from './pages/Find';
 import Host from './pages/Host';
 import MatchDetail from './pages/MatchDetail';
 import EditMatch from './pages/EditMatch';
-import Admin from './pages/Admin';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
@@ -334,6 +333,7 @@ function App() {
                 {/* Admin routes (separate authentication) */}
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
                 
                 {/* Root route with conditional redirect */}
                 <Route path="/" element={
@@ -353,7 +353,6 @@ function App() {
                   <Route path="/host" element={<Host />} />
                   <Route path="/match/:matchId" element={<MatchDetail />} />
                   <Route path="/edit-match/:matchId" element={<EditMatch />} />
-                  <Route path="/admin" element={<Admin />} />
                   <Route path="/friends" element={<Friends />} />
                 </Route>
                 
