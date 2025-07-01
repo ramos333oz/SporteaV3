@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Typography, 
+import {
+  Box,
+  Typography,
   Grid,
   Card,
   CardContent,
@@ -18,6 +18,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
+import LocationMapView from '../../components/LocationMapView';
 import SportsBasketballIcon from '@mui/icons-material/SportsBasketball';
 import SportsTennisIcon from '@mui/icons-material/SportsTennis';
 import SportsVolleyballIcon from '@mui/icons-material/SportsVolleyball';
@@ -411,39 +412,7 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
                           </Typography>
                         </Box>
                         
-                        {/* Mini map preview if coordinates available */}
-                        {location.coordinates && (
-                          <Box 
-                            sx={{ 
-                              mb: 2,
-                              height: '80px',
-                              borderRadius: 1,
-                              overflow: 'hidden',
-                              border: '1px solid',
-                              borderColor: 'divider',
-                              position: 'relative',
-                              '&::after': {
-                                content: '""',
-                                position: 'absolute',
-                                top: '50%',
-                                left: '50%',
-                                transform: 'translate(-50%, -50%)',
-                                width: '12px',
-                                height: '12px',
-                                borderRadius: '50%',
-                                backgroundColor: 'primary.main',
-                                border: '2px solid white',
-                                zIndex: 10
-                              }
-                            }}
-                          >
-                            <img 
-                              src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s+1976d2(${location.coordinates.lng},${location.coordinates.lat})/${location.coordinates.lng},${location.coordinates.lat},15,0/300x100?access_token=pk.eyJ1IjoiZXhhbXBsZXVzZXIiLCJhIjoiY2xoOGF5cHpiMWJvbzNlbnV6NWw3Z2s5dSJ9.3MXKwQOfEuICLqZ8w8kJkw`}
-                              alt="Location Map"
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                          </Box>
-                        )}
+
                         
                         {/* Facility chips */}
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
@@ -493,73 +462,16 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
         )}
       </Grid>
       
-      {matchData.location && (
-        <Paper sx={{ mt: 4, p: 3, borderRadius: 2 }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ textAlign: 'left' }}>
-                <Typography variant="h3" gutterBottom>
-                  Selected Location: {matchData.location.name}
-                </Typography>
-                
-                <Typography variant="body1" sx={{ mb: 2, fontWeight: 500, color: 'primary.main' }}>
-                  {matchData.courtName ? `Selected court: ${matchData.courtName}` : 'No specific court selected'}
-                </Typography>
-                
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <LocationOnIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-                    <Typography variant="body1">{matchData.location.address}</Typography>
-                  </Box>
-                  
-                  {matchData.location.sportTypes.length > 0 && (
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <SportsSoccerIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-                      <Typography variant="body1">
-                        Sports: {matchData.location.sportTypes.join(', ')}
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-                
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                  {matchData.location.facilities.map((facility, index) => (
-                    <Chip 
-                      key={index} 
-                      label={facility} 
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                    />
-                  ))}
-                </Box>
-              </Box>
-            </Grid>
-            
-            <Grid item xs={12} md={6}>
-              {/* Larger map view for the selected location */}
-              {matchData.location.coordinates && (
-                <Box 
-                  sx={{ 
-                    width: '100%',
-                    height: '200px',
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                  }}
-                >
-                  <img 
-                    src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-l+1976d2(${matchData.location.coordinates.lng},${matchData.location.coordinates.lat})/${matchData.location.coordinates.lng},${matchData.location.coordinates.lat},15,0/600x300?access_token=pk.eyJ1IjoiZXhhbXBsZXVzZXIiLCJhIjoiY2xoOGF5cHpiMWJvbzNlbnV6NWw3Z2s5dSJ9.3MXKwQOfEuICLqZ8w8kJkw`}
-                    alt="Selected Location Map"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                </Box>
-              )}
-            </Grid>
-          </Grid>
-        </Paper>
-      )}
+
+
+      {/* Interactive Map View */}
+      <LocationMapView
+        venues={filteredLocations}
+        selectedSport={matchData.sport}
+        selectedLocation={matchData.location}
+        onLocationSelect={handleSelectLocation}
+        loading={loading}
+      />
     </Box>
   );
 };
