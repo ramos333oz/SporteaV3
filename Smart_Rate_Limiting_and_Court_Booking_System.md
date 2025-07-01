@@ -99,7 +99,7 @@ LIMIT 1;
 ### Conflict Detection Rules
 
 1. **Same Court + Same Sport + Overlapping Time = CONFLICT**
-2. **Same Court + Different Sport + Overlapping Time = ALLOWED** 
+2. **Same Court + Different Sport + Overlapping Time = ALLOWED** execept for 
 3. **Different Court + Any Sport + Any Time = ALLOWED**
 
 ### Time Overlap Detection

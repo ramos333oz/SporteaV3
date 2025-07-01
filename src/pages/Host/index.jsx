@@ -240,10 +240,31 @@ const Host = () => {
       
     } catch (error) {
       console.error('Error creating match:', error);
+
+      // Enhanced error handling for rate limiting and conflicts
+      let errorMessage = error.message;
+      let severity = 'error';
+
+      if (error.type === 'RATE_LIMIT_EXCEEDED') {
+        severity = 'warning';
+        if (error.code === 'daily_limit_reached') {
+          errorMessage = 'You\'ve reached your daily hosting limit of 2 matches. Try again tomorrow.';
+        } else if (error.code === 'weekly_limit_exceeded') {
+          errorMessage = 'You\'ve reached your weekly hosting limit. Weekly limits reset on Monday.';
+        } else if (error.code === 'monthly_limit_exceeded') {
+          errorMessage = 'You\'ve reached your monthly hosting limit. Monthly limits reset on the 1st.';
+        } else if (error.code === 'cooldown_active') {
+          errorMessage = 'Please wait 4 hours between hosting matches to ensure quality.';
+        }
+      } else if (error.type === 'BOOKING_CONFLICT') {
+        severity = 'warning';
+        errorMessage = 'This court is already booked for the selected time. Please choose a different time or court.';
+      }
+
       setSnackbar({
         open: true,
-        message: `Failed to create match: ${error.message}`,
-        severity: 'error'
+        message: errorMessage,
+        severity: severity
       });
     } finally {
       setIsSubmitting(false);
@@ -396,8 +417,14 @@ const Host = () => {
                       variant="contained"
                       onClick={handleCreateMatch}
                       sx={{ borderRadius: 2 }}
-                      disabled={isSubmitting || !matchData.termsAccepted}
-                      title={!matchData.termsAccepted ? 'You must accept the terms and conditions to create a match' : ''}
+                      disabled={isSubmitting || !matchData.termsAccepted || !matchData.canCreateMatch}
+                      title={
+                        !matchData.termsAccepted
+                          ? 'You must accept the terms and conditions to create a match'
+                          : !matchData.canCreateMatch
+                          ? 'Please resolve validation issues before creating the match'
+                          : ''
+                      }
                     >
                       {isSubmitting ? (
                         <>

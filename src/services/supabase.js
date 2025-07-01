@@ -271,12 +271,15 @@ export const matchService = {
     }
   },
   
-  // Create a new match
-  createMatch: async (matchData) => {
+  // Create a new match with rate limiting and conflict checking
+  createMatch: async (inputMatchData) => {
     try {
       // Log input data for debugging
-      console.log('Creating match with initial data:', matchData);
-      
+      console.log('Creating match with initial data:', inputMatchData);
+
+      // Create a local copy to avoid scoping issues
+      const matchData = { ...inputMatchData };
+
       // Validate required fields
       const requiredFields = ['title', 'sport_id', 'host_id', 'location_id', 'start_time', 'end_time'];
       for (const field of requiredFields) {
@@ -284,17 +287,17 @@ export const matchService = {
           throw new Error(`Missing required field: ${field}`);
         }
       }
-      
+
       // Get the current authenticated user
       const { data: authData } = await supabase.auth.getUser();
       if (!authData?.user) {
         throw new Error('You must be logged in to create a match');
       }
-      
+
       // Ensure we're using the current authenticated user's ID as host_id
       // This is critical for RLS policies to work properly
       const host_id = authData.user.id;
-      
+
       // If the provided host_id doesn't match the authenticated user, that's a problem
       if (matchData.host_id !== host_id) {
         console.warn(`Provided host_id (${matchData.host_id}) doesn't match authenticated user (${host_id}). Using authenticated user.`);
@@ -493,29 +496,188 @@ export const matchService = {
       
       // Log the cleaned data
       console.log('Sending to Supabase (cleaned):', cleanedData);
-      
-      // Create the match
-      const { data, error } = await supabase
-        .from('matches')
-        .insert([cleanedData])
-        .select()
-        .single();
-        
-      if (error) {
-        console.error('Supabase error creating match:', error);
+
+      // Use the new validation function that includes rate limiting and conflict checking
+      const { data: validationResult, error: validationError } = await supabase
+        .rpc('create_match_with_validation', {
+          p_title: cleanedData.title,
+          p_sport_id: cleanedData.sport_id,
+          p_host_id: cleanedData.host_id,
+          p_location_id: cleanedData.location_id,
+          p_start_time: cleanedData.start_time,
+          p_end_time: cleanedData.end_time,
+          p_max_participants: cleanedData.max_participants,
+          p_skill_level: cleanedData.skill_level,
+          p_description: cleanedData.description,
+          p_rules: cleanedData.rules,
+          p_is_private: cleanedData.is_private,
+          p_access_code: cleanedData.access_code
+        });
+
+      if (validationError) {
+        console.error('Validation function error:', validationError);
+        throw validationError;
+      }
+
+      // Check if validation passed
+      if (!validationResult.success) {
+        console.log('Match creation blocked by validation:', validationResult);
+
+        // Create a user-friendly error based on the validation result
+        const errorMessage = validationResult.message || 'Match creation failed validation';
+        const error = new Error(errorMessage);
+        error.type = validationResult.error_type;
+        error.code = validationResult.error_code;
+        error.details = validationResult.details;
+
         throw error;
       }
-      
-      console.log('Match created successfully:', data);
+
+      // Get the created match data
+      const { data: createdMatchData, error: fetchError } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', validationResult.match_id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching created match:', fetchError);
+        // Match was created but we couldn't fetch it - still return success
+        return {
+          data: { id: validationResult.match_id },
+          error: null,
+          validation_details: validationResult
+        };
+      }
+
+      console.log('Match created successfully with validation:', createdMatchData);
       // Return in a consistent format that the client expects
-      return { data: data, error: null };
+      return {
+        data: createdMatchData,
+        error: null,
+        validation_details: validationResult
+      };
     } catch (error) {
       console.error('Error in createMatch:', error);
       // Return a consistent error format that the client can handle
       return { data: null, error: error };
     }
   },
-  
+
+  // Check rate limits for a user
+  checkRateLimits: async (userId = null) => {
+    try {
+      // If no userId provided, use current authenticated user
+      if (!userId) {
+        const { data: authData } = await supabase.auth.getUser();
+        if (!authData?.user) {
+          throw new Error('You must be logged in to check rate limits');
+        }
+        userId = authData.user.id;
+      }
+
+      const { data, error } = await supabase
+        .rpc('get_user_rate_limit_status', { p_user_id: userId });
+
+      if (error) {
+        console.error('Error checking rate limits:', error);
+        throw error;
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error in checkRateLimits:', error);
+      return { data: null, error: error };
+    }
+  },
+
+  // Check for court booking conflicts
+  checkBookingConflicts: async (conflictData) => {
+    try {
+      const {
+        location_id,
+        sport_id,
+        scheduled_date,
+        start_time,
+        end_time,
+        exclude_match_id = null
+      } = conflictData;
+
+      // Validate required fields
+      const requiredFields = ['location_id', 'sport_id', 'scheduled_date', 'start_time', 'end_time'];
+      for (const field of requiredFields) {
+        if (!conflictData[field]) {
+          throw new Error(`Missing required field for conflict check: ${field}`);
+        }
+      }
+
+      const { data, error } = await supabase
+        .rpc('check_court_booking_conflicts', {
+          p_location_id: location_id,
+          p_sport_id: sport_id,
+          p_scheduled_date: scheduled_date,
+          p_start_time: start_time,
+          p_end_time: end_time,
+          p_exclude_match_id: exclude_match_id
+        });
+
+      if (error) {
+        console.error('Error checking booking conflicts:', error);
+        throw error;
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error in checkBookingConflicts:', error);
+      return { data: null, error: error };
+    }
+  },
+
+  // Validate match creation without actually creating it
+  validateMatchCreation: async (matchData) => {
+    try {
+      // Get the current authenticated user
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData?.user) {
+        throw new Error('You must be logged in to validate match creation');
+      }
+
+      const host_id = authData.user.id;
+
+      // Check rate limits
+      const rateLimitResult = await matchService.checkRateLimits(host_id);
+      if (rateLimitResult.error) {
+        return { data: null, error: rateLimitResult.error };
+      }
+
+      // Check for conflicts
+      const conflictResult = await matchService.checkBookingConflicts({
+        location_id: matchData.location_id,
+        sport_id: matchData.sport_id,
+        scheduled_date: new Date(matchData.start_time).toISOString().split('T')[0],
+        start_time: matchData.start_time,
+        end_time: matchData.end_time
+      });
+
+      if (conflictResult.error) {
+        return { data: null, error: conflictResult.error };
+      }
+
+      // Return validation results
+      return {
+        data: {
+          rate_limits: rateLimitResult.data,
+          conflicts: conflictResult.data,
+          can_create: !conflictResult.data.has_conflict
+        },
+        error: null
+      };
+    } catch (error) {
+      console.error('Error in validateMatchCreation:', error);
+      return { data: null, error: error };
+    }
+  },
+
   // Get match by id
   getMatch: async (matchId) => {
     const { data, error } = await supabase
