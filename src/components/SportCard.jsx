@@ -82,6 +82,7 @@ const SportCard = ({
   
   const {
     activeMatches = 0,
+    totalMatches = 0,
     totalPlayers = 0,
     upcomingMatches = 0,
     popularityScore = 0
@@ -97,12 +98,12 @@ const SportCard = ({
     <UnifiedCard
       imagePosition="none"
       title={sport.name}
-      subtitle={`${activeMatches} active matches`}
+      subtitle={`${activeMatches} active • ${totalMatches} total matches`}
       onClick={handleClick}
       variant={variant}
       ariaLabel={`View ${sport.name} matches`}
       sx={{
-        minHeight: compact ? 200 : 240,
+        minHeight: compact ? 220 : 280,
         background: `linear-gradient(135deg, ${sportInfo.color}08 0%, ${sportInfo.color}15 100%)`,
         border: `1px solid ${sportInfo.color}30`,
         '&:hover': {
@@ -143,10 +144,26 @@ const SportCard = ({
               Active Matches
             </Typography>
           </Box>
-          <Chip 
+          <Chip
             label={activeMatches}
             size="small"
             color={activeMatches > 0 ? 'success' : 'default'}
+            sx={{ minWidth: 40 }}
+          />
+        </Box>
+
+        {/* Total Matches */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Event fontSize="small" color="action" />
+            <Typography variant="body2" color="text.secondary">
+              Total Matches
+            </Typography>
+          </Box>
+          <Chip
+            label={totalMatches}
+            size="small"
+            variant="outlined"
             sx={{ minWidth: 40 }}
           />
         </Box>

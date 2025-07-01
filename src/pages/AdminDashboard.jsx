@@ -547,8 +547,336 @@ const UsersTab = ({ data }) => {
 };
 
 const MatchesTab = ({ data }) => {
-  if (!data) return <CircularProgress />;
-  return <Typography>Match analytics will be displayed here</Typography>;
+  const [matchStats, setMatchStats] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+
+  const loadMatchStatistics = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch comprehensive match statistics
+      const [matchesResult, sportsResult, participantsResult] = await Promise.all([
+        supabase.from('matches').select(`
+          id, status, created_at, start_time, sport_id, max_participants,
+          sports!inner(id, name)
+        `),
+        supabase.from('sports').select('id, name'),
+        supabase.from('participants').select('id, match_id, status, joined_at')
+      ]);
+
+      if (matchesResult.error) throw matchesResult.error;
+      if (sportsResult.error) throw sportsResult.error;
+      if (participantsResult.error) throw participantsResult.error;
+
+      const matches = matchesResult.data || [];
+      const sports = sportsResult.data || [];
+      const participants = participantsResult.data || [];
+
+      // Calculate statistics
+      const stats = calculateMatchStatistics(matches, sports, participants);
+      setMatchStats(stats);
+
+    } catch (err) {
+      console.error('Error loading match statistics:', err);
+      setError('Failed to load match statistics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateMatchStatistics = (matches, sports, participants) => {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Overall statistics
+    const totalMatches = matches.length;
+    const activeMatches = matches.filter(m => m.status === 'active').length;
+    const completedMatches = matches.filter(m => m.status === 'completed').length;
+    const cancelledMatches = matches.filter(m => m.status === 'cancelled').length;
+    const recentMatches = matches.filter(m => new Date(m.created_at) > thirtyDaysAgo).length;
+
+    // Sport-wise breakdown
+    const sportStats = sports.map(sport => {
+      const sportMatches = matches.filter(m => m.sport_id === sport.id);
+      const activeCount = sportMatches.filter(m => m.status === 'active' || m.status === 'upcoming').length;
+      const totalCount = sportMatches.filter(m => m.status !== 'cancelled').length;
+      const completedCount = sportMatches.filter(m => m.status === 'completed').length;
+
+      // Calculate average participants from participants table
+      const sportParticipants = participants.filter(p =>
+        sportMatches.some(m => m.id === p.match_id)
+      );
+      const avgParticipants = sportMatches.length > 0
+        ? sportParticipants.length / sportMatches.length
+        : 0;
+
+      return {
+        id: sport.id,
+        name: sport.name,
+        activeMatches: activeCount,
+        totalMatches: totalCount,
+        completedMatches: completedCount,
+        averageParticipants: Math.round(avgParticipants * 10) / 10,
+        popularity: totalCount / Math.max(totalMatches, 1) * 100
+      };
+    }).sort((a, b) => b.totalMatches - a.totalMatches);
+
+    // Participation statistics
+    const totalParticipants = participants.length;
+    const activeParticipants = participants.filter(p => p.status === 'confirmed').length;
+    const avgParticipantsPerMatch = totalMatches > 0 ? totalParticipants / totalMatches : 0;
+
+    // Time-based trends (last 7 days)
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const dayMatches = matches.filter(m => {
+        const matchDate = new Date(m.created_at);
+        return matchDate.toDateString() === date.toDateString();
+      }).length;
+
+      return {
+        date: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+        matches: dayMatches
+      };
+    }).reverse();
+
+    return {
+      overview: {
+        totalMatches,
+        activeMatches,
+        completedMatches,
+        cancelledMatches,
+        recentMatches,
+        totalParticipants,
+        activeParticipants,
+        avgParticipantsPerMatch: Math.round(avgParticipantsPerMatch * 10) / 10,
+        completionRate: totalMatches > 0 ? Math.round((completedMatches / totalMatches) * 100) : 0,
+        cancellationRate: totalMatches > 0 ? Math.round((cancelledMatches / totalMatches) * 100) : 0
+      },
+      sportStats,
+      trends: last7Days
+    };
+  };
+
+  React.useEffect(() => {
+    loadMatchStatistics();
+  }, []);
+
+  if (loading) return <CircularProgress />;
+  if (error) return <Alert severity="error">{error}</Alert>;
+  if (!matchStats) return <Typography>No match data available</Typography>;
+
+  return (
+    <Box>
+      {/* Overview Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>
+                Total Matches
+              </Typography>
+              <Typography variant="h4">
+                {matchStats.overview.totalMatches}
+              </Typography>
+              <Typography variant="body2" color="success.main">
+                +{matchStats.overview.recentMatches} this month
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>
+                Active Matches
+              </Typography>
+              <Typography variant="h4" color="primary.main">
+                {matchStats.overview.activeMatches}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Currently ongoing
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>
+                Completion Rate
+              </Typography>
+              <Typography variant="h4" color="success.main">
+                {matchStats.overview.completionRate}%
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {matchStats.overview.completedMatches} completed
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>
+                Avg Participants
+              </Typography>
+              <Typography variant="h4">
+                {matchStats.overview.avgParticipantsPerMatch}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Per match
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Charts Row */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Match Trends Chart */}
+        <Grid item xs={12} md={8}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Match Creation Trends (Last 7 Days)
+              </Typography>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={matchStats.trends}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Area
+                    type="monotone"
+                    dataKey="matches"
+                    stroke="#1976d2"
+                    fill="#1976d2"
+                    fillOpacity={0.3}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Status Distribution */}
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Match Status Distribution
+              </Typography>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: 'Active', value: matchStats.overview.activeMatches, fill: '#4caf50' },
+                      { name: 'Completed', value: matchStats.overview.completedMatches, fill: '#2196f3' },
+                      { name: 'Cancelled', value: matchStats.overview.cancelledMatches, fill: '#f44336' }
+                    ]}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  />
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Sport Statistics Table */}
+      <Card>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">
+              Sport-wise Statistics
+            </Typography>
+            <Button
+              startIcon={<Refresh />}
+              onClick={loadMatchStatistics}
+              size="small"
+            >
+              Refresh
+            </Button>
+          </Box>
+
+          <Grid container spacing={2}>
+            {matchStats.sportStats.map((sport) => (
+              <Grid item xs={12} sm={6} md={4} key={sport.id}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      {sport.name}
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Active Matches:
+                      </Typography>
+                      <Chip
+                        label={sport.activeMatches}
+                        size="small"
+                        color={sport.activeMatches > 0 ? 'success' : 'default'}
+                      />
+                    </Box>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Matches:
+                      </Typography>
+                      <Chip label={sport.totalMatches} size="small" variant="outlined" />
+                    </Box>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Completed:
+                      </Typography>
+                      <Typography variant="body2">
+                        {sport.completedMatches}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Avg Participants:
+                      </Typography>
+                      <Typography variant="body2">
+                        {sport.averageParticipants}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Popularity
+                      </Typography>
+                      <LinearProgress
+                        variant="determinate"
+                        value={sport.popularity}
+                        sx={{ mt: 0.5 }}
+                      />
+                      <Typography variant="caption" color="text.secondary">
+                        {Math.round(sport.popularity)}% of all matches
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </CardContent>
+      </Card>
+    </Box>
+  );
 };
 
 const FeedbackTab = ({ data }) => {

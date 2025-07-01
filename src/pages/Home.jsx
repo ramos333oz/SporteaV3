@@ -56,8 +56,8 @@ const Home = () => {
       
       // Update sport counts with direct query to get accurate counts
       try {
-        // Direct query to get sport counts
-        const { data: sportCountData, error: sportCountError } = await supabase
+        // Query for active matches (not cancelled, not completed)
+        const { data: activeMatchData, error: activeMatchError } = await supabase
           .from('matches')
           .select(`
             sport_id,
@@ -65,56 +65,85 @@ const Home = () => {
           `)
           .not('status', 'eq', 'cancelled')
           .not('status', 'eq', 'completed');
-        
-        if (!sportCountError && sportCountData) {
-          // Count occurrences of each sport
-          const sportCounts = {};
-          sportCountData.forEach(item => {
+
+        // Query for total matches (excluding only cancelled)
+        const { data: totalMatchData, error: totalMatchError } = await supabase
+          .from('matches')
+          .select(`
+            sport_id,
+            sports!inner(id, name)
+          `)
+          .not('status', 'eq', 'cancelled');
+
+        if (!activeMatchError && !totalMatchError && activeMatchData && totalMatchData) {
+          // Count active matches by sport
+          const activeSportCounts = {};
+          activeMatchData.forEach(item => {
             const sportId = item.sports?.id;
             if (sportId) {
-              sportCounts[sportId] = (sportCounts[sportId] || 0) + 1;
+              activeSportCounts[sportId] = (activeSportCounts[sportId] || 0) + 1;
             }
           });
-          
-          // Get the sport names and create count objects
-          const sportNamesAndCounts = sportCountData.reduce((acc, item) => {
+
+          // Count total matches by sport
+          const totalSportCounts = {};
+          totalMatchData.forEach(item => {
+            const sportId = item.sports?.id;
+            if (sportId) {
+              totalSportCounts[sportId] = (totalSportCounts[sportId] || 0) + 1;
+            }
+          });
+
+          // Get the sport names and create count objects with both active and total counts
+          const sportNamesAndCounts = totalMatchData.reduce((acc, item) => {
             const sportId = item.sports?.id;
             const sportName = item.sports?.name;
-            
+
             if (sportId && sportName && !acc.some(s => s.id === sportId)) {
               acc.push({
                 id: sportId,
                 name: sportName,
-                count: sportCounts[sportId] || 0
+                activeCount: activeSportCounts[sportId] || 0,
+                totalCount: totalSportCounts[sportId] || 0
               });
             }
-            
+
             return acc;
           }, []);
-          
-          // Sort by count (descending) and take top 8 to show all sports
+
+          // Sort by total count (descending) and take top 8 to show all sports
           const topSports = sportNamesAndCounts
-            .sort((a, b) => b.count - a.count)
+            .sort((a, b) => b.totalCount - a.totalCount)
             .slice(0, 8);
 
           console.log('Updated sport counts:', topSports);
-          console.log('Sport IDs and names from database:', topSports.map(s => `${s.id}: ${s.name}`));
+          console.log('Sport IDs and names from database:', topSports.map(s => `${s.id}: ${s.name} (Active: ${s.activeCount}, Total: ${s.totalCount})`));
           setPopularSports(topSports);
         }
       } catch (sportCountErr) {
         console.error('Error fetching sport counts:', sportCountErr);
         // Fall back to the original counting method if direct query fails
-        const sportCounts = {};
+        const activeSportCounts = {};
+        const totalSportCounts = {};
+
         matches.forEach(match => {
           if (match.sport?.id) {
-            sportCounts[match.sport.id] = (sportCounts[match.sport.id] || 0) + 1;
+            // Count as active if not cancelled and not completed
+            if (match.status !== 'cancelled' && match.status !== 'completed') {
+              activeSportCounts[match.sport.id] = (activeSportCounts[match.sport.id] || 0) + 1;
+            }
+            // Count as total if not cancelled
+            if (match.status !== 'cancelled') {
+              totalSportCounts[match.sport.id] = (totalSportCounts[match.sport.id] || 0) + 1;
+            }
           }
         });
-        
+
         // Update popular sports with fallback counts
         setPopularSports(prev => prev.map(sport => ({
           ...sport,
-          count: sportCounts[sport.id] || 0
+          activeCount: activeSportCounts[sport.id] || 0,
+          totalCount: totalSportCounts[sport.id] || 0
         })));
       }
       
@@ -146,9 +175,13 @@ const Home = () => {
         
         // Update sport count
         if (update.data.sport?.id) {
-          setPopularSports(prev => prev.map(sport => 
-            sport.id === update.data.sport.id 
-              ? { ...sport, count: sport.count + 1 } 
+          setPopularSports(prev => prev.map(sport =>
+            sport.id === update.data.sport.id
+              ? {
+                  ...sport,
+                  activeCount: sport.activeCount + 1,
+                  totalCount: sport.totalCount + 1
+                }
               : sport
           ));
         }
@@ -163,9 +196,13 @@ const Home = () => {
         
         // Update sport count
         if (update.oldData.sport?.id) {
-          setPopularSports(prev => prev.map(sport => 
-            sport.id === update.oldData.sport.id 
-              ? { ...sport, count: Math.max(0, sport.count - 1) } 
+          setPopularSports(prev => prev.map(sport =>
+            sport.id === update.oldData.sport.id
+              ? {
+                  ...sport,
+                  activeCount: Math.max(0, sport.activeCount - 1),
+                  totalCount: Math.max(0, sport.totalCount - 1)
+                }
               : sport
           ));
         }
@@ -283,10 +320,11 @@ const Home = () => {
               <SportCard
                 sport={sport}
                 stats={{
-                  activeMatches: sport.count,
-                  totalPlayers: sport.count * 8, // Estimate
-                  upcomingMatches: sport.count,
-                  popularityScore: sport.count / Math.max(...popularSports.map(s => s.count), 1)
+                  activeMatches: sport.activeCount,
+                  totalMatches: sport.totalCount,
+                  totalPlayers: sport.totalCount * 8, // Estimate
+                  upcomingMatches: sport.activeCount,
+                  popularityScore: sport.totalCount / Math.max(...popularSports.map(s => s.totalCount), 1)
                 }}
                 onClick={() => navigate(`/find?sport=${sport.id}`)}
                 variant="default"
