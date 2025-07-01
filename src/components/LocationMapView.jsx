@@ -7,8 +7,53 @@ import {
   Marker,
   Popup,
   ZoomControl,
+  useMap,
 } from "react-leaflet";
 import L from "leaflet";
+
+/**
+ * Component to handle map centering and marker highlighting when location is selected
+ */
+const MapCenterOnSelection = ({ selectedLocation, venues }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (selectedLocation && venues.length > 0) {
+      // Find the selected venue
+      const selectedVenue = venues.find(venue => venue.id === selectedLocation.id);
+
+      if (selectedVenue && selectedVenue.coordinates) {
+        // Center the map on the selected venue with a smooth animation
+        map.flyTo(
+          [selectedVenue.coordinates.lat, selectedVenue.coordinates.lng],
+          15, // Zoom level for focused view
+          {
+            duration: 1.5, // Animation duration in seconds
+            easeLinearity: 0.25
+          }
+        );
+
+        // Optional: Open popup for the selected marker after a short delay
+        setTimeout(() => {
+          map.eachLayer((layer) => {
+            if (layer instanceof L.Marker) {
+              // Check if this marker corresponds to the selected venue
+              const markerLatLng = layer.getLatLng();
+              if (
+                Math.abs(markerLatLng.lat - selectedVenue.coordinates.lat) < 0.0001 &&
+                Math.abs(markerLatLng.lng - selectedVenue.coordinates.lng) < 0.0001
+              ) {
+                layer.openPopup();
+              }
+            }
+          });
+        }, 1000); // Open popup after animation completes
+      }
+    }
+  }, [selectedLocation, venues, map]);
+
+  return null;
+};
 
 /**
  * LocationMapView component for displaying venues on a map in the hosting flow
@@ -57,7 +102,13 @@ const LocationMapView = ({
     }
 
     .gps-marker.selected .pin {
-      box-shadow: 0 0 0 4px rgba(138, 21, 56, 0.3);
+      box-shadow: 0 0 0 4px rgba(138, 21, 56, 0.5);
+      transform: scale(1.2);
+      z-index: 1000;
+    }
+
+    .gps-marker.selected .ripple {
+      animation: selectedPulse 1.5s infinite;
     }
 
     .gps-marker .ripple {
@@ -70,6 +121,24 @@ const LocationMapView = ({
       border-radius: 50%;
       background-color: rgba(138, 21, 56, 0.2);
       animation: pulse 2s infinite;
+    }
+
+    @keyframes selectedPulse {
+      0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+        background-color: rgba(138, 21, 56, 0.6);
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(2.5);
+        opacity: 0.7;
+        background-color: rgba(138, 21, 56, 0.4);
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(3);
+        opacity: 0;
+        background-color: rgba(138, 21, 56, 0.2);
+      }
     }
 
     .gps-marker .pin {
@@ -376,6 +445,12 @@ const LocationMapView = ({
             attribution={activeTileProvider.attribution}
           />
           <ZoomControl position="bottomright" />
+
+          {/* Component to handle map centering when location is selected */}
+          <MapCenterOnSelection
+            selectedLocation={selectedLocation}
+            venues={filteredVenues}
+          />
           
           {/* Render markers for filtered venues */}
           {filteredVenues.map((venue) => {
