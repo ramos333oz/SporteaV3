@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { useOptimizedRealtime } from '../hooks/useOptimizedRealtime';
+import { useProductionRealtime } from '../hooks/useProductionRealtime';
 import { matchService, participantService } from '../services/supabase';
 import { format } from 'date-fns';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -38,7 +38,7 @@ import { supabase } from '../services/supabase';
 const Home = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { subscribeToMatchUpdates, subscribeToUserParticipation } = useOptimizedRealtime();
+  // Production realtime is handled in the useEffect below
   const [upcomingMatches, setUpcomingMatches] = useState([]);
   const [joinedMatchIds, setJoinedMatchIds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -225,19 +225,18 @@ const Home = () => {
     fetchJoinedMatches();
   }, [fetchUpcomingMatches, fetchJoinedMatches]);
 
-  // Set up optimized real-time subscriptions (no duplicates)
-  useEffect(() => {
-    // Note: These subscriptions are now shared with LiveMatchBoard through the optimized service
-    // No need to create duplicate subscriptions - the optimized service handles this centrally
-    console.log('[Home] Optimized real-time subscriptions are managed centrally');
+  // Production-optimized real-time subscriptions
+  const { connectionState } = useProductionRealtime();
 
-    // The data will be received through the optimized service automatically
-    // when LiveMatchBoard or other components are active
+  useEffect(() => {
+    // Real-time subscriptions are now managed centrally by the production service
+    // No need for component-specific subscriptions - events are handled globally
+    console.log('[Home] Production real-time service active:', connectionState.isConnected);
 
     return () => {
-      // Cleanup is handled by the useOptimizedRealtime hook
+      // Cleanup is handled by the useProductionRealtime hook
     };
-  }, []);
+  }, [connectionState.isConnected]);
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>

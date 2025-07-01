@@ -21,7 +21,7 @@ import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import LogoutIcon from '@mui/icons-material/Logout';
-import { useOptimizedRealtime } from '../hooks/useOptimizedRealtime';
+import { useProductionRealtime } from '../hooks/useProductionRealtime';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, friendshipService } from '../services/supabase';
 import { participantService } from '../services/supabase';
@@ -39,7 +39,7 @@ const NotificationPanel = () => {
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [actionLoading, setActionLoading] = useState(null);
-  const { connectionState, subscribeToUserNotifications } = useOptimizedRealtime();
+  const { connectionState } = useProductionRealtime();
   const { user } = useAuth();
   const { showInfoToast, showSuccessToast, showErrorToast } = useToast();
   const navigate = useNavigate();
@@ -224,10 +224,10 @@ const NotificationPanel = () => {
       console.log('[NotificationPanel] Not connected yet, but setting up subscription anyway');
     }
 
-    const handleNotification = (update) => {
-      console.log('[NotificationPanel] Received optimized realtime update:', update);
+    const handleNotification = (event) => {
+      console.log('[NotificationPanel] Received production realtime notification:', event.detail);
 
-      const { data, eventType } = update;
+      const { eventType, new: data, old: oldData } = event.detail;
       console.log(`[NotificationPanel] Processing notification: ${eventType}`, data);
 
       if (eventType === 'INSERT') {
@@ -265,9 +265,9 @@ const NotificationPanel = () => {
         }
     };
     
-    // Subscribe to notifications
-    const subscriptionId = subscribeToUserNotifications(user.id, handleNotification);
-    console.log(`[NotificationPanel] Subscribed to notifications with ID: ${subscriptionId}`);
+    // Subscribe to production-optimized notification events
+    window.addEventListener('sportea:notification', handleNotification);
+    console.log(`[NotificationPanel] Subscribed to production notification events`);
     
     // Refresh notifications on connection change
     if (connectionState.isConnected) {
@@ -301,10 +301,10 @@ const NotificationPanel = () => {
     }
     
     return () => {
-      // No need to manually unsubscribe as the useRealtime hook handles this
       console.log(`[NotificationPanel] Cleaning up notification subscription`);
+      window.removeEventListener('sportea:notification', handleNotification);
     };
-  }, [user, subscribeToUserNotifications, showInfoToast]); // Removed connectionState.isConnected dependency
+  }, [user, showInfoToast]);
 
   // Periodic refresh of unread count (fallback for real-time issues)
   useEffect(() => {

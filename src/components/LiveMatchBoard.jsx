@@ -33,7 +33,7 @@ import {
   Visibility,
   Group
 } from '@mui/icons-material';
-import { useOptimizedRealtime } from '../hooks/useOptimizedRealtime';
+import { useProductionRealtime } from '../hooks/useProductionRealtime';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -409,13 +409,7 @@ const LiveMatchBoard = () => {
   const [joinDialog, setJoinDialog] = useState({ open: false, match: null });
   const [joinLoading, setJoinLoading] = useState(false);
   const [directInvitations, setDirectInvitations] = useState({});
-  const {
-    connectionState,
-    subscribeToMatchUpdates,
-    subscribeToParticipantUpdates,
-    subscribeToUserParticipation,
-    unsubscribe
-  } = useOptimizedRealtime();
+  const { connectionState } = useProductionRealtime();
   const { showSuccessToast, showErrorToast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -579,10 +573,10 @@ const LiveMatchBoard = () => {
     // Initial fetch
     fetchMatches();
 
-    // Handle match updates (optimized)
-    const handleMatchUpdate = (update) => {
-      console.log('[OptimizedRealtime] Match update:', update.eventType, update.data?.id);
-      const { data: newMatch, eventType } = update;
+    // Handle match updates (production-optimized)
+    const handleMatchUpdate = (event) => {
+      console.log('[ProductionRealtime] Match update:', event.detail.eventType, event.detail.new?.id);
+      const { new: newMatch, eventType } = event.detail;
 
       // Handle different event types
       if (eventType === 'INSERT') {
@@ -606,97 +600,33 @@ const LiveMatchBoard = () => {
       }
     };
 
-    // Handle participant updates (optimized)
-    const handleParticipantUpdate = (update) => {
-      console.log('[OptimizedRealtime] Participant update:', update.eventType, update.data);
-      const { data: participant } = update;
-      const matchId = participant.match_id;
+    // Handle participant updates (production-optimized)
+    const handleParticipantUpdate = (event) => {
+      console.log('[ProductionRealtime] Participant update:', event.detail.eventType, event.detail.new);
+      const { new: participant } = event.detail;
+      const matchId = participant?.match_id;
 
       // Refresh the complete match data to prevent "Unknown" data corruption
       // This ensures sport, location, and all other match data remains intact
       fetchSingleMatchWithDetails(matchId);
     };
 
-    // Subscribe to optimized channels
-    let matchSubscriptionId, participantSubscriptionId;
-    try {
-      if (typeof subscribeToMatchUpdates === 'function') {
-        matchSubscriptionId = subscribeToMatchUpdates(handleMatchUpdate);
-      }
-      if (typeof subscribeToParticipantUpdates === 'function') {
-        participantSubscriptionId = subscribeToParticipantUpdates(handleParticipantUpdate);
-      }
-    } catch (error) {
-      console.error('[OptimizedRealtime] Error subscribing to updates:', error);
-    }
+    // Subscribe to production-optimized events
+    window.addEventListener('sportea:match-update', handleMatchUpdate);
+    window.addEventListener('sportea:participation', handleParticipantUpdate);
+    console.log('[LiveMatchBoard] Subscribed to production realtime events');
 
     // Cleanup function
     return () => {
-      // Manually unsubscribe from both subscriptions
-      if (matchSubscriptionId && typeof unsubscribe === 'function') {
-        try {
-          unsubscribe(matchSubscriptionId);
-        } catch (error) {
-          console.error('Error unsubscribing from match updates:', error);
-        }
-      }
-      if (participantSubscriptionId && typeof unsubscribe === 'function') {
-        try {
-          unsubscribe(participantSubscriptionId);
-        } catch (error) {
-          console.error('Error unsubscribing from participant updates:', error);
-        }
-      }
+      // Cleanup event listeners
+      window.removeEventListener('sportea:match-update', handleMatchUpdate);
+      window.removeEventListener('sportea:participation', handleParticipantUpdate);
+      console.log('[LiveMatchBoard] Cleaned up production realtime events');
     };
-  }, [connectionState.isConnected, subscribeToMatchUpdates, subscribeToParticipantUpdates]);
+  }, []);
 
-  // Subscribe to user participation updates (optimized)
-  useEffect(() => {
-    if (!user || !connectionState.isConnected) return;
-
-    console.log('[OptimizedRealtime] Setting up user participation subscription for user:', user.id);
-
-    const handleUserParticipationUpdate = (update) => {
-      const { data: participation, eventType } = update;
-
-      if (eventType === 'INSERT' || eventType === 'UPDATE') {
-        // Update user participation state
-        setUserParticipations(prev => ({
-          ...prev,
-          [participation.match_id]: participation
-        }));
-      } else if (eventType === 'DELETE') {
-        // Remove participation
-        setUserParticipations(prev => {
-          const updated = { ...prev };
-          delete updated[participation.match_id];
-          return updated;
-        });
-      }
-
-      // Force refresh of user participations to ensure consistency
-      setTimeout(() => fetchUserParticipations(), 500);
-    };
-
-    let userSubscriptionId;
-    try {
-      if (typeof subscribeToUserParticipation === 'function') {
-        userSubscriptionId = subscribeToUserParticipation(handleUserParticipationUpdate);
-      }
-    } catch (error) {
-      console.error('[OptimizedRealtime] Error subscribing to user participation:', error);
-    }
-
-    return () => {
-      if (userSubscriptionId && typeof unsubscribe === 'function') {
-        try {
-          unsubscribe(userSubscriptionId);
-        } catch (error) {
-          console.error('[OptimizedRealtime] Error unsubscribing from user participation:', error);
-        }
-      }
-    };
-  }, [user, connectionState.isConnected, subscribeToUserParticipation, unsubscribe]);
+  // User participation updates are now handled by the production-optimized system
+  // through the 'sportea:participation' events in the main subscription above
 
   // Initial fetch of user participations when component mounts
   useEffect(() => {

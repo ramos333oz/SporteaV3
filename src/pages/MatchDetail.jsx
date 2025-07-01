@@ -47,7 +47,7 @@ import {
 import { format, formatDistance, formatDistanceToNow, isPast, isFuture, isAfter, differenceInMinutes, differenceInSeconds, intervalToDuration } from 'date-fns';
 
 import { useAuth } from '../hooks/useAuth';
-import { useRealtime } from '../hooks/useRealtime';
+import { useProductionRealtime } from '../hooks/useProductionRealtime';
 import { useToast } from '../contexts/ToastContext';
 import { matchService, participantService, supabase } from '../services/supabase';
 import { notificationService } from '../services/notifications';
@@ -258,7 +258,7 @@ const MatchDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { subscribeToMatch } = useRealtime();
+  const { connectionState } = useProductionRealtime();
   const { showInfoToast, showSuccessToast, showWarningToast } = useToast();
   
   const [match, setMatch] = useState(null);
@@ -657,25 +657,20 @@ const MatchDetail = () => {
     }
   }, [matchId, user, checkDirectInvitation]);
   
-  // Set up real-time subscriptions
+  // Set up real-time subscriptions using production-optimized system
   useEffect(() => {
     if (matchId) {
-      // Subscribe to match updates
-      const matchSubscription = subscribeToMatch(matchId, handleMatchUpdate);
-      
-      // Subscribe to participants updates for this match
-      const participantsSubscription = subscribeToMatch(
-        matchId, 
-        handleParticipantsUpdate,
-        'participants'
-      );
-      
+      // Subscribe to production-optimized events
+      window.addEventListener('sportea:match-update', handleMatchUpdate);
+      window.addEventListener('sportea:participation', handleParticipantsUpdate);
+
       // Cleanup subscriptions on unmount
       return () => {
-        // Cleanup is handled by the useRealtime hook internally
+        window.removeEventListener('sportea:match-update', handleMatchUpdate);
+        window.removeEventListener('sportea:participation', handleParticipantsUpdate);
       };
     }
-  }, [matchId, subscribeToMatch, handleMatchUpdate, handleParticipantsUpdate]);
+  }, [matchId, handleMatchUpdate, handleParticipantsUpdate]);
   
   // Handle accepting a join request
   const handleAcceptRequest = async (participantId, userId) => {

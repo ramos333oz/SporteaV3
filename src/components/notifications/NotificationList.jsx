@@ -26,7 +26,7 @@ import EventIcon from '@mui/icons-material/Event';
 import { format, isToday, isYesterday } from 'date-fns';
 
 import { useAuth } from '../../hooks/useAuth';
-import { useRealtime } from '../../hooks/useRealtime';
+import { useProductionRealtime } from '../../hooks/useProductionRealtime';
 import { notificationService } from '../../services/notifications';
 
 const getNotificationIcon = (type) => {
@@ -61,7 +61,7 @@ const formatNotificationDate = (date) => {
 
 const NotificationList = () => {
   const { user } = useAuth();
-  const { subscribeToNotifications } = useRealtime();
+  const { connectionState } = useProductionRealtime();
   const navigate = useNavigate();
   
   const [anchorEl, setAnchorEl] = useState(null);

@@ -5,6 +5,12 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { Box, Typography, CircularProgress, Button } from '@mui/material';
 import { supabase } from './services/supabase';
 
+// Performance optimizations
+import {
+  initializePerformanceOptimizations,
+  cleanupPerformanceOptimizations
+} from './utils/performanceOptimizations';
+
 // Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -310,7 +316,17 @@ const RootRedirect = () => {
 
 function App() {
   console.log('App component rendering');
-  
+
+  // Initialize performance optimizations on app startup
+  useEffect(() => {
+    initializePerformanceOptimizations();
+
+    // Cleanup on app unmount
+    return () => {
+      cleanupPerformanceOptimizations();
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       <ThemeProvider theme={theme}>

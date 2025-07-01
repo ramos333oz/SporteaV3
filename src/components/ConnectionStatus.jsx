@@ -3,7 +3,7 @@ import { Box, Typography, Tooltip, Button, IconButton } from '@mui/material';
 import { supabase } from '../services/supabase';
 import CircleIcon from '@mui/icons-material/Circle';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import realtimeService from '../services/realtime';
+import { productionRealtimeService } from '../services/productionOptimizedRealtime';
 
 /**
  * ConnectionStatus component that displays the current WebSocket connection status
@@ -99,23 +99,18 @@ const ConnectionStatus = () => {
 
 
   // Reset channels and connections manually
-  const resetConnection = useCallback(() => {
+  const resetConnection = useCallback(async () => {
     console.log('Manual connection reset requested');
     setIsResetting(true);
     setStatusMessage('Resetting connection...');
-    
+
     try {
-      // Check which method is available and use the appropriate one
-      if (realtimeService && typeof realtimeService.resetSubscriptions === 'function') {
-        // Use the primary method name
-        const success = realtimeService.resetSubscriptions();
-        console.log(`Manual reset via resetSubscriptions() ${success ? 'successful' : 'failed'}`);
-      } else if (realtimeService && typeof realtimeService.resetChannels === 'function') {
-        // Use the alias method as fallback
-        const success = realtimeService.resetChannels();
-        console.log(`Manual reset via resetChannels() ${success ? 'successful' : 'failed'}`);
+      // Use production realtime service for reset
+      if (productionRealtimeService && typeof productionRealtimeService.globalCleanup === 'function') {
+        await productionRealtimeService.globalCleanup();
+        console.log('Production realtime service reset successful');
       } else {
-        console.error('No reset method available on realtimeService');
+        console.error('No reset method available on productionRealtimeService');
       }
       
       // Force reconnect the Supabase realtime client
@@ -260,7 +255,7 @@ const ConnectionStatus = () => {
 
   // Heartbeat check every 15 seconds to detect stale connections
   useEffect(() => {
-    heartbeatInterval.current = setInterval(() => {
+    heartbeatInterval.current = setInterval(async () => {
       try {
         checkConnectionStatus(); // Check status first
         
@@ -295,8 +290,8 @@ const ConnectionStatus = () => {
           
           // Attempt to reset subscriptions and reconnect
           try {
-            if (realtimeService && typeof realtimeService.resetSubscriptions === 'function') {
-              realtimeService.resetSubscriptions();
+            if (productionRealtimeService && typeof productionRealtimeService.globalCleanup === 'function') {
+              await productionRealtimeService.globalCleanup();
             }
             
             if (supabase.realtime && typeof supabase.realtime.connect === 'function') {

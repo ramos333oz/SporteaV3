@@ -21,12 +21,12 @@ import FindGames from './FindGames';
 import FindPlayers from './FindPlayers';
 import { supabase, sportService, matchService } from '../../services/supabase';
 import blockingService from '../../services/blockingService';
-import { useRealtime } from '../../hooks/useRealtime';
+import { useProductionRealtime } from '../../hooks/useProductionRealtime';
 import { useAuth } from '../../hooks/useAuth';
 
 const Find = () => {
   const { user } = useAuth();
-  const { subscribeToAllMatches } = useRealtime();
+  const { connectionState } = useProductionRealtime();
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [sports, setSports] = useState([]);
@@ -147,13 +147,14 @@ const Find = () => {
   // Set up real-time subscriptions
   useEffect(() => {
     if (activeTab === 0) { // Only subscribe when on Games tab
-      const matchSub = subscribeToAllMatches(handleMatchUpdate);
-      
+      // Subscribe to production-optimized match events
+      window.addEventListener('sportea:match-update', handleMatchUpdate);
+
       return () => {
-        // Cleanup is handled by the useRealtime hook
+        window.removeEventListener('sportea:match-update', handleMatchUpdate);
       };
     }
-  }, [subscribeToAllMatches, handleMatchUpdate, activeTab]);
+  }, [handleMatchUpdate, activeTab]);
   
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);

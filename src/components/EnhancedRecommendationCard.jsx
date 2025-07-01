@@ -326,8 +326,8 @@ const EnhancedRecommendationCard = ({
                         </Box>
                       }
                       secondary={
-                        <Box>
-                          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                        <Box component="div">
+                          <Typography variant="caption" color="text.secondary" component="span" sx={{ mb: 1, display: 'block' }}>
                             {factor.description}
                           </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -342,12 +342,13 @@ const EnhancedRecommendationCard = ({
                                 bgcolor: 'grey.200'
                               }}
                             />
-                            <Typography variant="caption" sx={{ minWidth: 35, textAlign: 'right', fontWeight: 500 }}>
+                            <Typography variant="caption" component="span" sx={{ minWidth: 35, textAlign: 'right', fontWeight: 500 }}>
                               {Math.round(factor.score * 100)}%
                             </Typography>
                           </Box>
                         </Box>
                       }
+                      secondaryTypographyProps={{ component: 'div' }}
                     />
                   </ListItem>
                 ))}

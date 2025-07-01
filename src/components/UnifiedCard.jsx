@@ -17,14 +17,16 @@ import { styled } from '@mui/material/styles';
  */
 
 // Styled Card with unified design system
-const StyledCard = styled(Card)(({ theme, clickable, variant }) => ({
+const StyledCard = styled(Card, {
+  shouldForwardProp: (prop) => prop !== 'isClickable'
+})(({ theme, isClickable, variant }) => ({
   borderRadius: 12,
   boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
   border: '1px solid rgba(0, 0, 0, 0.06)',
   overflow: 'hidden',
   position: 'relative',
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  cursor: clickable ? 'pointer' : 'default',
+  cursor: isClickable ? 'pointer' : 'default',
   
   // Variant-specific styling
   ...(variant === 'elevated' && {
@@ -37,23 +39,23 @@ const StyledCard = styled(Card)(({ theme, clickable, variant }) => ({
   }),
   
   // Hover effects for clickable cards
-  ...(clickable && {
+  ...(isClickable && {
     '&:hover': {
       transform: 'translateY(-4px)',
       boxShadow: '0px 8px 24px rgba(138, 21, 56, 0.15)',
       borderColor: theme.palette.primary.light,
-      
+
       '& .card-image': {
         transform: 'scale(1.05)',
       },
-      
+
       '& .card-content': {
         '& .primary-text': {
           color: theme.palette.primary.main,
         }
       }
     },
-    
+
     '&:active': {
       transform: 'translateY(-2px)',
       boxShadow: '0px 4px 16px rgba(138, 21, 56, 0.12)',
@@ -241,7 +243,7 @@ const UnifiedCard = ({
   
   return (
     <StyledCard
-      clickable={isClickable}
+      isClickable={isClickable}
       variant={variant}
       onClick={isClickable ? handleClick : undefined}
       onKeyDown={isClickable ? handleKeyDown : undefined}
