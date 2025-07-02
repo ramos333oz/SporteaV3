@@ -306,12 +306,12 @@ const LocationMapView = ({
           setMapCenter([venue.coordinates.lat, venue.coordinates.lng]);
           setMapBounds(null); // Clear bounds to use center and zoom
         } else {
-          // Multiple venues - calculate bounds with generous padding
+          // Multiple venues - calculate bounds with optimized padding for better visibility
           const bounds = L.latLngBounds(
             validVenues.map(venue => [venue.coordinates.lat, venue.coordinates.lng])
           );
-          // Add padding to the bounds to ensure all markers are clearly visible
-          const paddedBounds = bounds.pad(0.3); // 30% padding
+          // Add minimal padding to ensure all markers are clearly visible without being too zoomed out
+          const paddedBounds = bounds.pad(0.1); // 10% padding for tighter, more focused view
           setMapBounds(paddedBounds);
           // Also set center to the center of bounds for better initial view
           const center = paddedBounds.getCenter();
@@ -443,8 +443,9 @@ const LocationMapView = ({
           zoomControl={false}
           bounds={mapBounds}
           boundsOptions={{
-            padding: [50, 50],
-            maxZoom: 16
+            padding: [20, 20], // Reduced padding for tighter bounds
+            maxZoom: 18, // Increased max zoom for closer view
+            minZoom: 12 // Minimum zoom to ensure venues are always clearly visible
           }}
         >
           <TileLayer
