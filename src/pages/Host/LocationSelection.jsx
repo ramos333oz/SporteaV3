@@ -467,7 +467,7 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
       {/* Interactive Map View */}
       <LocationMapView
         venues={filteredLocations}
-        selectedSport={matchData.sport}
+        selectedSport={sports[matchData.sport] || matchData.sport} // Convert sport ID to name
         selectedLocation={matchData.location}
         onLocationSelect={handleSelectLocation}
         loading={loading}
