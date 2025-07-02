@@ -23,6 +23,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import PersonIcon from '@mui/icons-material/Person';
 import PeopleIcon from '@mui/icons-material/People';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import LogoutIcon from '@mui/icons-material/Logout';
 import BottomNavigation from './BottomNavigation';
 import NotificationList from '../notifications/NotificationList';
@@ -48,6 +49,7 @@ const MainLayout = () => {
     { name: 'Find', icon: <SearchIcon />, path: '/find' },
     { name: 'Host', icon: <AddCircleIcon color="primary" />, path: '/host' },
     { name: 'Friends', icon: <PeopleIcon />, path: '/friends' },
+    { name: 'Leaderboard', icon: <EmojiEventsIcon />, path: '/leaderboard' },
     { name: 'Profile', icon: <PersonIcon />, path: '/profile' }
   ];
   

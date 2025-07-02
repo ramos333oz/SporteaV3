@@ -30,6 +30,7 @@ import AuthDebug from './pages/AuthDebug';
 import DirectHome from './pages/DirectHome';
 import Friends from './pages/Friends';
 import FindPlayers from './pages/Find/FindPlayers';
+import Leaderboard from './pages/Leaderboard';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -372,6 +373,7 @@ function App() {
                   <Route path="/match/:matchId" element={<MatchDetail />} />
                   <Route path="/edit-match/:matchId" element={<EditMatch />} />
                   <Route path="/friends" element={<Friends />} />
+                  <Route path="/leaderboard" element={<Leaderboard />} />
                 </Route>
                 
                 {/* Fallback for undefined routes */}

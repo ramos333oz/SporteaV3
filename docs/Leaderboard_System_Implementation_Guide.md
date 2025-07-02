@@ -123,43 +123,30 @@ function calculateCommunityScore(user) {
 
 ### 2. Navigation Integration
 
-#### Current Navigation Structure Analysis
-Your app currently uses a 5-tab bottom navigation:
+#### Updated Navigation Structure
+The app now uses a 6-tab bottom navigation with Leaderboard as a dedicated main tab:
 1. **Home** - Main dashboard
 2. **Find** - Match discovery (with badge for new matches)
 3. **Host** - Create matches (prominent styling)
 4. **Friends** - Friend management system
-5. **Profile** - User profile with achievements
+5. **Profile** - User profile with achievements (leaderboard removed)
+6. **Leaderboard** - Dedicated ranking and competition page
 
-#### Leaderboard Integration Options
-
-**Option A: Replace Friends Tab Temporarily**
-Since Friends tab has lower engagement, temporarily replace with Leaderboard:
+#### Leaderboard Navigation Implementation
 ```jsx
-// Modified Bottom Navigation - Replace Friends with Leaderboard
+// Updated Bottom Navigation - Add Leaderboard as 6th tab
 <BottomNavigationAction
   label="Leaderboard"
   icon={<LeaderboardIcon />}
+  value="/leaderboard"
 />
 ```
 
-**Option B: Add Leaderboard to Profile Tab**
-Integrate leaderboard as a sub-section within the Profile page:
-- Profile tab → Achievements tab → Add Leaderboard section
-- Maintains current 5-tab structure
-- Leverages existing achievement system integration
-
-**Option C: Add to Top Navigation**
-Place leaderboard icon next to notification bell in top app bar:
-```jsx
-<Toolbar>
-  <Typography variant="h2">Sportea</Typography>
-  <LeaderboardIcon onClick={() => navigate('/leaderboard')} />
-  <NotificationPanel />
-</Toolbar>
-```
-
-**Recommended Approach**: Option B (Profile Integration) to avoid disrupting current navigation flow while building on existing achievement system.
+**Implementation Approach**: Dedicated Leaderboard tab provides:
+- **Prominent Access**: Main navigation ensures high visibility and engagement
+- **Full Screen Experience**: Dedicated page allows for comprehensive leaderboard features
+- **Clean Separation**: Keeps achievements in Profile, rankings in Leaderboard
+- **Scalability**: Room for future leaderboard enhancements and features
 
 ### 3. Anti-Gaming & Fairness Measures
 
@@ -216,12 +203,12 @@ Research shows that large leaderboards demotivate 80% of participants. Our solut
 - **Campus Leaderboards**: University-wide but manageable scale (using existing user data)
 - **Faculty/Department Rankings**: Smaller, relevant peer groups (using existing faculty field)
 
-**Level-Tier Leaderboards** (Using Existing Level System):
-- **Beginner League** (Levels 1-10): New user competition
-- **Intermediate League** (Levels 11-25): Regular participant rankings
-- **Advanced League** (Levels 26-50): Active community member competition
-- **Expert League** (Levels 51-75): Experienced player rankings
-- **Master League** (Levels 76-100): Elite community leader competition
+**Tier-Based Leaderboard System** (Level-Based Visual Hierarchy):
+- **🥉 Bronze Tier - Beginner League** (Levels 1-10): New user competition with bronze styling
+- **🥈 Silver Tier - Intermediate League** (Levels 11-25): Regular participant rankings with silver styling
+- **🥇 Gold Tier - Advanced League** (Levels 26-50): Active community member competition with gold styling
+- **💎 Platinum Tier - Expert League** (Levels 51-75): Experienced player rankings with platinum styling
+- **💠 Diamond Tier - Master League** (Levels 76-100): Elite community leader competition with diamond styling
 
 **Dynamic Grouping** (Current System Compatible):
 ```javascript
@@ -297,6 +284,133 @@ const RankingNotificationService = {
 };
 ```
 
+## Detailed Leaderboard System Elements
+
+### 1. Tier System Architecture
+
+#### Visual Tier Hierarchy
+Each tier has distinct visual styling and represents different skill/engagement levels:
+
+**🥉 Bronze Tier (Levels 1-10) - Beginner League**
+- **Color Scheme**: Bronze/copper tones (#CD7F32, #B87333)
+- **Icon**: Bronze medal or shield
+- **Target Users**: New players, learning basics
+- **Competition Focus**: Encouraging first steps and basic engagement
+
+**🥈 Silver Tier (Levels 11-25) - Intermediate League**
+- **Color Scheme**: Silver tones (#C0C0C0, #A8A8A8)
+- **Icon**: Silver medal or crown
+- **Target Users**: Regular participants, building skills
+- **Competition Focus**: Consistent participation and improvement
+
+**🥇 Gold Tier (Levels 26-50) - Advanced League**
+- **Color Scheme**: Gold tones (#FFD700, #FFA500)
+- **Icon**: Gold medal or trophy
+- **Target Users**: Active community members, skilled players
+- **Competition Focus**: Leadership and advanced gameplay
+
+**💎 Platinum Tier (Levels 51-75) - Expert League**
+- **Color Scheme**: Platinum tones (#E5E4E2, #B2B2B2)
+- **Icon**: Platinum gem or diamond
+- **Target Users**: Experienced players, community leaders
+- **Competition Focus**: Expertise and mentorship
+
+**💠 Diamond Tier (Levels 76-100) - Master League**
+- **Color Scheme**: Diamond blue/white (#B9F2FF, #4169E1)
+- **Icon**: Diamond or crystal
+- **Target Users**: Elite players, top community builders
+- **Competition Focus**: Mastery and elite competition
+
+### 2. Leaderboard Elements Detailed Breakdown
+
+#### A. Leaderboard Type Selector
+**Purpose**: Allows users to switch between different ranking categories
+**Components**:
+- **Tab Interface**: Material-UI tabs with icons and descriptions
+- **Types Available**:
+  - 🏆 **Experience**: Total XP earned across all activities
+  - 🏘️ **Community**: Community building score (hosting, friends, completion rate)
+  - 📊 **Level**: Current user level with XP tiebreakers
+  - 🔥 **Streak**: Daily activity streak competitions
+- **Visual Indicators**: Selected tab highlighted, unselected tabs dimmed
+- **Responsive Design**: Scrollable on mobile, full width on desktop
+
+#### B. Timeframe Selector
+**Purpose**: Filters rankings by time period for fresh competition
+**Components**:
+- **Button Group**: Toggle buttons for timeframe selection
+- **Options Available**:
+  - **All Time**: Historical rankings since account creation
+  - **This Month**: Current month rankings (resets 1st of month)
+  - **This Week**: Current week rankings (resets Monday)
+- **Visual States**: Pressed/unpressed states with clear selection
+- **Auto-Reset Logic**: Automatic timeframe resets maintain fair competition
+
+#### C. Competition Group Selector
+**Purpose**: Creates manageable competition pools to prevent demotivation
+**Components**:
+- **Icon-Based Buttons**: Visual buttons with icons and descriptions
+- **Groups Available**:
+  - 🌍 **Global**: All users platform-wide (can be overwhelming)
+  - 👥 **Friends**: Friend circle rankings (social competition)
+  - 🏆 **Tier-Based**: Users in same tier level (fair competition)
+- **Smart Disabling**: Friends option disabled when user has no friends
+- **Dynamic Descriptions**: Shows friend count, tier information
+
+#### D. User Ranking Card
+**Purpose**: Shows current user's position and progress
+**Components**:
+- **Rank Display**: Current position in selected leaderboard
+- **Score Information**: User's score in selected category
+- **Progress Indicators**: XP bars, percentile rankings
+- **Tier Badge**: Visual tier indicator (Bronze/Silver/Gold/Platinum/Diamond)
+- **Motivational Messages**: Encouraging text for unranked users
+- **Achievement Integration**: Links to related achievements
+
+#### E. Leaderboard List
+**Purpose**: Displays ranked list of users in selected category
+**Components**:
+- **Rank Icons**: 🥇🥈🥉 for top 3, numbered badges for others
+- **User Avatars**: Profile pictures with level badges
+- **User Information**: Names, usernames, tier indicators
+- **Score Display**: Relevant score for selected leaderboard type
+- **Tier Styling**: Background colors and borders matching user tiers
+- **Current User Highlight**: Special styling when user appears in list
+- **Loading States**: Skeleton loaders during data fetching
+- **Empty States**: Encouraging messages for empty leaderboards
+
+### 3. Ranking Calculation System
+
+#### Experience Points Ranking
+- **Primary Metric**: Total XP accumulated
+- **Tiebreaker**: Account creation date (older accounts ranked higher)
+- **Updates**: Real-time when XP is earned
+- **Display Format**: "1,250 XP"
+
+#### Community Score Ranking
+- **Algorithm**: Weighted scoring system
+  - Match hosting: 50% weight (5 points per match)
+  - Friend connections: 30% weight (3 points per friend)
+  - Match completion rate: 20% weight (up to 20 points)
+- **Cap**: Maximum 100 points to prevent inflation
+- **Tiebreaker**: Total XP earned
+- **Updates**: Calculated when relevant actions occur
+- **Display Format**: "85/100 Community Score"
+
+#### Level Ranking
+- **Primary Metric**: Current user level
+- **Tiebreaker**: Current XP within level
+- **Secondary Tiebreaker**: Account creation date
+- **Updates**: When user levels up
+- **Display Format**: "Level 25 (1,200/2,500 XP)"
+
+#### Streak Ranking
+- **Primary Metric**: Current daily activity streak
+- **Tiebreaker**: Longest streak ever achieved
+- **Secondary Tiebreaker**: Total XP earned
+- **Updates**: Daily based on activity
+- **Display Format**: "15 day streak"
+
 ## Technical Implementation
 
 ### 1. Database Schema Enhancements
@@ -341,42 +455,44 @@ CREATE TABLE user_ranking_history (
 
 ### 3. UI/UX Implementation
 
-#### Leaderboard Integration with Profile Page
+#### Dedicated Leaderboard Page Implementation
 ```jsx
-// Integrate Leaderboard as Achievement Tab Extension
-const ProfileAchievementsTab = () => {
-  const [view, setView] = useState('achievements'); // 'achievements' or 'leaderboards'
+// New Dedicated Leaderboard Page
+const LeaderboardPage = () => {
+  const { user } = useAuth();
+  const leaderboard = useLeaderboard(user?.id, true);
 
   return (
-    <Container maxWidth="md" sx={{ py: 3 }}>
-      {/* Sub-navigation within Achievements tab */}
-      <Tabs value={view} onChange={(e, newValue) => setView(newValue)}>
-        <Tab label="My Achievements" value="achievements" />
-        <Tab label="Leaderboards" value="leaderboards" />
-      </Tabs>
+    <Container maxWidth="lg" sx={{ py: 3 }}>
+      {/* Page Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h1" gutterBottom>
+          🏆 Leaderboards & Rankings
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Compete with fellow athletes and climb the ranks!
+        </Typography>
+      </Box>
 
-      {view === 'achievements' && (
-        <AchievementGrid /> // Existing achievement display
-      )}
+      {/* User's Current Tier Badge */}
+      <UserTierCard user={user} />
 
-      {view === 'leaderboards' && (
-        <Box>
-          {/* Leaderboard Type Selection */}
-          <LeaderboardTypeSelector />
+      {/* Leaderboard Controls */}
+      <LeaderboardTypeSelector />
+      <TimeframeSelector />
+      <CompetitionGroupSelector />
 
-          {/* User's Current Ranking Card */}
-          <UserRankingCard />
+      {/* User's Current Ranking */}
+      <UserRankingCard />
 
-          {/* Friend-Based Leaderboard (using existing friend system) */}
-          <FriendLeaderboard />
-
-          {/* Level-Based Leaderboard (using existing level system) */}
-          <LevelTierLeaderboard />
-
-          {/* Global Leaderboard */}
-          <GlobalLeaderboard />
-        </Box>
-      )}
+      {/* Main Leaderboard Display */}
+      <LeaderboardList
+        data={leaderboard.leaderboardData}
+        loading={leaderboard.loading}
+        type={leaderboard.type}
+        showUserHighlight={true}
+        currentUserId={user?.id}
+      />
     </Container>
   );
 };
@@ -416,29 +532,29 @@ const ProfileAchievementsTab = () => {
 
 ## Implementation Roadmap
 
-### Phase 1: Foundation (Week 1-2) - Using Existing Infrastructure
-1. **Extend Achievement Service**: Add leaderboard methods to existing achievementService.js
-2. **Profile Page Integration**: Add leaderboard tab to existing Profile achievements section
-3. **Basic Leaderboard Queries**: Implement ranking queries using existing user_gamification table
-4. **UI Components**: Create leaderboard list components using existing design system
+### Phase 1: Navigation & Structure (Week 1-2) - New Dedicated Page
+1. **Create Leaderboard Page**: New dedicated `/leaderboard` route and page component
+2. **Update Navigation**: Add 6th tab to bottom navigation for Leaderboard access
+3. **Remove Profile Integration**: Clean up leaderboard components from Profile page
+4. **Basic Page Structure**: Implement main leaderboard page layout and routing
 
-### Phase 2: Core Features (Week 3-4) - Leverage Current Systems
-1. **Community Builder Leaderboard**: Implement using existing community_score field
-2. **XP Leaderboards**: Use existing total_xp, weekly_xp, monthly_xp fields
-3. **Friend-Based Rankings**: Leverage existing friendship system for friend leaderboards
-4. **Level-Tier Competition**: Use existing current_level field for tier-based rankings
+### Phase 2: Tier System Implementation (Week 3-4) - Visual Hierarchy
+1. **Tier Styling System**: Implement Bronze/Silver/Gold/Platinum/Diamond visual themes
+2. **Tier-Based Grouping**: Update competition groups to use tier-based filtering
+3. **User Tier Display**: Add tier badges and indicators throughout the interface
+4. **Achievement System Update**: Remove tier references from achievements (now level-based)
 
-### Phase 3: Enhanced Features (Week 5-6) - Build on Existing
+### Phase 3: Enhanced Features (Week 5-6) - Advanced Functionality
 1. **Real-time Updates**: Integrate with existing notification system for ranking changes
 2. **Anti-Gaming Measures**: Extend existing rate limiting system for leaderboard gaming prevention
-3. **Achievement Integration**: Use existing achievement system to reward leaderboard performance
-4. **Faculty/Campus Rankings**: Leverage existing user faculty and campus fields
+3. **Tier-Based Achievements**: Create new achievements for tier progression and rankings
+4. **Advanced Tier Features**: Implement tier-specific rewards and recognition
 
-### Phase 4: Polish & Optimization (Week 7-8) - Optimize Current System
-1. **Performance Optimization**: Optimize existing database queries and add caching
-2. **Advanced Grouping**: Implement smart grouping algorithms using available user data
-3. **Enhanced Notifications**: Extend existing notification system for leaderboard updates
-4. **Analytics Integration**: Track leaderboard engagement using existing user tracking
+### Phase 4: Polish & Optimization (Week 7-8) - Production Ready
+1. **Performance Optimization**: Optimize tier-based queries and caching systems
+2. **Advanced Tier Grouping**: Implement smart tier balancing and competition algorithms
+3. **Enhanced Notifications**: Tier promotion notifications and ranking updates
+4. **Analytics Integration**: Track tier progression and leaderboard engagement metrics
 
 ## Conclusion
 
@@ -450,32 +566,33 @@ The approach focuses on:
 - **Minimal Navigation Disruption**: Integrating with existing Profile/Achievement structure
 - **Proven Anti-Gaming**: Extending current rate limiting and validation systems
 
-## Implementation Status (COMPLETED)
+## Implementation Status (UPDATED)
 
-### ✅ **Phase 1: Foundation - COMPLETED**
-1. **✅ Extended Achievement Service**: Enhanced `achievementService.js` with comprehensive leaderboard methods
-   - Added `getLeaderboard()` with support for type, timeframe, and group filtering
-   - Added `getUserFriends()` for friend-based leaderboards
-   - Added `getLevelTierRange()` for level-based grouping
-   - Added `getUserRanking()` for individual user ranking
-   - Added `getScoreByType()` for flexible score calculation
+### ✅ **Phase 1: Navigation & Structure - COMPLETED**
+1. **✅ Dedicated Leaderboard Page**: Created new `/leaderboard` route with full-page experience
+   - New `LeaderboardPage.jsx` component with comprehensive layout
+   - Removed leaderboard functionality from Profile page
+   - Clean separation between achievements (Profile) and rankings (Leaderboard)
+   - Professional page header with tier information
 
-2. **✅ Profile Page Integration**: Successfully integrated leaderboard as sub-tab within achievements section
-   - Added sub-navigation with "My Achievements" and "Leaderboards" tabs
-   - Maintained existing achievement functionality
-   - Seamless integration with current Profile page structure
+2. **✅ Updated Navigation**: Successfully added 6th tab to bottom navigation
+   - Added Leaderboard tab with trophy icon
+   - Updated routing system to support new page
+   - Maintained existing navigation functionality
+   - Responsive design across all screen sizes
 
-3. **✅ UI Components Created**: Built comprehensive leaderboard component library
-   - `LeaderboardList`: Displays ranked users with scores and positions
-   - `LeaderboardTypeSelector`: Type, timeframe, and group selection interface
-   - `UserRankingCard`: User's current ranking display with progress indicators
-   - All components follow SporteaV3's design system and Material-UI best practices
+3. **✅ Tier System Foundation**: Implemented comprehensive tier-based system
+   - Bronze Tier (Levels 1-10): Beginner League with bronze styling
+   - Silver Tier (Levels 11-25): Intermediate League with silver styling
+   - Gold Tier (Levels 26-50): Advanced League with gold styling
+   - Platinum Tier (Levels 51-75): Expert League with platinum styling
+   - Diamond Tier (Levels 76-100): Master League with diamond styling
 
-4. **✅ State Management**: Implemented robust state management system
-   - Created `useLeaderboard` hook for component-level state management
-   - Created `LeaderboardContext` for global state and caching
-   - Efficient data fetching with 5-minute cache duration
-   - Automatic cache invalidation and cleanup
+4. **✅ Achievement System Update**: Cleaned up achievement system
+   - Removed bronze/silver/gold tier references from achievements
+   - Achievements now focus on activity and engagement metrics
+   - Clear separation between achievement tiers and user level tiers
+   - Maintained all existing achievement functionality
 
 ### 🎯 **Current Features Implemented**
 

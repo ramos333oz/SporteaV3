@@ -29,12 +29,6 @@ import {
   AchievementCard,
   XPProgressBar
 } from '../components/achievements';
-import {
-  LeaderboardList,
-  LeaderboardTypeSelector,
-  UserRankingCard
-} from '../components/leaderboard';
-import { useLeaderboard } from '../hooks/useLeaderboard';
 import achievementService from '../services/achievementService';
 import SettingsIcon from '@mui/icons-material/Settings';
 import EditIcon from '@mui/icons-material/Edit';
@@ -56,7 +50,6 @@ import SchoolIcon from '@mui/icons-material/School';
 import SportsScoreIcon from '@mui/icons-material/SportsScore';
 import PersonIcon from '@mui/icons-material/Person';
 import HistoryIcon from '@mui/icons-material/History';
-import LeaderboardIcon from '@mui/icons-material/Leaderboard';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import SportsIcon from '@mui/icons-material/Sports';
 import MaleIcon from '@mui/icons-material/Male';
@@ -185,12 +178,6 @@ const Profile = () => {
   // Check if viewing own profile or someone else's
   const isOwnProfile = !userId || (user && userId === user.id);
   const profileId = userId || (user ? user.id : null);
-
-  // Leaderboard state
-  const [achievementView, setAchievementView] = useState('achievements'); // 'achievements' or 'leaderboards'
-
-  // Use leaderboard hook for state management
-  const leaderboard = useLeaderboard(profileId, isOwnProfile);
 
   // Fetch facility names for display
   useEffect(() => {
@@ -346,12 +333,7 @@ const Profile = () => {
     fetchAchievements();
   }, [profileId]);
 
-  // Refresh leaderboard data when view changes
-  useEffect(() => {
-    if (achievementView === 'leaderboards') {
-      leaderboard.refreshLeaderboard();
-    }
-  }, [achievementView, leaderboard.refreshLeaderboard]);
+
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -1114,7 +1096,7 @@ const Profile = () => {
           <Box sx={{ p: 3 }}>
             <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
               <EmojiEventsIcon sx={{ mr: 1.5, color: 'primary.main' }} />
-              Achievements & Rankings
+              My Achievements
               {gamificationData && (
                 <Chip
                   label={`Level ${gamificationData.current_level}`}
@@ -1124,106 +1106,40 @@ const Profile = () => {
               )}
             </Typography>
 
-            {/* Sub-navigation within Achievements tab */}
-            <Tabs
-              value={achievementView}
-              onChange={(e, newValue) => setAchievementView(newValue)}
-              sx={{
-                mb: 3,
-                '& .MuiTab-root': {
-                  fontWeight: 600,
-                  textTransform: 'none'
-                }
-              }}
-            >
-              <Tab
-                label="My Achievements"
-                value="achievements"
-                icon={<EmojiEventsIcon />}
-                iconPosition="start"
-              />
-              <Tab
-                label="Leaderboards"
-                value="leaderboards"
-                icon={<LeaderboardIcon />}
-                iconPosition="start"
-              />
-            </Tabs>
+            {/* Achievements Display */}
+            {achievementsLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : achievements.length > 0 ? (
+              <Grid container spacing={3}>
+                {achievements.map(achievement => {
+                  const userProgress = userAchievements.find(ua => ua.achievement_id === achievement.id);
+                  const isUnlocked = userProgress?.is_completed || false;
+                  const currentProgress = userProgress?.current_progress || 0;
 
-            {/* Achievements View */}
-            {achievementView === 'achievements' && (
-              <>
-                {achievementsLoading ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                    <CircularProgress />
-                  </Box>
-                ) : achievements.length > 0 ? (
-                  <Grid container spacing={3}>
-                    {achievements.map(achievement => {
-                      const userProgress = userAchievements.find(ua => ua.achievement_id === achievement.id);
-                      const isUnlocked = userProgress?.is_completed || false;
-                      const currentProgress = userProgress?.current_progress || 0;
-
-                      return (
-                        <Grid item xs={12} sm={6} md={4} key={achievement.id}>
-                          <AchievementCard
-                            achievement={achievement}
-                            userProgress={currentProgress}
-                            isUnlocked={isUnlocked}
-                            showProgress={true}
-                          />
-                        </Grid>
-                      );
-                    })}
-                  </Grid>
-                ) : (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
-                    <EmojiEventsIcon sx={{ fontSize: 60, color: 'grey.300', mb: 2 }} />
-                    <Typography variant="h6" gutterBottom color="text.secondary">
-                      No Achievements Yet
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" textAlign="center">
-                      Play matches, join events, and connect with others to earn achievements!
-                    </Typography>
-                  </Box>
-                )}
-              </>
-            )}
-
-            {/* Leaderboards View */}
-            {achievementView === 'leaderboards' && (
-              <>
-                {/* Leaderboard Type Selection */}
-                <LeaderboardTypeSelector
-                  selectedType={leaderboard.type}
-                  selectedTimeframe={leaderboard.timeframe}
-                  selectedGroup={leaderboard.groupType}
-                  onTypeChange={leaderboard.updateType}
-                  onTimeframeChange={leaderboard.updateTimeframe}
-                  onGroupChange={leaderboard.updateGroupType}
-                  friendsCount={leaderboard.friendsCount}
-                />
-
-                {/* User's Current Ranking Card (only for own profile) */}
-                {isOwnProfile && (
-                  <UserRankingCard
-                    userRanking={leaderboard.userRanking}
-                    loading={leaderboard.loading}
-                    type={leaderboard.type}
-                    timeframe={leaderboard.timeframe}
-                    groupType={leaderboard.groupType}
-                  />
-                )}
-
-                {/* Leaderboard List */}
-                <LeaderboardList
-                  data={leaderboard.leaderboardData}
-                  loading={leaderboard.loading}
-                  type={leaderboard.type}
-                  showUserHighlight={isOwnProfile}
-                  currentUserId={profileId}
-                />
-              </>
+                  return (
+                    <Grid item xs={12} sm={6} md={4} key={achievement.id}>
+                      <AchievementCard
+                        achievement={achievement}
+                        userProgress={currentProgress}
+                        isUnlocked={isUnlocked}
+                        showProgress={true}
+                      />
+                    </Grid>
+                  );
+                })}
+              </Grid>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
+                <EmojiEventsIcon sx={{ fontSize: 60, color: 'grey.300', mb: 2 }} />
+                <Typography variant="h6" gutterBottom color="text.secondary">
+                  No Achievements Yet
+                </Typography>
+                <Typography variant="body2" color="text.secondary" textAlign="center">
+                  Play matches, join events, and connect with others to earn achievements!
+                </Typography>
+              </Box>
             )}
           </Box>
         )}

@@ -449,18 +449,18 @@ class AchievementService {
       const { data, error } = await supabase
         .from('friendships')
         .select(`
-          requester_id,
-          addressee_id,
-          requester:requester_id(id, full_name, username, avatar_url),
-          addressee:addressee_id(id, full_name, username, avatar_url)
+          user_id,
+          friend_id,
+          user:user_id(id, full_name, username, avatar_url),
+          friend:friend_id(id, full_name, username, avatar_url)
         `)
         .eq('status', 'accepted')
-        .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
+        .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
 
       if (error) throw error;
 
       return data.map(friendship => {
-        const friend = friendship.requester_id === userId ? friendship.addressee : friendship.requester;
+        const friend = friendship.user_id === userId ? friendship.friend : friendship.user;
         return {
           userId: friend.id,
           fullName: friend.full_name,

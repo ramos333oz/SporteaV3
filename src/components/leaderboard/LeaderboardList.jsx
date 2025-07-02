@@ -19,12 +19,14 @@ import MilitaryTechIcon from '@mui/icons-material/MilitaryTech';
  * Displays a ranked list of users with their scores and positions
  * Following SporteaV3's design system with Material-UI best practices
  */
-const LeaderboardList = ({ 
-  data = [], 
-  loading = false, 
+const LeaderboardList = ({
+  data = [],
+  loading = false,
   type = 'xp',
   showUserHighlight = false,
-  currentUserId = null 
+  currentUserId = null,
+  tierConfig = null,
+  getUserTier = null
 }) => {
   // Get rank icon based on position
   const getRankIcon = (rank) => {
@@ -55,6 +57,24 @@ const LeaderboardList = ({
           </Box>
         );
     }
+  };
+
+  // Get tier styling for user based on level
+  const getTierStyling = (userLevel) => {
+    if (!tierConfig || !getUserTier) return {};
+
+    const tierKey = getUserTier(userLevel);
+    const tier = tierConfig[tierKey];
+
+    if (!tier) return {};
+
+    return {
+      borderLeft: `4px solid ${tier.color}`,
+      backgroundColor: `${tier.bgColor}40`,
+      '&:hover': {
+        backgroundColor: `${tier.bgColor}60`,
+      }
+    };
   };
 
   // Get score label based on type
@@ -130,7 +150,8 @@ const LeaderboardList = ({
       <List sx={{ p: 0 }}>
         {data.map((entry, index) => {
           const isCurrentUser = showUserHighlight && entry.userId === currentUserId;
-          
+          const tierStyling = getTierStyling(entry.level);
+
           return (
             <ListItem
               key={entry.userId}
@@ -144,7 +165,8 @@ const LeaderboardList = ({
                 transition: 'all 0.2s ease',
                 '&:hover': {
                   bgcolor: isCurrentUser ? 'primary.100' : 'grey.50'
-                }
+                },
+                ...tierStyling
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
