@@ -363,40 +363,166 @@ class AchievementService {
     }
   }
 
-  // Get leaderboard data
-  async getLeaderboard(type = 'xp', timeframe = 'all', limit = 10) {
+  // Enhanced leaderboard data retrieval with comprehensive features
+  async getLeaderboard(type = 'xp', timeframe = 'all', limit = 10, groupType = 'global', userId = null) {
     try {
       let query = supabase
         .from('user_gamification')
         .select(`
           *,
-          user:users(full_name, avatar_url, username)
-        `)
-        .limit(limit);
+          user:users(full_name, avatar_url, username, faculty, campus)
+        `);
 
-      switch (type) {
-        case 'xp':
-          query = query.order('total_xp', { ascending: false });
-          break;
-        case 'level':
-          query = query.order('current_level', { ascending: false });
-          break;
-        case 'community':
-          query = query.order('community_score', { ascending: false });
-          break;
-        case 'streak':
-          query = query.order('current_streak', { ascending: false });
-          break;
-        default:
-          query = query.order('total_xp', { ascending: false });
+      // Apply timeframe filtering
+      if (timeframe === 'weekly') {
+        query = query.order('weekly_xp', { ascending: false });
+      } else if (timeframe === 'monthly') {
+        query = query.order('monthly_xp', { ascending: false });
+      } else {
+        // Apply ordering based on type for all-time leaderboards
+        switch (type) {
+          case 'xp':
+            query = query.order('total_xp', { ascending: false });
+            break;
+          case 'level':
+            query = query.order('current_level', { ascending: false }).order('total_xp', { ascending: false });
+            break;
+          case 'community':
+            query = query.order('community_score', { ascending: false });
+            break;
+          case 'streak':
+            query = query.order('current_streak', { ascending: false });
+            break;
+          default:
+            query = query.order('total_xp', { ascending: false });
+        }
       }
 
+      // Apply group-based filtering
+      if (groupType === 'friends' && userId) {
+        // Get user's friends first
+        const friends = await this.getUserFriends(userId);
+        const friendIds = friends.map(friend => friend.userId);
+        friendIds.push(userId); // Include the user themselves
+
+        if (friendIds.length > 0) {
+          query = query.in('user_id', friendIds);
+        }
+      } else if (groupType === 'level_tier' && userId) {
+        // Get user's level and create tier-based grouping
+        const userGamification = await this.getUserGamification(userId);
+        const userLevel = userGamification.current_level;
+        const { minLevel, maxLevel } = this.getLevelTierRange(userLevel);
+
+        query = query.gte('current_level', minLevel).lte('current_level', maxLevel);
+      }
+
+      query = query.limit(limit);
       const { data, error } = await query;
+
       if (error) throw error;
-      return data || [];
+
+      return data.map((entry, index) => ({
+        rank: index + 1,
+        userId: entry.user_id,
+        user: entry.user,
+        score: this.getScoreByType(entry, type, timeframe),
+        level: entry.current_level,
+        totalXP: entry.total_xp,
+        weeklyXP: entry.weekly_xp,
+        monthlyXP: entry.monthly_xp,
+        communityScore: entry.community_score,
+        currentStreak: entry.current_streak,
+        faculty: entry.user?.faculty,
+        campus: entry.user?.campus
+      }));
+
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
       throw error;
+    }
+  }
+
+  // Get user's friends for friend-based leaderboards
+  async getUserFriends(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('friendships')
+        .select(`
+          requester_id,
+          addressee_id,
+          requester:requester_id(id, full_name, username, avatar_url),
+          addressee:addressee_id(id, full_name, username, avatar_url)
+        `)
+        .eq('status', 'accepted')
+        .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
+
+      if (error) throw error;
+
+      return data.map(friendship => {
+        const friend = friendship.requester_id === userId ? friendship.addressee : friendship.requester;
+        return {
+          userId: friend.id,
+          fullName: friend.full_name,
+          username: friend.username,
+          avatarUrl: friend.avatar_url
+        };
+      });
+    } catch (error) {
+      console.error('Error fetching user friends:', error);
+      return [];
+    }
+  }
+
+  // Get level tier range for level-based grouping
+  getLevelTierRange(userLevel) {
+    if (userLevel <= 10) return { minLevel: 1, maxLevel: 10 };
+    if (userLevel <= 25) return { minLevel: 11, maxLevel: 25 };
+    if (userLevel <= 50) return { minLevel: 26, maxLevel: 50 };
+    if (userLevel <= 75) return { minLevel: 51, maxLevel: 75 };
+    return { minLevel: 76, maxLevel: 100 };
+  }
+
+  // Get user's current ranking in a specific leaderboard
+  async getUserRanking(userId, type = 'xp', timeframe = 'all', groupType = 'global') {
+    try {
+      const fullLeaderboard = await this.getLeaderboard(type, timeframe, 1000, groupType, userId);
+      const userRank = fullLeaderboard.findIndex(entry => entry.userId === userId);
+
+      if (userRank === -1) {
+        return null;
+      }
+
+      return {
+        rank: userRank + 1,
+        totalParticipants: fullLeaderboard.length,
+        ...fullLeaderboard[userRank]
+      };
+    } catch (error) {
+      console.error('Error fetching user ranking:', error);
+      return null;
+    }
+  }
+
+  // Get score by type and timeframe
+  getScoreByType(entry, type, timeframe = 'all') {
+    if (timeframe === 'weekly') {
+      return entry.weekly_xp;
+    } else if (timeframe === 'monthly') {
+      return entry.monthly_xp;
+    }
+
+    switch (type) {
+      case 'xp':
+        return entry.total_xp;
+      case 'level':
+        return entry.current_level;
+      case 'community':
+        return entry.community_score;
+      case 'streak':
+        return entry.current_streak;
+      default:
+        return entry.total_xp;
     }
   }
 

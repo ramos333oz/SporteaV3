@@ -69,8 +69,27 @@ const UserRecommendationsList = ({
         throw new Error(functionError.message || 'Failed to fetch recommendations');
       }
 
-      if (data?.similar_users) {
-        setRecommendations(data.similar_users);
+      if (data?.similar_users && data.similar_users.length > 0) {
+        // Fetch user levels separately for each recommended user
+        const userIds = data.similar_users.map(u => u.id);
+
+        const { data: gamificationData, error: gamificationError } = await supabase
+          .from('user_gamification')
+          .select('user_id, current_level')
+          .in('user_id', userIds);
+
+        if (gamificationError) {
+          console.warn('Error fetching user levels:', gamificationError);
+        }
+
+        // Merge level data with recommendations
+        const recommendationsWithLevels = data.similar_users.map(user => ({
+          ...user,
+          level: gamificationData?.find(g => g.user_id === user.id)?.current_level || 1,
+          current_level: gamificationData?.find(g => g.user_id === user.id)?.current_level || 1
+        }));
+
+        setRecommendations(recommendationsWithLevels);
       } else {
         setRecommendations([]);
       }

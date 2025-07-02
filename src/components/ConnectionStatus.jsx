@@ -343,19 +343,19 @@ const ConnectionStatus = () => {
         }} 
       />
       <Tooltip title={isResetting ? 'Resetting connection...' : 'Reset connection'}>
-          <IconButton 
-            size="small" 
-            onClick={resetConnection} 
+          <IconButton
+            size="small"
+            onClick={resetConnection}
             disabled={isResetting}
-          sx={{ ml: 0.5, opacity: isResetting ? 0.5 : 1 }}
+            sx={{ ml: 0.5, opacity: isResetting ? 0.5 : 1 }}
           >
-          <RefreshIcon fontSize="small" sx={{ 
-                animation: isResetting ? 'spin 1s infinite linear' : 'none',
-                '@keyframes spin': {
-                  '0%': { transform: 'rotate(0deg)' },
-                  '100%': { transform: 'rotate(360deg)' }
-                }
-          }} />
+            <RefreshIcon fontSize="small" sx={{
+              animation: isResetting ? 'spin 1s infinite linear' : 'none',
+              '@keyframes spin': {
+                '0%': { transform: 'rotate(0deg)' },
+                '100%': { transform: 'rotate(360deg)' }
+              }
+            }} />
           </IconButton>
         </Tooltip>
       <Typography variant="caption" sx={{ ml: 0.5 }}>
