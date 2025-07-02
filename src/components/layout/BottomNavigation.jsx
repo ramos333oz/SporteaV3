@@ -6,6 +6,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import PeopleIcon from '@mui/icons-material/People';
 import { useAuth } from '../../hooks/useAuth';
+import { UserAvatarWithLevel } from '../achievements';
 
 const BottomNavigation = () => {
   const { user } = useAuth();
@@ -112,18 +113,19 @@ const BottomNavigation = () => {
           <BottomNavigationAction
             label="Profile"
             icon={
-              <Avatar
-                src={user?.user_metadata?.avatar_url}
-                alt={user?.user_metadata?.full_name}
+              <UserAvatarWithLevel
+                user={{
+                  avatar_url: user?.user_metadata?.avatar_url,
+                  full_name: user?.user_metadata?.full_name,
+                  level: user?.level || 1
+                }}
+                size={28}
+                badgeSize="small"
                 sx={{
-                  width: 28,
-                  height: 28,
                   bgcolor: 'primary.main',
                   fontSize: '0.875rem',
                 }}
-              >
-                {user?.user_metadata?.full_name?.charAt(0) || 'U'}
-              </Avatar>
+              />
             }
           />
         </MuiBottomNavigation>

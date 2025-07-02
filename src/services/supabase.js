@@ -201,22 +201,69 @@ export const userService = {
       .select('*')
       .eq('id', userId)
       .single();
-    
+
     if (error) throw error;
     return data;
   },
-  
+
+  // Get enhanced user profile with gamification data
+  getEnhancedProfile: async (userId) => {
+    try {
+      // Get basic profile
+      const profile = await userService.getProfile(userId);
+
+      // Get gamification data
+      const { data: gamificationData, error: gamError } = await supabase
+        .from('user_gamification')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (gamError && gamError.code !== 'PGRST116') {
+        console.error('Error fetching gamification data:', gamError);
+      }
+
+      // Get achievements
+      const { data: achievements, error: achError } = await supabase
+        .from('user_achievement_progress')
+        .select(`
+          *,
+          achievement:achievements(*)
+        `)
+        .eq('user_id', userId)
+        .eq('is_completed', true);
+
+      if (achError) {
+        console.error('Error fetching achievements:', achError);
+      }
+
+      return {
+        ...profile,
+        level: gamificationData?.current_level || 1,
+        xp: gamificationData?.total_xp || 0,
+        streak: gamificationData?.current_streak || 0,
+        communityScore: gamificationData?.community_score || 0,
+        achievements: achievements || [],
+        gamificationData: gamificationData
+      };
+    } catch (error) {
+      console.error('Error fetching enhanced profile:', error);
+      // Return basic profile if gamification data fails
+      return await userService.getProfile(userId);
+    }
+  },
+
   // Update user profile
   updateProfile: async (userId, updates) => {
     const { data, error } = await supabase
       .from('users')
       .update(updates)
       .eq('id', userId);
-    
+
     if (error) throw error;
     return data;
   },
-  
+
   // Get user's sports preferences
   getSportPreferences: async (userId) => {
     const { data, error } = await supabase
@@ -224,7 +271,7 @@ export const userService = {
       .select('sport_preferences')
       .eq('id', userId)
       .single();
-    
+
     if (error) throw error;
     return data.sport_preferences;
   }

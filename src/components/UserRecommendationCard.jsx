@@ -22,6 +22,7 @@ import {
   LocationOn as LocationIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { UserAvatarWithLevel } from './achievements';
 
 /**
  * Instagram-style user recommendation card component
@@ -132,21 +133,17 @@ const UserRecommendationCard = ({
       <CardContent sx={{ flexGrow: 1, pb: 1 }}>
         {/* User Avatar and Basic Info */}
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
-          <Avatar
-            src={user.avatar_url}
-            alt={user.full_name}
-            sx={{ 
-              width: compact ? 64 : 80, 
-              height: compact ? 64 : 80, 
+          <UserAvatarWithLevel
+            user={user}
+            size={compact ? 64 : 80}
+            badgeSize={compact ? 'small' : 'medium'}
+            onClick={handleViewProfile}
+            sx={{
               mb: 1,
-              cursor: 'pointer',
               border: '3px solid',
               borderColor: 'primary.light'
             }}
-            onClick={handleViewProfile}
-          >
-            {user.full_name?.charAt(0) || user.username?.charAt(0)}
-          </Avatar>
+          />
           
           <Typography 
             variant={compact ? "subtitle1" : "h6"} 

@@ -24,6 +24,12 @@ import {
   Tooltip
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
+import {
+  UserAvatarWithLevel,
+  AchievementCard,
+  XPProgressBar
+} from '../components/achievements';
+import achievementService from '../services/achievementService';
 import SettingsIcon from '@mui/icons-material/Settings';
 import EditIcon from '@mui/icons-material/Edit';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
@@ -164,11 +170,10 @@ const Profile = () => {
   const [friendActionLoading, setFriendActionLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
   const [locations, setLocations] = useState({});
-  const [achievements, setAchievements] = useState([
-    { id: 1, title: 'First Match', description: 'Participated in first match', icon: <EmojiEventsIcon /> },
-    { id: 2, title: 'Match Host', description: 'Successfully hosted a match', icon: <EmojiEventsIcon /> },
-    { id: 3, title: 'Social Butterfly', description: 'Made 5+ friends on Sportea', icon: <EmojiEventsIcon /> }
-  ]);
+  const [achievements, setAchievements] = useState([]);
+  const [userAchievements, setUserAchievements] = useState([]);
+  const [gamificationData, setGamificationData] = useState(null);
+  const [achievementsLoading, setAchievementsLoading] = useState(false);
   
   // Check if viewing own profile or someone else's
   const isOwnProfile = !userId || (user && userId === user.id);
@@ -297,7 +302,37 @@ const Profile = () => {
       fetchFriendshipStatus();
     }
   }, [profileId, user, supabase]);
-  
+
+  // Fetch achievement data
+  useEffect(() => {
+    const fetchAchievements = async () => {
+      if (!profileId) return;
+
+      try {
+        setAchievementsLoading(true);
+
+        // Fetch all achievements
+        const allAchievements = await achievementService.getAllAchievements();
+        setAchievements(allAchievements);
+
+        // Fetch user's achievement progress
+        const userAchievementProgress = await achievementService.getUserAchievements(profileId);
+        setUserAchievements(userAchievementProgress);
+
+        // Fetch user's gamification data
+        const gamification = await achievementService.getUserGamification(profileId);
+        setGamificationData(gamification);
+
+      } catch (error) {
+        console.error('Error fetching achievements:', error);
+      } finally {
+        setAchievementsLoading(false);
+      }
+    };
+
+    fetchAchievements();
+  }, [profileId]);
+
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
@@ -624,24 +659,25 @@ const Profile = () => {
         
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 3 }}>
           <Box sx={{ position: 'relative' }}>
-            <Avatar 
-              sx={{ 
-                width: 96, 
-                height: 96, 
+            <UserAvatarWithLevel
+              user={{
+                ...profile,
+                level: gamificationData?.current_level || 1
+              }}
+              size={96}
+              badgeSize="large"
+              sx={{
                 bgcolor: 'primary.main',
                 fontSize: '2.5rem'
               }}
-              src={profile?.avatarUrl}
-            >
-              {profile?.fullName?.charAt(0) || 'U'}
-            </Avatar>
+            />
             {isOwnProfile && (
             <IconButton
               size="small"
               sx={{
                 position: 'absolute',
-                bottom: 0,
-                right: 0,
+                bottom: -2,
+                right: 32, // Adjust to avoid level badge
                 bgcolor: 'background.paper',
                 border: '1px solid',
                 borderColor: 'divider',
@@ -671,6 +707,18 @@ const Profile = () => {
             <Typography variant="body1" mt={1}>
               {profile?.bio}
             </Typography>
+
+            {/* XP Progress Bar */}
+            {gamificationData && (
+              <Box sx={{ mt: 2, maxWidth: 300 }}>
+                <XPProgressBar
+                  currentXP={gamificationData.total_xp}
+                  currentLevel={gamificationData.current_level}
+                  size="medium"
+                />
+              </Box>
+            )}
+
             {renderFriendshipButton()}
           </Box>
         </Box>
@@ -1047,52 +1095,37 @@ const Profile = () => {
             <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
               <EmojiEventsIcon sx={{ mr: 1.5, color: 'primary.main' }} />
               Achievements
+              {gamificationData && (
+                <Chip
+                  label={`Level ${gamificationData.current_level}`}
+                  color="primary"
+                  sx={{ ml: 2 }}
+                />
+              )}
             </Typography>
-            
-            {achievements.length > 0 ? (
-              <Grid container spacing={2}>
-                {achievements.map(achievement => (
-                  <Grid item xs={12} sm={6} md={4} key={achievement.id}>
-                    <Card 
-                      sx={{ 
-                        borderRadius: 3, 
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                        transition: 'transform 0.2s',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: '0 8px 16px rgba(0,0,0,0.12)'
-                        }
-                      }}
-                    >
-                      <Box sx={{ 
-                        bgcolor: 'primary.main', 
-                        p: 2,
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center'
-                      }}>
-                        <Avatar 
-                          sx={{ 
-                            width: 60, 
-                            height: 60, 
-                            bgcolor: 'background.paper',
-                            color: 'primary.main',
-                          }}
-                        >
-                          {achievement.icon}
-                      </Avatar>
-                      </Box>
-                      <CardContent sx={{ textAlign: 'center' }}>
-                        <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                          {achievement.title}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            {achievement.description}
-                          </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
+
+            {achievementsLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : achievements.length > 0 ? (
+              <Grid container spacing={3}>
+                {achievements.map(achievement => {
+                  const userProgress = userAchievements.find(ua => ua.achievement_id === achievement.id);
+                  const isUnlocked = userProgress?.is_completed || false;
+                  const currentProgress = userProgress?.current_progress || 0;
+
+                  return (
+                    <Grid item xs={12} sm={6} md={4} key={achievement.id}>
+                      <AchievementCard
+                        achievement={achievement}
+                        userProgress={currentProgress}
+                        isUnlocked={isUnlocked}
+                        showProgress={true}
+                      />
+                    </Grid>
+                  );
+                })}
               </Grid>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>

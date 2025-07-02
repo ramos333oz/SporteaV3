@@ -26,6 +26,7 @@ import {
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import UnifiedCard from './UnifiedCard';
+import { UserAvatarWithLevel } from './achievements';
 
 /**
  * Enhanced Match Card Component
@@ -201,13 +202,12 @@ const EnhancedMatchCard = ({
             icon={<Group />}
           />
           
-          {match.host?.avatar_url && (
-            <Avatar 
-              src={match.host.avatar_url} 
-              sx={{ width: 24, height: 24 }}
-            >
-              {match.host?.full_name?.charAt(0) || 'H'}
-            </Avatar>
+          {match.host && (
+            <UserAvatarWithLevel
+              user={match.host}
+              size={24}
+              badgeSize="small"
+            />
           )}
         </Stack>
       </Box>
