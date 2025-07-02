@@ -260,14 +260,7 @@ const LocationMapView = ({
 
   // Filter venues based on selected sport
   useEffect(() => {
-    console.log('LocationMapView - Filtering venues:', {
-      venues: venues,
-      venuesLength: venues?.length,
-      selectedSport: selectedSport
-    });
-
     if (!venues || venues.length === 0) {
-      console.log('LocationMapView - No venues provided');
       setFilteredVenues([]);
       return;
     }
@@ -276,37 +269,22 @@ const LocationMapView = ({
 
     // Filter by sport if a specific sport is selected
     if (selectedSport && selectedSport !== 'all') {
-      console.log('LocationMapView - Filtering by sport:', selectedSport);
-
       filtered = venues.filter(venue => {
-        console.log('LocationMapView - Checking venue:', {
-          name: venue.name,
-          sportTypes: venue.sportTypes,
-          supported_sports: venue.supported_sports,
-          coordinates: venue.coordinates
-        });
-
         // Check if venue supports the selected sport
         // The venue data structure uses sportTypes array (transformed by LocationSelection)
         if (venue.sportTypes && Array.isArray(venue.sportTypes)) {
-          const matches = venue.sportTypes.some(sport =>
+          return venue.sportTypes.some(sport =>
             sport.toLowerCase() === selectedSport.toLowerCase()
           );
-          console.log('LocationMapView - SportTypes match:', matches, venue.sportTypes);
-          return matches;
         }
 
         // Fallback: check supported_sports if it exists
         if (venue.supported_sports && Array.isArray(venue.supported_sports)) {
-          console.log('LocationMapView - Has supported_sports but no sportTypes');
           return venue.supported_sports.length > 0;
         }
 
-        console.log('LocationMapView - No sport data found for venue');
         return false;
       });
-
-      console.log('LocationMapView - Filtered venues:', filtered);
     }
 
     setFilteredVenues(filtered);
