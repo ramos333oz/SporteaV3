@@ -40,6 +40,7 @@ import MainLayout from './components/layout/MainLayout';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ToastProvider } from './contexts/ToastContext';
 import { AchievementProvider } from './contexts/AchievementContext';
+import { LevelUpProvider } from './contexts/LevelUpContext';
 
 // Create a theme instance based on the Sportea style guide
 const theme = createTheme({
@@ -336,7 +337,8 @@ function App() {
         <AuthProvider>
           <ToastProvider>
             <AchievementProvider>
-          <ErrorBoundary>
+              <LevelUpProvider>
+                <ErrorBoundary>
             <Router>
               <Routes>
                 {/* Auth routes (not requiring authentication) */}
@@ -380,7 +382,8 @@ function App() {
                 <Route path="*" element={<Navigate to="/not-found" replace />} />
               </Routes>
             </Router>
-          </ErrorBoundary>
+                </ErrorBoundary>
+              </LevelUpProvider>
             </AchievementProvider>
           </ToastProvider>
         </AuthProvider>

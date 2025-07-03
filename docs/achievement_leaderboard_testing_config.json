@@ -1,0 +1,368 @@
+{
+  "testingStrategy": {
+    "version": "1.0.0",
+    "lastUpdated": "2025-01-02",
+    "description": "Comprehensive testing configuration for SporteaV3 Achievement and Leaderboard systems"
+  },
+  "testEnvironments": {
+    "development": {
+      "database": "supabase_dev",
+      "baseUrl": "http://localhost:3000",
+      "apiUrl": "http://localhost:3000/api",
+      "testUsers": {
+        "user1": {
+          "email": "2022812796@student.uitm.edu.my",
+          "password": "Ulalala@369",
+          "port": 3000
+        },
+        "user2": {
+          "email": "2022812795@student.uitm.edu.my", 
+          "password": "Ulalala@369",
+          "port": 3001
+        }
+      }
+    },
+    "staging": {
+      "database": "supabase_staging",
+      "baseUrl": "https://staging.sportea.com",
+      "apiUrl": "https://staging.sportea.com/api"
+    }
+  },
+  "testCategories": {
+    "functional": {
+      "priority": "high",
+      "coverage": "95%",
+      "testSuites": [
+        {
+          "name": "Achievement System",
+          "tests": [
+            {
+              "id": "ACH_001",
+              "name": "Achievement Unlocking Logic",
+              "description": "Verify achievements unlock when requirements are met",
+              "steps": [
+                "Create test user with zero achievements",
+                "Perform action that triggers achievement (e.g., join first match)",
+                "Verify achievement is unlocked",
+                "Confirm XP is awarded",
+                "Check notification is displayed"
+              ],
+              "expectedResults": [
+                "Achievement status changes to completed",
+                "User XP increases by achievement reward amount",
+                "Achievement notification appears",
+                "Progress bar shows 100%"
+              ],
+              "testData": {
+                "achievements": [
+                  {
+                    "name": "First Steps",
+                    "category": "participation",
+                    "requirement_type": "count",
+                    "requirement_value": 1,
+                    "xp_reward": 10
+                  }
+                ]
+              }
+            },
+            {
+              "id": "ACH_002", 
+              "name": "Progress Tracking Accuracy",
+              "description": "Verify achievement progress updates correctly",
+              "steps": [
+                "Create achievement requiring 5 matches",
+                "Join 3 matches",
+                "Check progress shows 3/5",
+                "Join 2 more matches",
+                "Verify achievement unlocks"
+              ],
+              "expectedResults": [
+                "Progress updates after each match",
+                "Progress bar reflects correct percentage",
+                "Achievement unlocks at exactly 5 matches"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Leaderboard System",
+          "tests": [
+            {
+              "id": "LB_001",
+              "name": "Ranking Calculation Accuracy",
+              "description": "Verify leaderboard rankings are calculated correctly",
+              "steps": [
+                "Create multiple test users with different XP amounts",
+                "Fetch XP leaderboard",
+                "Verify users are ranked by XP descending",
+                "Test tiebreaker logic with equal XP"
+              ],
+              "expectedResults": [
+                "Users ranked in correct XP order",
+                "Tiebreakers use account creation date",
+                "Rank numbers are sequential"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "performance": {
+      "priority": "high",
+      "coverage": "90%",
+      "benchmarks": {
+        "leaderboardLoadTime": {
+          "target": "< 2 seconds",
+          "measurement": "Time from request to UI render"
+        },
+        "achievementProcessing": {
+          "target": "< 500ms",
+          "measurement": "Time from action to achievement check"
+        },
+        "cacheHitRate": {
+          "target": "> 80%",
+          "measurement": "Percentage of requests served from cache"
+        }
+      },
+      "loadTests": [
+        {
+          "name": "Concurrent Users",
+          "users": 100,
+          "duration": "5 minutes",
+          "rampUp": "30 seconds",
+          "scenarios": [
+            "View leaderboards",
+            "Complete achievements", 
+            "Update user progress"
+          ]
+        }
+      ]
+    },
+    "security": {
+      "priority": "critical",
+      "coverage": "100%",
+      "vulnerabilities": [
+        {
+          "type": "Achievement Gaming",
+          "tests": [
+            {
+              "id": "SEC_001",
+              "name": "Rate Limiting Bypass",
+              "description": "Attempt to exceed daily hosting limits",
+              "attack": "Create 5 matches in one day",
+              "expectedResult": "Only first 2 matches count toward score"
+            },
+            {
+              "id": "SEC_002", 
+              "name": "XP Farming Prevention",
+              "description": "Attempt to artificially inflate XP",
+              "attack": "Rapid match join/leave cycles",
+              "expectedResult": "Suspicious activity detected and blocked"
+            }
+          ]
+        },
+        {
+          "type": "Data Injection",
+          "tests": [
+            {
+              "id": "SEC_003",
+              "name": "SQL Injection in Leaderboard",
+              "description": "Attempt SQL injection in leaderboard queries",
+              "attack": "Malicious input in leaderboard filters",
+              "expectedResult": "Input sanitized, no database access"
+            }
+          ]
+        }
+      ]
+    },
+    "ui": {
+      "priority": "medium",
+      "coverage": "85%",
+      "components": [
+        {
+          "name": "AchievementCard",
+          "tests": [
+            {
+              "id": "UI_001",
+              "name": "Tier Badge Removal",
+              "description": "Verify tier badges are removed from achievement cards",
+              "steps": [
+                "Navigate to achievements page",
+                "Inspect achievement cards",
+                "Verify no tier badges (bronze/silver/gold) are displayed"
+              ],
+              "expectedResult": "No tier badges visible on achievement cards"
+            },
+            {
+              "id": "UI_002",
+              "name": "Progress Bar Accuracy",
+              "description": "Verify progress bars show correct completion percentage",
+              "steps": [
+                "View achievement with partial progress",
+                "Calculate expected percentage",
+                "Compare with displayed progress bar"
+              ],
+              "expectedResult": "Progress bar matches calculated percentage"
+            }
+          ]
+        },
+        {
+          "name": "LeaderboardList",
+          "tests": [
+            {
+              "id": "UI_003",
+              "name": "User Level Display",
+              "description": "Verify user level badges appear on avatars",
+              "steps": [
+                "View leaderboard with multiple users",
+                "Check each user avatar has level badge",
+                "Verify level numbers are correct"
+              ],
+              "expectedResult": "All avatars show correct level badges"
+            }
+          ]
+        }
+      ],
+      "accessibility": {
+        "wcagLevel": "AA",
+        "tests": [
+          {
+            "id": "A11Y_001",
+            "name": "Screen Reader Compatibility",
+            "description": "Verify achievement cards are readable by screen readers",
+            "tools": ["NVDA", "JAWS", "VoiceOver"],
+            "expectedResult": "All content accessible via screen reader"
+          },
+          {
+            "id": "A11Y_002",
+            "name": "Keyboard Navigation",
+            "description": "Verify all interactive elements are keyboard accessible",
+            "steps": [
+              "Navigate using only Tab key",
+              "Activate elements using Enter/Space",
+              "Verify focus indicators are visible"
+            ],
+            "expectedResult": "Full keyboard accessibility"
+          }
+        ]
+      }
+    },
+    "integration": {
+      "priority": "high",
+      "coverage": "90%",
+      "workflows": [
+        {
+          "name": "Match Completion to Achievement",
+          "steps": [
+            "User joins match",
+            "Match is completed",
+            "Achievement progress updates",
+            "XP is awarded",
+            "Level progression checked",
+            "Leaderboard ranking updates"
+          ],
+          "validations": [
+            "Achievement progress increments",
+            "XP total increases",
+            "Level updates if threshold reached",
+            "Leaderboard position changes"
+          ]
+        }
+      ]
+    }
+  },
+  "testData": {
+    "users": [
+      {
+        "id": "test_user_1",
+        "full_name": "Test User One",
+        "email": "test1@example.com",
+        "level": 1,
+        "total_xp": 0,
+        "achievements": []
+      },
+      {
+        "id": "test_user_2", 
+        "full_name": "Test User Two",
+        "email": "test2@example.com",
+        "level": 15,
+        "total_xp": 1500,
+        "achievements": ["first_steps", "social_butterfly"]
+      }
+    ],
+    "achievements": [
+      {
+        "id": "first_steps",
+        "name": "First Steps",
+        "description": "Join your first match",
+        "category": "participation",
+        "requirement_type": "count",
+        "requirement_value": 1,
+        "xp_reward": 10
+      },
+      {
+        "id": "social_butterfly",
+        "name": "Social Butterfly", 
+        "description": "Make 5 friends",
+        "category": "social",
+        "requirement_type": "count",
+        "requirement_value": 5,
+        "xp_reward": 25
+      }
+    ]
+  },
+  "automationConfig": {
+    "framework": "cypress",
+    "browsers": ["chrome", "firefox", "safari"],
+    "viewports": [
+      {"width": 375, "height": 667, "name": "mobile"},
+      {"width": 768, "height": 1024, "name": "tablet"},
+      {"width": 1920, "height": 1080, "name": "desktop"}
+    ],
+    "retries": 2,
+    "timeout": 10000,
+    "video": true,
+    "screenshots": true
+  },
+  "reportingConfig": {
+    "formats": ["html", "json", "junit"],
+    "coverage": {
+      "threshold": {
+        "statements": 90,
+        "branches": 85,
+        "functions": 90,
+        "lines": 90
+      }
+    },
+    "notifications": {
+      "slack": {
+        "webhook": "https://hooks.slack.com/...",
+        "channel": "#testing"
+      },
+      "email": {
+        "recipients": ["dev-team@sportea.com"],
+        "onFailure": true
+      }
+    }
+  },
+  "monitoringConfig": {
+    "performance": {
+      "metrics": [
+        "response_time",
+        "throughput", 
+        "error_rate",
+        "cache_hit_rate"
+      ],
+      "alerts": {
+        "response_time": "> 3 seconds",
+        "error_rate": "> 1%",
+        "cache_hit_rate": "< 70%"
+      }
+    },
+    "security": {
+      "scanners": ["OWASP ZAP", "Snyk"],
+      "frequency": "daily",
+      "severity": ["high", "critical"]
+    }
+  }
+}

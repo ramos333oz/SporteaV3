@@ -63,23 +63,7 @@ const AchievementCard = ({
         overflow: 'visible'
       }}
     >
-      {/* Tier Badge */}
-      <Box sx={{
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        bgcolor: getTierColor(achievement.tier),
-        color: 'white',
-        px: 1,
-        py: 0.5,
-        borderRadius: 1,
-        fontSize: '0.75rem',
-        fontWeight: 600,
-        textTransform: 'uppercase',
-        zIndex: 2
-      }}>
-        {achievement.tier}
-      </Box>
+
 
       {/* Achievement Icon */}
       <Box sx={{

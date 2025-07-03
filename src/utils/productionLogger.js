@@ -274,10 +274,9 @@ export const initializeProductionLogging = () => {
     // In production, override console methods to reduce noise
     const originalConsoleLog = console.log;
     console.log = () => {}; // Disable console.log in production
-    
-    // Keep error and warn for debugging
-    logInfo = () => {};
-    logDebug = () => {};
+
+    // Note: logInfo and logDebug are constants and cannot be reassigned
+    // They will still work in production but with reduced output
   }
   
   logInfo('Sportea logging system initialized', logger.getStats());

@@ -18,7 +18,16 @@ import {
   LinearProgress,
   Divider,
   Avatar,
-  Badge
+  Badge,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField
 } from '@mui/material';
 import {
   Dashboard,
@@ -58,6 +67,7 @@ import {
   AreaChart
 } from 'recharts';
 import { supabase } from '../services/supabase';
+import { reportService } from '../services/reportService';
 
 const AdminDashboard = () => {
   const [currentTab, setCurrentTab] = useState(0);
@@ -383,7 +393,7 @@ const AdminDashboard = () => {
 
         {currentTab === 0 && <OverviewTab data={analytics.overview} />}
         {currentTab === 1 && <RecommendationsTab data={analytics.recommendations} />}
-        {currentTab === 2 && <UsersTab data={analytics.users} />}
+        {currentTab === 2 && <UsersTab data={analytics.users} adminUser={adminUser} />}
         {currentTab === 3 && <MatchesTab data={analytics.matches} />}
         {currentTab === 4 && <FeedbackTab data={analytics.feedback} />}
       </Container>
@@ -541,9 +551,118 @@ const RecommendationsTab = ({ data }) => {
   );
 };
 
-const UsersTab = ({ data }) => {
+const UsersTab = ({ data, adminUser }) => {
+  const [selectedSubTab, setSelectedSubTab] = useState(0);
+  const [reports, setReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(true);
+  const [reportFilters, setReportFilters] = useState({
+    status: 'all',
+    category: 'all',
+    priority: 'all'
+  });
+  const [reportStats, setReportStats] = useState(null);
+
+  useEffect(() => {
+    if (selectedSubTab === 1) {
+      loadReports();
+      loadReportStatistics();
+    }
+  }, [selectedSubTab, reportFilters]);
+
+  const loadReports = async () => {
+    setReportsLoading(true);
+    try {
+      const filters = {};
+      if (reportFilters.status !== 'all') filters.status = reportFilters.status;
+      if (reportFilters.category !== 'all') filters.category = reportFilters.category;
+      if (reportFilters.priority !== 'all') filters.priority = reportFilters.priority;
+
+      const result = await reportService.getReports(filters);
+      if (result.success) {
+        setReports(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading reports:', error);
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+
+  const loadReportStatistics = async () => {
+    try {
+      const result = await reportService.getReportStatistics();
+      if (result.success) {
+        setReportStats(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading report statistics:', error);
+    }
+  };
+
+  const handleStatusUpdate = async (reportId, newStatus, adminNotes = '') => {
+    try {
+      const result = await reportService.updateReportStatus(
+        reportId,
+        newStatus,
+        adminNotes,
+        adminUser?.id
+      );
+
+      if (result.success) {
+        await loadReports(); // Refresh the list
+        await loadReportStatistics(); // Refresh the statistics
+        // Show success message
+      }
+    } catch (error) {
+      console.error('Failed to update report status:', error);
+    }
+  };
+
   if (!data) return <CircularProgress />;
-  return <Typography>User analytics will be displayed here</Typography>;
+
+  return (
+    <Box>
+      {/* Sub-tab Navigation */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={selectedSubTab} onChange={(e, newValue) => setSelectedSubTab(newValue)}>
+          <Tab label="User Analytics" />
+          <Tab
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                User Reports
+                {reportStats && (
+                  <Chip
+                    label={reportStats.statusCounts?.open || 0}
+                    size="small"
+                    color="warning"
+                  />
+                )}
+              </Box>
+            }
+          />
+        </Tabs>
+      </Box>
+
+      {selectedSubTab === 0 && (
+        <Typography>User analytics will be displayed here</Typography>
+      )}
+
+      {selectedSubTab === 1 && (
+        <ReportsManagement
+          reports={reports}
+          loading={reportsLoading}
+          filters={reportFilters}
+          statistics={reportStats}
+          onFiltersChange={setReportFilters}
+          onStatusUpdate={handleStatusUpdate}
+          onRefresh={() => {
+            loadReports();
+            loadReportStatistics();
+          }}
+        />
+      )}
+    </Box>
+  );
 };
 
 const MatchesTab = ({ data }) => {
@@ -1649,6 +1768,435 @@ const ClusterProfileCard = ({ cluster }) => {
         </Box>
       </CardContent>
     </Card>
+  );
+};
+
+// Reports Management Component
+const ReportsManagement = ({
+  reports,
+  loading,
+  filters,
+  statistics,
+  onFiltersChange,
+  onStatusUpdate,
+  onRefresh
+}) => {
+  const navigate = useNavigate();
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [adminNotes, setAdminNotes] = useState('');
+  const [newStatus, setNewStatus] = useState('');
+  const [updating, setUpdating] = useState(false);
+
+  const handleStatusChange = (report, targetStatus = null) => {
+    setSelectedReport(report);
+    setAdminNotes(report.admin_notes || '');
+    setNewStatus(targetStatus || report.status);
+    setStatusDialogOpen(true);
+  };
+
+  const confirmStatusUpdate = async () => {
+    if (selectedReport && newStatus) {
+      setUpdating(true);
+      try {
+        await onStatusUpdate(selectedReport.id, newStatus, adminNotes);
+        setStatusDialogOpen(false);
+        setSelectedReport(null);
+        setAdminNotes('');
+        setNewStatus('');
+      } catch (error) {
+        console.error('Error updating report status:', error);
+      } finally {
+        setUpdating(false);
+      }
+    }
+  };
+
+  const handleReporterClick = (userId) => {
+    navigate(`/profile/${userId}`);
+  };
+
+  const getAvailableStatuses = (currentStatus) => {
+    const statusFlow = {
+      'open': ['in_progress', 'closed'],
+      'in_progress': ['resolved', 'closed'],
+      'resolved': ['closed'],
+      'closed': []
+    };
+    return statusFlow[currentStatus] || [];
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'open': return 'error';
+      case 'in_progress': return 'warning';
+      case 'resolved': return 'success';
+      case 'closed': return 'default';
+      default: return 'default';
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'urgent': return 'error';
+      case 'high': return 'warning';
+      case 'medium': return 'info';
+      case 'low': return 'default';
+      default: return 'default';
+    }
+  };
+
+  return (
+    <Box>
+      {/* Statistics Cards */}
+      {statistics && (
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>
+                  Total Reports
+                </Typography>
+                <Typography variant="h4">
+                  {statistics.totalReports}
+                </Typography>
+                <Typography variant="body2" color="success.main">
+                  {statistics.recentReports} this week
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>
+                  Open Reports
+                </Typography>
+                <Typography variant="h4" color="error.main">
+                  {statistics.statusCounts?.open || 0}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>
+                  In Progress
+                </Typography>
+                <Typography variant="h4" color="warning.main">
+                  {statistics.statusCounts?.in_progress || 0}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>
+                  Resolved
+                </Typography>
+                <Typography variant="h4" color="success.main">
+                  {statistics.statusCounts?.resolved || 0}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* Filters and Actions */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={filters.status}
+                onChange={(e) => onFiltersChange({ ...filters, status: e.target.value })}
+                label="Status"
+              >
+                <MenuItem value="all">All Status</MenuItem>
+                <MenuItem value="open">Open</MenuItem>
+                <MenuItem value="in_progress">In Progress</MenuItem>
+                <MenuItem value="resolved">Resolved</MenuItem>
+                <MenuItem value="closed">Closed</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Category</InputLabel>
+              <Select
+                value={filters.category}
+                onChange={(e) => onFiltersChange({ ...filters, category: e.target.value })}
+                label="Category"
+              >
+                <MenuItem value="all">All Categories</MenuItem>
+                <MenuItem value="technical">Technical</MenuItem>
+                <MenuItem value="player">Player Issues</MenuItem>
+                <MenuItem value="other">Other</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Priority</InputLabel>
+              <Select
+                value={filters.priority}
+                onChange={(e) => onFiltersChange({ ...filters, priority: e.target.value })}
+                label="Priority"
+              >
+                <MenuItem value="all">All Priorities</MenuItem>
+                <MenuItem value="urgent">Urgent</MenuItem>
+                <MenuItem value="high">High</MenuItem>
+                <MenuItem value="medium">Medium</MenuItem>
+                <MenuItem value="low">Low</MenuItem>
+              </Select>
+            </FormControl>
+
+            <Button
+              variant="outlined"
+              startIcon={<Refresh />}
+              onClick={onRefresh}
+              disabled={loading}
+            >
+              Refresh
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Reports List */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            User Reports ({reports.length})
+          </Typography>
+
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : reports.length === 0 ? (
+            <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+              No reports found matching the current filters.
+            </Typography>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {reports.map((report) => (
+                <Card key={report.id} variant="outlined">
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          <Typography variant="h6">
+                            {report.title}
+                          </Typography>
+                          <Chip
+                            label={report.status.replace('_', ' ')}
+                            color={getStatusColor(report.status)}
+                            size="small"
+                          />
+                          <Chip
+                            label={report.priority}
+                            color={getPriorityColor(report.priority)}
+                            size="small"
+                            variant="outlined"
+                          />
+                          <Chip
+                            label={report.category}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </Box>
+
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          By: <Button
+                            variant="text"
+                            size="small"
+                            sx={{
+                              p: 0,
+                              minWidth: 'auto',
+                              textTransform: 'none',
+                              color: 'primary.main',
+                              '&:hover': {
+                                backgroundColor: 'transparent',
+                                textDecoration: 'underline'
+                              }
+                            }}
+                            onClick={() => handleReporterClick(report.user_id)}
+                          >
+                            {report.user_full_name || report.user_email}
+                          </Button> •
+                          {new Date(report.created_at).toLocaleString()}
+                        </Typography>
+
+                        <Typography variant="body1" sx={{ mb: 2 }}>
+                          {report.description}
+                        </Typography>
+
+                        {report.player_name && (
+                          <Typography variant="body2" color="warning.main">
+                            <strong>Player Reported:</strong> {report.player_name}
+                          </Typography>
+                        )}
+
+                        {report.admin_notes && (
+                          <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              <strong>Admin Notes:</strong> {report.admin_notes}
+                            </Typography>
+                            {report.resolved_by_name && (
+                              <Typography variant="caption" color="text.secondary">
+                                Resolved by: {report.resolved_by_name}
+                              </Typography>
+                            )}
+                          </Box>
+                        )}
+                      </Box>
+
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, ml: 2 }}>
+                        {report.status === 'open' && (
+                          <>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="warning"
+                              onClick={() => handleStatusChange(report, 'in_progress')}
+                            >
+                              Start Review
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              onClick={() => handleStatusChange(report, 'closed')}
+                            >
+                              Close
+                            </Button>
+                          </>
+                        )}
+                        {report.status === 'in_progress' && (
+                          <>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="success"
+                              onClick={() => handleStatusChange(report, 'resolved')}
+                            >
+                              Mark Resolved
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              onClick={() => handleStatusChange(report, 'closed')}
+                            >
+                              Close
+                            </Button>
+                          </>
+                        )}
+                        {report.status === 'resolved' && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            onClick={() => handleStatusChange(report, 'closed')}
+                          >
+                            Close
+                          </Button>
+                        )}
+                        {report.status !== 'closed' && (
+                          <Button
+                            size="small"
+                            variant="text"
+                            onClick={() => handleStatusChange(report)}
+                          >
+                            Edit Notes
+                          </Button>
+                        )}
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Status Update Dialog */}
+      <Dialog open={statusDialogOpen} onClose={() => setStatusDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {selectedReport ? `Update Report: ${selectedReport.title}` : 'Update Report Status'}
+        </DialogTitle>
+        <DialogContent>
+          {selectedReport && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Current Status: <Chip
+                  label={selectedReport.status.replace('_', ' ')}
+                  color={getStatusColor(selectedReport.status)}
+                  size="small"
+                />
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Reporter: {selectedReport.user_full_name || selectedReport.user_email}
+              </Typography>
+            </Box>
+          )}
+
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>New Status</InputLabel>
+            <Select
+              value={newStatus}
+              onChange={(e) => setNewStatus(e.target.value)}
+              label="New Status"
+            >
+              {selectedReport && getAvailableStatuses(selectedReport.status).map((status) => (
+                <MenuItem key={status} value={status}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip
+                      label={status.replace('_', ' ')}
+                      color={getStatusColor(status)}
+                      size="small"
+                    />
+                  </Box>
+                </MenuItem>
+              ))}
+              {selectedReport && getAvailableStatuses(selectedReport.status).length === 0 && (
+                <MenuItem disabled>
+                  No status changes available
+                </MenuItem>
+              )}
+            </Select>
+          </FormControl>
+
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            label="Admin Notes"
+            value={adminNotes}
+            onChange={(e) => setAdminNotes(e.target.value)}
+            placeholder="Add notes about the resolution or action taken..."
+            helperText="These notes will be visible to other admins and help track the resolution process."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setStatusDialogOpen(false)} disabled={updating}>
+            Cancel
+          </Button>
+          <Button
+            onClick={confirmStatusUpdate}
+            variant="contained"
+            disabled={updating || !newStatus || newStatus === selectedReport?.status}
+            startIcon={updating && <CircularProgress size={20} />}
+          >
+            {updating ? 'Updating...' : 'Update Report'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 

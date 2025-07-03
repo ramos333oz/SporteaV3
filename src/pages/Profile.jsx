@@ -714,9 +714,11 @@ const Profile = () => {
             {gamificationData && (
               <Box sx={{ mt: 2, maxWidth: 300 }}>
                 <XPProgressBar
+                  userId={profile?.id || user?.id}
                   currentXP={gamificationData.total_xp}
                   currentLevel={gamificationData.current_level}
                   size="medium"
+                  animated={true}
                 />
               </Box>
             )}

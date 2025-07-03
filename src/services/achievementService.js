@@ -1,16 +1,26 @@
 import { supabase } from './supabase';
 
-// XP Values for different actions
+// XP Values for different actions (Updated per user requirements)
 export const XP_VALUES = {
-  MATCH_JOINED: 10,
-  MATCH_HOSTED: 25,
-  MATCH_COMPLETED: 15,
+  // Match Actions (Updated values)
+  MATCH_HOSTED: 100,           // User hosts a match: +100 XP
+  MATCH_JOINED: 150,           // User joins a match: +150 XP
+  MATCH_COMPLETED_JOIN: 300,   // User joins and completes: +300 XP
+  MATCH_COMPLETED_HOST: 600,   // User hosts and completes: +600 XP
+
+  // Daily Engagement
+  DAILY_SIGNIN: 100,           // Daily sign-in: +100 XP
+
+  // Achievement System
+  ACHIEVEMENT_UNLOCKED: 'variable', // Based on achievement value
+
+  // Legacy Values (maintain compatibility)
+  MATCH_COMPLETED: 15,         // Deprecated - use specific completion values
   FRIEND_INVITED: 5,
   PROFILE_UPDATED: 5,
-  FIRST_DAILY_LOGIN: 5,
-  STREAK_BONUS: 2, // per day in streak
-  SKILL_IMPROVED: 20,
-  ACHIEVEMENT_UNLOCKED: 10
+  FIRST_DAILY_LOGIN: 5,        // Deprecated - use DAILY_SIGNIN
+  STREAK_BONUS: 2,             // per day in streak
+  SKILL_IMPROVED: 20
 };
 
 // Level tier colors for UI
@@ -127,22 +137,27 @@ class AchievementService {
     }
   }
 
-  // Award XP to user
-  async awardXP(userId, xpAmount, reason = '') {
+  // Enhanced XP awarding with real-time updates and level progression
+  async awardXP(userId, xpAmount, reason = '', broadcastUpdate = true) {
     try {
       // Get current gamification data
       const currentData = await this.getUserGamification(userId);
       const newTotalXP = currentData.total_xp + xpAmount;
       const newWeeklyXP = currentData.weekly_xp + xpAmount;
       const newMonthlyXP = currentData.monthly_xp + xpAmount;
+      const oldLevel = currentData.current_level;
 
-      // Update gamification data (level will be auto-calculated by trigger)
+      // Calculate new level
+      const newLevel = this.calculateLevelFromXP(newTotalXP);
+
+      // Update gamification data
       const { data, error } = await supabase
         .from('user_gamification')
         .update({
           total_xp: newTotalXP,
           weekly_xp: newWeeklyXP,
           monthly_xp: newMonthlyXP,
+          current_level: newLevel,
           last_activity_date: new Date().toISOString().split('T')[0]
         })
         .eq('user_id', userId)
@@ -151,10 +166,128 @@ class AchievementService {
 
       if (error) throw error;
 
-      console.log(`Awarded ${xpAmount} XP to user ${userId}. Reason: ${reason}`);
+      // Broadcast real-time updates if enabled
+      if (broadcastUpdate) {
+        await this.broadcastXPUpdate(userId, {
+          oldXP: currentData.total_xp,
+          newXP: newTotalXP,
+          xpGained: xpAmount,
+          oldLevel,
+          newLevel,
+          reason,
+          leveledUp: newLevel > oldLevel
+        });
+      }
+
+      // Show level up notification if applicable
+      if (newLevel > oldLevel) {
+        await this.showLevelUpNotification(userId, newLevel, oldLevel);
+      }
+
+      console.log(`Awarded ${xpAmount} XP to user ${userId}. Reason: ${reason}${newLevel > oldLevel ? ` (Level up: ${oldLevel} → ${newLevel})` : ''}`);
       return data;
     } catch (error) {
       console.error('Error awarding XP:', error);
+      throw error;
+    }
+  }
+
+  // Calculate level from total XP
+  calculateLevelFromXP(totalXP) {
+    let level = 1;
+    let xpRequired = 0;
+
+    while (xpRequired <= totalXP) {
+      level++;
+      xpRequired += calculateNextLevelXP(level - 1);
+      if (level > 100) break; // Cap at level 100
+    }
+
+    return Math.max(1, level - 1);
+  }
+
+  // Real-time XP update broadcasting
+  async broadcastXPUpdate(userId, updateData) {
+    try {
+      // Update React context/state management
+      window.dispatchEvent(new CustomEvent('sportea:xp_update', {
+        detail: { userId, ...updateData }
+      }));
+
+      console.log(`Broadcasting XP update for user ${userId}:`, updateData);
+    } catch (error) {
+      console.error('Error broadcasting XP update:', error);
+    }
+  }
+
+  // Level up notification system
+  async showLevelUpNotification(userId, newLevel, oldLevel) {
+    try {
+      // Create notification in database
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          type: 'level_up',
+          title: 'Level Up!',
+          content: `Congratulations! You've reached Level ${newLevel}!`,
+          data: { newLevel, oldLevel },
+          is_read: false
+        });
+
+      // Broadcast level up event
+      window.dispatchEvent(new CustomEvent('sportea:level_up', {
+        detail: { userId, newLevel, oldLevel }
+      }));
+
+      console.log(`Level up notification sent for user ${userId}: ${oldLevel} → ${newLevel}`);
+    } catch (error) {
+      console.error('Error showing level up notification:', error);
+    }
+  }
+
+  // Enhanced match XP calculation
+  calculateMatchXP(action, matchData = {}) {
+    switch (action) {
+      case 'HOST_MATCH':
+        return XP_VALUES.MATCH_HOSTED;
+
+      case 'JOIN_MATCH':
+        return XP_VALUES.MATCH_JOINED;
+
+      case 'COMPLETE_MATCH':
+        // Check if user was host or participant
+        if (matchData.isHost) {
+          return XP_VALUES.MATCH_COMPLETED_HOST;
+        } else {
+          return XP_VALUES.MATCH_COMPLETED_JOIN;
+        }
+
+      default:
+        return 0;
+    }
+  }
+
+  // Daily sign-in XP system
+  async handleDailySignIn(userId) {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const gamificationData = await this.getUserGamification(userId);
+
+      // Check if user already signed in today
+      if (gamificationData.last_activity_date !== today) {
+        // Award daily sign-in XP
+        await this.awardXP(userId, XP_VALUES.DAILY_SIGNIN, 'Daily sign-in');
+
+        // Update streak
+        await this.updateStreak(userId);
+
+        return { success: true, xpAwarded: XP_VALUES.DAILY_SIGNIN };
+      }
+
+      return { success: false, message: 'Already signed in today' };
+    } catch (error) {
+      console.error('Error handling daily sign-in:', error);
       throw error;
     }
   }
@@ -373,29 +506,46 @@ class AchievementService {
           user:users(full_name, avatar_url, username, faculty, campus)
         `);
 
-      // Apply timeframe filtering
-      if (timeframe === 'weekly') {
-        query = query.order('weekly_xp', { ascending: false });
-      } else if (timeframe === 'monthly') {
-        query = query.order('monthly_xp', { ascending: false });
-      } else {
-        // Apply ordering based on type for all-time leaderboards
-        switch (type) {
-          case 'xp':
+      // Apply ordering based on type and timeframe
+      switch (type) {
+        case 'xp':
+          if (timeframe === 'weekly') {
+            query = query.order('weekly_xp', { ascending: false });
+          } else if (timeframe === 'monthly') {
+            query = query.order('monthly_xp', { ascending: false });
+          } else {
             query = query.order('total_xp', { ascending: false });
-            break;
-          case 'level':
-            query = query.order('current_level', { ascending: false }).order('total_xp', { ascending: false });
-            break;
-          case 'community':
+          }
+          break;
+        case 'level':
+          // Level leaderboards always order by current_level regardless of timeframe
+          query = query.order('current_level', { ascending: false }).order('total_xp', { ascending: false });
+          break;
+        case 'community':
+          if (timeframe === 'weekly') {
+            // Use weekly community score if available, fallback to regular community score
+            query = query.order('weekly_community_score', { ascending: false, nullsLast: true })
+                         .order('community_score', { ascending: false });
+          } else if (timeframe === 'monthly') {
+            // Use monthly community score if available, fallback to regular community score
+            query = query.order('monthly_community_score', { ascending: false, nullsLast: true })
+                         .order('community_score', { ascending: false });
+          } else {
             query = query.order('community_score', { ascending: false });
-            break;
-          case 'streak':
-            query = query.order('current_streak', { ascending: false });
-            break;
-          default:
+          }
+          break;
+        case 'streak':
+          // Streak leaderboards always order by current_streak regardless of timeframe
+          query = query.order('current_streak', { ascending: false });
+          break;
+        default:
+          if (timeframe === 'weekly') {
+            query = query.order('weekly_xp', { ascending: false });
+          } else if (timeframe === 'monthly') {
+            query = query.order('monthly_xp', { ascending: false });
+          } else {
             query = query.order('total_xp', { ascending: false });
-        }
+          }
       }
 
       // Apply group-based filtering
@@ -506,19 +656,33 @@ class AchievementService {
 
   // Get score by type and timeframe
   getScoreByType(entry, type, timeframe = 'all') {
-    if (timeframe === 'weekly') {
-      return entry.weekly_xp;
-    } else if (timeframe === 'monthly') {
-      return entry.monthly_xp;
+    // For XP leaderboards, timeframe affects which XP value to use
+    if (type === 'xp') {
+      if (timeframe === 'weekly') {
+        return entry.weekly_xp;
+      } else if (timeframe === 'monthly') {
+        return entry.monthly_xp;
+      } else {
+        return entry.total_xp;
+      }
     }
 
+    // For Community leaderboards, timeframe affects which community score to use
+    if (type === 'community') {
+      if (timeframe === 'weekly') {
+        return entry.weekly_community_score || entry.community_score;
+      } else if (timeframe === 'monthly') {
+        return entry.monthly_community_score || entry.community_score;
+      } else {
+        return entry.community_score;
+      }
+    }
+
+    // For Level and Streak leaderboards, timeframe doesn't affect the value
+    // These are always current values regardless of timeframe
     switch (type) {
-      case 'xp':
-        return entry.total_xp;
       case 'level':
         return entry.current_level;
-      case 'community':
-        return entry.community_score;
       case 'streak':
         return entry.current_streak;
       default:
@@ -579,7 +743,116 @@ class AchievementService {
       throw error;
     }
   }
+
+  // Manual achievement check for all users (admin function)
+  async checkAllUserAchievements() {
+    try {
+      console.log('Starting manual achievement check for all users...');
+
+      // Get all users with gamification data
+      const { data: users, error } = await supabase
+        .from('user_gamification')
+        .select(`
+          user_id,
+          user:users(full_name, email)
+        `);
+
+      if (error) throw error;
+
+      let totalUnlocked = 0;
+
+      for (const userRecord of users) {
+        const userId = userRecord.user_id;
+        console.log(`Checking achievements for user: ${userRecord.user?.full_name || userId}`);
+
+        try {
+          const unlockedAchievements = await this.checkAchievements(userId, 'manual_check');
+          totalUnlocked += unlockedAchievements.length;
+
+          if (unlockedAchievements.length > 0) {
+            console.log(`✅ Unlocked ${unlockedAchievements.length} achievements for ${userRecord.user?.full_name}`);
+            unlockedAchievements.forEach(achievement => {
+              console.log(`  - ${achievement.name}: ${achievement.description}`);
+            });
+          }
+        } catch (userError) {
+          console.error(`Error checking achievements for user ${userId}:`, userError);
+        }
+      }
+
+      console.log(`✅ Manual achievement check completed. Total achievements unlocked: ${totalUnlocked}`);
+      return { success: true, totalUnlocked, usersChecked: users.length };
+    } catch (error) {
+      console.error('Error in manual achievement check:', error);
+      throw error;
+    }
+  }
+
+  // Initialize achievement progress for a user (creates initial progress records)
+  async initializeUserAchievements(userId) {
+    try {
+      console.log(`Initializing achievements for user: ${userId}`);
+
+      const allAchievements = await this.getAllAchievements();
+      const userProgress = await this.getUserAchievements(userId);
+
+      // Check which achievements don't have progress records yet
+      const missingAchievements = allAchievements.filter(achievement =>
+        !userProgress.find(up => up.achievement_id === achievement.id)
+      );
+
+      console.log(`Found ${missingAchievements.length} achievements without progress records`);
+
+      // Create initial progress records and check for immediate unlocks
+      for (const achievement of missingAchievements) {
+        const currentProgress = await this.calculateProgress(achievement, {}, userId);
+
+        if (currentProgress >= achievement.requirement_value) {
+          // Achievement should be unlocked immediately
+          await this.unlockAchievement(userId, achievement.id);
+          await this.awardXP(userId, achievement.xp_reward, `Achievement: ${achievement.name}`);
+          console.log(`🎉 Immediately unlocked: ${achievement.name}`);
+        } else if (currentProgress > 0) {
+          // Create progress record
+          await this.updateProgress(userId, achievement.id, currentProgress);
+          console.log(`📊 Progress created: ${achievement.name} (${currentProgress}/${achievement.requirement_value})`);
+        }
+      }
+
+      return { success: true, processed: missingAchievements.length };
+    } catch (error) {
+      console.error('Error initializing user achievements:', error);
+      throw error;
+    }
+  }
 }
 
 export const achievementService = new AchievementService();
+
+// Global function for manual testing
+window.runManualAchievementCheck = async () => {
+  try {
+    console.log('🚀 Starting manual achievement check...');
+    const result = await achievementService.checkAllUserAchievements();
+    console.log('✅ Manual achievement check completed:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Error running manual achievement check:', error);
+    throw error;
+  }
+};
+
+// Global function for single user testing
+window.checkUserAchievements = async (userId) => {
+  try {
+    console.log(`🚀 Checking achievements for user: ${userId}`);
+    const result = await achievementService.checkAchievements(userId, 'manual_check');
+    console.log('✅ User achievement check completed:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Error checking user achievements:', error);
+    throw error;
+  }
+};
+
 export default achievementService;

@@ -26,6 +26,7 @@ import HostedMatches from './HostedMatches';
 import { useAuth } from '../../hooks/useAuth';
 import { matchService } from '../../services/supabase';
 import { useNavigate } from 'react-router-dom';
+import { useAchievements } from '../../hooks/useAchievements';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -38,6 +39,7 @@ const Alert = React.forwardRef(function Alert(props, ref) {
 const Host = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { awardXP } = useAchievements();
   const [activeStep, setActiveStep] = useState(0);
   const [showNewMatch, setShowNewMatch] = useState(false);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
@@ -227,7 +229,22 @@ const Host = () => {
       // Store the created match ID for potential redirection
       setCreatedMatchId(matchId);
       console.log('Match created successfully with ID:', matchId);
-      
+
+      // 🎯 ACHIEVEMENT TRACKING: Check for "Getting Started" achievement
+      try {
+        console.log('🎯 Triggering achievement check for match hosting...');
+        await awardXP(0, 'Match hosted', {
+          actionType: 'MATCH_HOSTED',
+          matchId: matchId,
+          sport: matchData.sport,
+          updateStreak: true
+        });
+        console.log('✅ Achievement check completed for match hosting');
+      } catch (achievementError) {
+        console.error('❌ Error checking achievements after match creation:', achievementError);
+        // Don't fail the match creation if achievement tracking fails
+      }
+
       // Show success message
       setSnackbar({
         open: true,
