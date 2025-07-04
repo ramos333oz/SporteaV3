@@ -547,7 +547,6 @@ const RecommendationsTab = ({ data }) => {
 };
 
 const UsersTab = ({ data, adminUser }) => {
-  const [selectedSubTab, setSelectedSubTab] = useState(0);
   const [reports, setReports] = useState([]);
   const [reportsLoading, setReportsLoading] = useState(true);
   const [reportFilters, setReportFilters] = useState({
@@ -558,11 +557,9 @@ const UsersTab = ({ data, adminUser }) => {
   const [reportStats, setReportStats] = useState(null);
 
   useEffect(() => {
-    if (selectedSubTab === 1) {
-      loadReports();
-      loadReportStatistics();
-    }
-  }, [selectedSubTab, reportFilters]);
+    loadReports();
+    loadReportStatistics();
+  }, [reportFilters]);
 
   const loadReports = async () => {
     setReportsLoading(true);
@@ -685,7 +682,7 @@ const MatchesTab = ({ data }) => {
 
     // Overall statistics
     const totalMatches = matches.length;
-    const activeMatches = matches.filter(m => m.status === 'active').length;
+    const activeMatches = matches.filter(m => m.status === 'active' || m.status === 'upcoming' || m.status === 'scheduled').length;
     const completedMatches = matches.filter(m => m.status === 'completed').length;
     const cancelledMatches = matches.filter(m => m.status === 'cancelled').length;
     const recentMatches = matches.filter(m => new Date(m.created_at) > thirtyDaysAgo).length;
@@ -693,7 +690,7 @@ const MatchesTab = ({ data }) => {
     // Sport-wise breakdown
     const sportStats = sports.map(sport => {
       const sportMatches = matches.filter(m => m.sport_id === sport.id);
-      const activeCount = sportMatches.filter(m => m.status === 'active' || m.status === 'upcoming').length;
+      const activeCount = sportMatches.filter(m => m.status === 'active' || m.status === 'upcoming' || m.status === 'scheduled').length;
       const totalCount = sportMatches.filter(m => m.status !== 'cancelled').length;
       const completedCount = sportMatches.filter(m => m.status === 'completed').length;
 
@@ -869,10 +866,10 @@ const MatchesTab = ({ data }) => {
                 <PieChart>
                   <Pie
                     data={[
-                      { name: 'Active', value: matchStats.overview.activeMatches, fill: '#4caf50' },
+                      { name: 'Active/Upcoming', value: matchStats.overview.activeMatches, fill: '#4caf50' },
                       { name: 'Completed', value: matchStats.overview.completedMatches, fill: '#2196f3' },
                       { name: 'Cancelled', value: matchStats.overview.cancelledMatches, fill: '#f44336' }
-                    ]}
+                    ].filter(item => item.value > 0)}
                     cx="50%"
                     cy="50%"
                     outerRadius={80}
@@ -1164,7 +1161,6 @@ const FeedbackTab = ({ data }) => {
             </Card>
           </Grid>
         </Grid>
-      )}
     </Box>
   );
 };
