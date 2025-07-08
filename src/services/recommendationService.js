@@ -7,8 +7,9 @@ import { supabase } from './supabase';
 // Configuration
 const DEBUG_MODE = process.env.NODE_ENV !== 'production'; // Only log in development
 const LOG_PREFIX = '[Sportea Recommendation Service]';
-const USE_COMBINED_RECOMMENDATIONS = true; // Use the new combined system (Direct + Collaborative)
-const USE_DIRECT_PREFERENCE_MATCHING = true;
+const USE_SIMPLIFIED_VECTOR_RECOMMENDATIONS = true; // Use the simplified vector-based system for academic demonstration
+const USE_COMBINED_RECOMMENDATIONS = false; // Use the new combined system (Direct + Collaborative)
+const USE_DIRECT_PREFERENCE_MATCHING = false;
 
 // Client-side cache
 let recommendationsCache = {
@@ -73,6 +74,73 @@ const recommendationService = {
     localStorage.removeItem('sportea_last_connection_time');
     
     log('Recommendations cache and error states cleared');
+  },
+
+  /**
+   * Get simplified vector-based recommendations (for academic demonstration)
+   */
+  getSimplifiedVectorRecommendations: async (userId, options = {}) => {
+    return getCachedOrNewRequest(`simplified-vector-${userId}`, async () => {
+      try {
+        const { limit = 10, offset = 0, minSimilarity = 0.00001 } = options;
+        const requestId = generateRequestId();
+
+        log('Starting simplified vector recommendation request', requestId, { userId, limit, minSimilarity });
+
+        const { data, error } = await supabase.functions.invoke('simplified-recommendations', {
+          body: { userId, limit, offset, minSimilarity }
+        });
+
+        if (error) {
+          logError('Error getting simplified vector recommendations:', error);
+          return {
+            recommendations: [],
+            metadata: {
+              count: 0,
+              type: 'error',
+              message: 'Unable to load vector-based recommendations',
+              error: error.message,
+              algorithm: 'simplified-vector-similarity'
+            }
+          };
+        }
+
+        log('Received simplified vector recommendations', requestId, {
+          count: data?.count || 0,
+          algorithm: data?.algorithm || 'simplified-vector-similarity',
+          totalAnalyzed: data?.total_matches_analyzed || 0,
+          totalSimilar: data?.total_similar_matches || 0
+        });
+
+        // Transform the recommendations to match the expected format
+        const transformedRecommendations = (data.recommendations || []).map(rec => ({
+          match: rec.match,
+          score: rec.similarity_score,
+          explanation: rec.explanation,
+          source: 'simplified-vector-similarity',
+          mathematical_breakdown: rec.mathematical_breakdown,
+          similarity_percentage: rec.similarity_percentage
+        }));
+
+        return {
+          recommendations: transformedRecommendations,
+          metadata: {
+            count: data.count || 0,
+            algorithm: data.algorithm || 'simplified-vector-similarity',
+            mathematical_approach: data.mathematical_approach || 'Pure cosine similarity',
+            total_matches_analyzed: data.total_matches_analyzed || 0,
+            total_similar_matches: data.total_similar_matches || 0,
+            min_similarity_threshold: data.min_similarity_threshold || minSimilarity,
+            vector_dimensions: data.vector_dimensions || 384,
+            using: 'simplified-vector-system',
+            requestId
+          }
+        };
+      } catch (error) {
+        logError('Unexpected error in getSimplifiedVectorRecommendations:', error);
+        return recommendationService.getFallbackRecommendations(userId, options.limit || 10);
+      }
+    });
   },
 
   /**
@@ -207,10 +275,12 @@ const recommendationService = {
 
       log(`Getting recommendations for user ${userId} with options:`, { limit, offset });
 
-      if (USE_COMBINED_RECOMMENDATIONS) {
-        log('Using combined recommendation system (Direct Preference + Collaborative Filtering)');
-        return recommendationService.getCombinedRecommendations(userId, { limit, offset });
+      if (USE_SIMPLIFIED_VECTOR_RECOMMENDATIONS) {
+        log('Using simplified vector-based recommendation system for academic demonstration');
+        return recommendationService.getSimplifiedVectorRecommendations(userId, { limit, offset, minSimilarity: 0.00001 });
       }
+
+
 
       if (USE_DIRECT_PREFERENCE_MATCHING) {
         log('Using direct preference matching recommendation system');
@@ -241,55 +311,74 @@ const recommendationService = {
     }
   },
 
-  /**
-   * Get combined recommendations (Direct Preference + Collaborative Filtering)
-   */
-  getCombinedRecommendations: async (userId, options = {}) => {
-    return getCachedOrNewRequest(`combined-${userId}`, async () => {
-      try {
-        const { limit = 10 } = options;
-        const requestId = generateRequestId();
 
-        log('Starting combined recommendation request', requestId, { userId, limit });
-
-        const { data, error } = await supabase.functions.invoke('combined-recommendations', {
-          body: { userId, limit }
-        });
-
-        if (error) {
-          logError('Error getting combined recommendations:', error);
-          return recommendationService.getDirectPreferenceRecommendations(userId, { limit });
-        }
-
-        log('Received combined recommendations', requestId, {
-          count: data?.count || 0,
-          algorithm: data?.algorithm || 'unknown'
-        });
-
-        return {
-          recommendations: data.recommendations || [],
-          metadata: {
-            count: data.count || 0,
-            algorithm: data.algorithm || 'combined-recommendations',
-            system_weights: data.system_weights || {},
-            component_status: data.component_status || {},
-            using: 'combined-system',
-            requestId
-          }
-        };
-      } catch (error) {
-        logError('Unexpected error in getCombinedRecommendations:', error);
-        return recommendationService.getDirectPreferenceRecommendations(userId, options.limit || 10);
-      }
-    });
-  },
 
   /**
-   * Generate user embedding (placeholder for compatibility)
+   * Generate user embedding by calling the queue processing function
+   * This triggers vector regeneration based on current user preferences
    */
   generateUserEmbedding: async (userId) => {
-    log('generateUserEmbedding called - this is a placeholder function');
-    return { success: true, message: 'Embedding generation not implemented in this version' };
+    log('generateUserEmbedding called for user:', userId);
+
+    try {
+      // First, ensure there's a queue entry for this user
+      const { error: queueError } = await supabase
+        .from('embedding_queue')
+        .upsert({
+          entity_id: userId,
+          entity_type: 'user',
+          status: 'pending',
+          priority: 10, // High priority for manual triggers
+          attempts: 0,
+          max_attempts: 3,
+          error: null
+        }, {
+          onConflict: 'entity_id,entity_type'
+        });
+
+      if (queueError) {
+        logError('Failed to create queue entry:', queueError);
+        return {
+          success: false,
+          error: `Failed to queue vector update: ${queueError.message}`
+        };
+      }
+
+      // Call the process-embedding-queue function to process it
+      const { data, error } = await supabase.functions.invoke('process-embedding-queue', {
+        body: { batchSize: 1, dryRun: false }
+      });
+
+      if (error) {
+        logError('Queue processing error in generateUserEmbedding:', error);
+        return {
+          success: false,
+          error: `Queue processing error: ${error.message}`
+        };
+      }
+
+      // Check if the processing was successful
+      if (data && data.results && data.results.processed > 0) {
+        log('User embedding generated successfully for user:', userId);
+        return {
+          success: true,
+          message: 'User preferences updated successfully',
+          data: data
+        };
+      } else {
+        logError('Queue processing returned no results:', data);
+        return {
+          success: false,
+          error: `Queue processing failed: ${JSON.stringify(data)}`
+        };
+      }
+    } catch (error) {
+      logError('Exception in generateUserEmbedding:', error);
+      return {
+        success: false,
+        error: error.message || 'Unknown error occurred'
+      };
+    }
   },
 
   /**

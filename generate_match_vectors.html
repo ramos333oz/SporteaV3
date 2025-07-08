@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Match Vectors</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div style="padding: 20px; font-family: Arial, sans-serif;">
+        <h1>Generate Match Vectors for Simplified Recommendation System</h1>
+        <p>This tool will generate characteristic vectors for all matches to enable the simplified vector-based recommendation system.</p>
+        
+        <div style="margin: 20px 0;">
+            <button id="generateBtn" onclick="generateMatchVectors()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Generate Match Vectors
+            </button>
+            <button id="checkBtn" onclick="checkVectorStatus()" style="padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+                Check Vector Status
+            </button>
+        </div>
+        
+        <div id="status" style="margin: 20px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; min-height: 100px;">
+            Ready to generate match vectors...
+        </div>
+        
+        <div id="progress" style="margin: 20px 0;">
+            <div style="background: #ddd; border-radius: 4px; overflow: hidden;">
+                <div id="progressBar" style="width: 0%; height: 20px; background: #4CAF50; transition: width 0.3s;"></div>
+            </div>
+            <div id="progressText" style="margin-top: 5px; font-size: 14px; color: #666;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Supabase client
+        const supabaseUrl = 'https://fcwwuiitsghknsvnsrxp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjd3d1aWl0c2doa25zdm5zcnhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc2NjI4MTgsImV4cCI6MjA2MzIzODgxOH0.5IkK_9D4FZU3z_4Kpm7pRJu8rIKfKleIpxMbyr-YoBA';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#f44336' : type === 'success' ? '#4CAF50' : '#333';
+            
+            statusDiv.innerHTML += `<div style="color: ${color}; margin: 5px 0;">[${timestamp}] ${message}</div>`;
+            statusDiv.scrollTop = statusDiv.scrollHeight;
+        }
+        
+        function updateProgress(current, total) {
+            const percentage = total > 0 ? (current / total) * 100 : 0;
+            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('progressText').textContent = `${current}/${total} matches processed (${percentage.toFixed(1)}%)`;
+        }
+        
+        async function checkVectorStatus() {
+            try {
+                updateStatus('Checking vector status...', 'info');
+                
+                // Check total matches
+                const { data: allMatches, error: allError } = await supabase
+                    .from('matches')
+                    .select('id, title, characteristic_vector')
+                    .order('created_at', { ascending: false });
+                
+                if (allError) throw allError;
+                
+                const totalMatches = allMatches.length;
+                const matchesWithVectors = allMatches.filter(m => m.characteristic_vector !== null).length;
+                const matchesWithoutVectors = totalMatches - matchesWithVectors;
+                
+                updateStatus(`Total matches: ${totalMatches}`, 'info');
+                updateStatus(`Matches with vectors: ${matchesWithVectors}`, 'success');
+                updateStatus(`Matches without vectors: ${matchesWithoutVectors}`, matchesWithoutVectors > 0 ? 'error' : 'success');
+                
+                if (matchesWithoutVectors > 0) {
+                    updateStatus('Some matches are missing vectors. Click "Generate Match Vectors" to fix this.', 'error');
+                } else {
+                    updateStatus('All matches have vectors! The simplified recommendation system should work properly.', 'success');
+                }
+                
+                updateProgress(matchesWithVectors, totalMatches);
+                
+            } catch (error) {
+                updateStatus(`Error checking vector status: ${error.message}`, 'error');
+            }
+        }
+        
+        async function generateMatchVectors() {
+            try {
+                const generateBtn = document.getElementById('generateBtn');
+                const checkBtn = document.getElementById('checkBtn');
+                
+                generateBtn.disabled = true;
+                checkBtn.disabled = true;
+                generateBtn.textContent = 'Generating...';
+                
+                updateStatus('Starting match vector generation...', 'info');
+                updateStatus('This may take a few minutes depending on the number of matches.', 'info');
+                
+                // First, check how many matches need vectors
+                const { data: matchesWithoutVectors, error: checkError } = await supabase
+                    .from('matches')
+                    .select('id, title')
+                    .is('characteristic_vector', null);
+                
+                if (checkError) throw checkError;
+                
+                if (!matchesWithoutVectors || matchesWithoutVectors.length === 0) {
+                    updateStatus('No matches found without vectors. All matches already have vectors!', 'success');
+                    updateProgress(100, 100);
+                    return;
+                }
+                
+                updateStatus(`Found ${matchesWithoutVectors.length} matches without vectors.`, 'info');
+                updateProgress(0, matchesWithoutVectors.length);
+                
+                // Call the edge function in batch mode
+                updateStatus('Calling generate-match-embeddings edge function...', 'info');
+                
+                const { data, error } = await supabase.functions.invoke('generate-match-embeddings', {
+                    body: { batchMode: true }
+                });
+                
+                if (error) {
+                    throw new Error(`Edge function error: ${error.message}`);
+                }
+                
+                updateStatus(`Batch processing completed!`, 'success');
+                updateStatus(`Processed: ${data.processed || 0} matches`, 'success');
+                updateStatus(`Errors: ${data.errors || 0} matches`, data.errors > 0 ? 'error' : 'success');
+                updateStatus(`Total: ${data.total || 0} matches`, 'info');
+                
+                if (data.processed > 0) {
+                    updateStatus('✅ Match vectors generated successfully!', 'success');
+                    updateStatus('The simplified recommendation system should now work properly.', 'success');
+                    updateProgress(data.processed, data.total);
+                } else {
+                    updateStatus('⚠️ No vectors were generated. Check the logs for errors.', 'error');
+                }
+                
+                // Verify the results
+                setTimeout(() => {
+                    updateStatus('Verifying results...', 'info');
+                    checkVectorStatus();
+                }, 2000);
+                
+            } catch (error) {
+                updateStatus(`Error generating match vectors: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            } finally {
+                const generateBtn = document.getElementById('generateBtn');
+                const checkBtn = document.getElementById('checkBtn');
+                
+                generateBtn.disabled = false;
+                checkBtn.disabled = false;
+                generateBtn.textContent = 'Generate Match Vectors';
+            }
+        }
+        
+        // Check status on page load
+        window.addEventListener('load', () => {
+            updateStatus('Page loaded. Ready to generate match vectors.', 'info');
+            checkVectorStatus();
+        });
+    </script>
+</body>
+</html>

@@ -81,11 +81,17 @@ const RecommendationCard = ({
     direct_preference,
     collaborative_filtering,
     activity_based,
-    score_breakdown
+    score_breakdown,
+    // Simplified vector system fields
+    similarity_score,
+    similarity_percentage,
+    mathematical_breakdown,
+    source
   } = recommendation || {};
 
-  // Determine which score to display (prioritize combined system)
-  const displayScore = final_score !== undefined ? final_score :
+  // Determine which score to display (prioritize simplified vector system)
+  const displayScore = similarity_score !== undefined ? similarity_score :
+                      final_score !== undefined ? final_score :
                       match_score !== undefined ? match_score : score;
   
   const [feedback, setFeedback] = useState(null);
@@ -190,6 +196,28 @@ const RecommendationCard = ({
   // Extract preference factors from explanation or from match_score components
   const extractPreferenceFactors = () => {
     const preferenceFactors = [];
+
+    // For the simplified vector-based recommendation system (academic demonstration)
+    if (source === 'simplified-vector-similarity' && mathematical_breakdown) {
+      preferenceFactors.push({
+        icon: <SportsScore color="primary" />,
+        label: 'Vector Similarity',
+        description: `${similarity_percentage}% cosine similarity between your preferences and this match`,
+        score: similarity_score || 0,
+        weight: '100%',
+        system: 'Pure Vector Similarity',
+        systemColor: '#1976d2',
+        mathematical: {
+          formula: 'cosine_similarity = (A·B) / (||A|| × ||B||)',
+          userVectorDims: mathematical_breakdown.user_vector_dimensions,
+          matchVectorDims: mathematical_breakdown.match_vector_dimensions,
+          cosineSimilarity: mathematical_breakdown.cosine_similarity,
+          calculationMethod: mathematical_breakdown.calculation_method
+        }
+      });
+
+      return preferenceFactors;
+    }
 
     // For the new complete combined recommendation system (100% coverage)
     if (score_breakdown && (direct_preference || collaborative_filtering || activity_based)) {
@@ -532,8 +560,38 @@ const RecommendationCard = ({
                         )}
                       </Box>
                     }
-                    secondary={factor.description}
-                    secondaryTypographyProps={{ variant: 'caption' }}
+                    secondary={
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          {factor.description}
+                        </Typography>
+                        {/* Mathematical breakdown for simplified vector system */}
+                        {factor.mathematical && (
+                          <Box sx={{
+                            mt: 1,
+                            p: 1,
+                            backgroundColor: 'primary.light',
+                            borderRadius: 1,
+                            border: '1px solid',
+                            borderColor: 'primary.main',
+                            opacity: 0.9
+                          }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'primary.dark', display: 'block', mb: 0.5 }}>
+                              📊 Mathematical Calculation:
+                            </Typography>
+                            <Typography variant="caption" sx={{ fontFamily: 'monospace', display: 'block', mb: 0.5, color: 'primary.dark' }}>
+                              {factor.mathematical.formula}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.7rem' }}>
+                              • User vector: {factor.mathematical.userVectorDims} dimensions<br/>
+                              • Match vector: {factor.mathematical.matchVectorDims} dimensions<br/>
+                              • Cosine similarity: {factor.mathematical.cosineSimilarity?.toFixed(4)}<br/>
+                              • Result: {Math.round(factor.mathematical.cosineSimilarity * 100)}% similarity
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    }
                   />
                   {factor.score !== undefined && (
                     <Box sx={{ width: 60, ml: 1 }}>

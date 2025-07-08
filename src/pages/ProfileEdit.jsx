@@ -1,26 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Container, 
-  Paper, 
-  TextField, 
-  Button, 
-  Avatar, 
-  Grid, 
-  IconButton, 
-  Divider, 
-  Chip, 
-  FormControl, 
-  InputLabel, 
-  Select, 
-  MenuItem, 
+import {
+  Box,
+  Typography,
+  Container,
+  Paper,
+  TextField,
+  Button,
+  Avatar,
+  Grid,
+  IconButton,
+  Divider,
+  Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   Autocomplete,
   Alert,
   CircularProgress,
   Card,
-  CardContent
+  CardContent,
+  InputAdornment
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { userService, locationService } from '../services/supabase';
@@ -37,7 +39,9 @@ import SportsBaseballIcon from '@mui/icons-material/SportsBaseball';
 import SportsMmaIcon from '@mui/icons-material/SportsMma';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
+import CakeIcon from '@mui/icons-material/Cake';
 import ProfilePreferences from '../components/ProfilePreferences';
+import { subYears, isAfter, isBefore } from 'date-fns';
 
 // Map sport names to their respective icons (same as in Profile.jsx)
 const getSportIcon = (sportName) => {
@@ -94,12 +98,30 @@ const ProfileEdit = () => {
     play_style: 'casual',
     gender: '',
     age: '',
+    birth_date: null,
     duration_preference: '',
   });
   
   // New sport state
   const [newSport, setNewSport] = useState('');
   const [newSkillLevel, setNewSkillLevel] = useState('Beginner');
+
+  // Age calculation function
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return '';
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  // Birth date validation
+  const getMinBirthDate = () => subYears(new Date(), 65); // Maximum age 65
+  const getMaxBirthDate = () => subYears(new Date(), 18); // Minimum age 18
   const [showSportForm, setShowSportForm] = useState(false);
   
   // File upload state
@@ -223,6 +245,7 @@ const ProfileEdit = () => {
           state: userData?.campus || '', // Map campus to state for the form
           gender: userData?.gender || '',
           age: userPreferences?.age || '',
+          birth_date: userPreferences?.birth_date ? new Date(userPreferences.birth_date) : null,
           duration_preference: userPreferences?.duration_preference || '',
           sports: Array.isArray(profileData.sport_preferences) 
             ? profileData.sport_preferences.map((sport, index) => ({
@@ -269,6 +292,16 @@ const ProfileEdit = () => {
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  // Handle birth date change
+  const handleBirthDateChange = (newDate) => {
+    const calculatedAge = calculateAge(newDate);
+    setFormData(prev => ({
+      ...prev,
+      birth_date: newDate,
+      age: calculatedAge
     }));
   };
   
@@ -500,6 +533,7 @@ const ProfileEdit = () => {
         },
         location_preferences: formData.preferred_facilities,
         age: formData.age,
+        birth_date: formData.birth_date ? formData.birth_date.toISOString().split('T')[0] : null,
         duration_preference: formData.duration_preference
       };
       
@@ -749,17 +783,30 @@ const ProfileEdit = () => {
             </Grid>
             
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Age"
-                name="age"
-                type="number"
-                inputProps={{ min: 18, max: 100 }}
-                value={formData.age}
-                  onChange={handleChange}
-                margin="normal"
-                variant="outlined"
-                helperText="Your age (must be at least 18)"
+              <DatePicker
+                label="Birth Date"
+                value={formData.birth_date}
+                onChange={handleBirthDateChange}
+                minDate={getMinBirthDate()}
+                maxDate={getMaxBirthDate()}
+                slots={{
+                  textField: TextField
+                }}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    margin: "normal",
+                    variant: "outlined",
+                    helperText: formData.age ? `Age: ${formData.age} years` : "Select your birth date (must be 18-65 years old)",
+                    InputProps: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <CakeIcon />
+                        </InputAdornment>
+                      )
+                    }
+                  }
+                }}
               />
             </Grid>
             

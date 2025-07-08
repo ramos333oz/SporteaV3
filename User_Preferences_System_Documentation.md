@@ -309,7 +309,7 @@ function updateUserPreferences(userId) {
 ### 3. Automatic Vector Updates
 - **Trigger**: Database trigger on preference changes
 - **Queue System**: Asynchronous processing via embedding_queue
-- **Edge Function**: `generate-user-embeddings` processes updates
+- **Edge Function**: `generate-user-embeddings-v2` processes updates
 - **Fallback**: Mock embeddings if AI service unavailable
 
 ## Performance Optimizations

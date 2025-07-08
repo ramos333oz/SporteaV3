@@ -34,7 +34,7 @@ const interactionService = {
       if (['join', 'host'].includes(interactionType)) {
         try {
           // Non-blocking call to update user embeddings
-          supabase.functions.invoke('generate-user-embeddings', {
+          supabase.functions.invoke('generate-user-embeddings-v2', {
             body: { userId },
           }).catch(err => {
             console.warn('Background user embedding update failed:', err);

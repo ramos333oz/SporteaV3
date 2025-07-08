@@ -1,0 +1,20 @@
+# Supabase Configuration File
+# This file controls various settings for the Supabase project
+
+# Edge Functions Configuration
+# Disable JWT verification for functions that need to process queues automatically
+
+[functions.generate-user-embeddings-v2]
+verify_jwt = false
+
+[functions.process-embedding-queue]
+verify_jwt = false
+
+# Keep JWT verification enabled for user-facing functions
+[functions.simplified-recommendations]
+verify_jwt = true
+
+
+
+[functions.generate-match-embeddings]
+verify_jwt = false
