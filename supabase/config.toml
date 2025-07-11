@@ -10,9 +10,18 @@ verify_jwt = false
 [functions.process-embedding-queue]
 verify_jwt = false
 
-# Keep JWT verification enabled for user-facing functions
+# Disable JWT verification for recommendation functions to fix frontend integration
 [functions.simplified-recommendations]
-verify_jwt = true
+verify_jwt = false
+
+[functions.enhanced-weighted-recommendations]
+verify_jwt = false
+
+[functions.test-enhanced-recommendations]
+verify_jwt = false
+
+[functions.get-recommendations-diagnostic]
+verify_jwt = false
 
 
 

@@ -140,11 +140,11 @@ const Host = () => {
       
       // Format the date and time for the database
       const startDateTime = new Date(matchData.date);
-      
+
       // Handle different time formats
       let hours = 0;
       let minutes = 0;
-      
+
       if (matchData.time) {
         if (typeof matchData.time === 'string' && matchData.time.includes(':')) {
           // Format: "HH:MM" string
@@ -152,7 +152,7 @@ const Host = () => {
           hours = parseInt(timeParts[0], 10);
           minutes = parseInt(timeParts[1], 10);
         } else if (matchData.time instanceof Date) {
-          // Format: Date object
+          // Format: Date object - get the time components directly
           hours = matchData.time.getHours();
           minutes = matchData.time.getMinutes();
         } else {
@@ -168,9 +168,14 @@ const Host = () => {
         hours = now.getHours();
         minutes = now.getMinutes();
       }
-      
-      // Set the hours and minutes
-      startDateTime.setHours(hours, minutes);
+
+      // Set the hours and minutes in local time
+      // This ensures the time is interpreted correctly regardless of timezone
+      startDateTime.setHours(hours, minutes, 0, 0); // Set seconds and milliseconds to 0
+
+      console.log('Selected time:', { hours, minutes });
+      console.log('Start DateTime (local):', startDateTime.toString());
+      console.log('Start DateTime (ISO/UTC):', startDateTime.toISOString());
       
       // Calculate end time based on duration
       const endDateTime = new Date(startDateTime);

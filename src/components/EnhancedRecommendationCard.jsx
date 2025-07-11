@@ -28,6 +28,7 @@ import {
   SportsRugby,
   SportsVolleyball,
   SportsHockey,
+  SportsScore,
   LocationOn,
   CalendarMonth,
   Group,
@@ -92,7 +93,19 @@ const EnhancedRecommendationCard = ({
 
   if (!recommendation?.match) return null;
   
-  const { match, score, explanation, final_score, direct_preference, collaborative_filtering, activity_based, score_breakdown } = recommendation;
+  const {
+    match,
+    score,
+    explanation,
+    final_score,
+    direct_preference,
+    collaborative_filtering,
+    activity_based,
+    score_breakdown,
+    similarity_score,
+    similarity_percentage,
+    mathematical_breakdown
+  } = recommendation;
   
   // Determine which score to display
   const displayScore = final_score !== undefined ? final_score : score;
@@ -169,6 +182,36 @@ const EnhancedRecommendationCard = ({
   // Extract preference factors for detailed breakdown
   const getPreferenceFactors = () => {
     const factors = [];
+
+    // Enhanced weighted cosine similarity system (academic demonstration)
+    if (similarity_score !== undefined && similarity_percentage !== undefined) {
+      factors.push({
+        icon: <SportsScore color="primary" />,
+        label: 'Enhanced Vector Similarity',
+        description: `${similarity_percentage}% enhanced weighted cosine similarity targeting 90-100% accuracy`,
+        score: similarity_score || 0,
+        weight: '100%',
+        color: 'primary',
+        system: 'Enhanced Weighted Cosine Similarity v3',
+        systemColor: '#1976d2',
+        mathematical: mathematical_breakdown ? {
+          formula: 'enhanced_weighted_cosine_similarity with attribute-specific weights',
+          userVectorDims: mathematical_breakdown.user_vector_dimensions,
+          matchVectorDims: mathematical_breakdown.match_vector_dimensions,
+          enhancedWeightedSimilarity: mathematical_breakdown.enhanced_weighted_cosine_similarity,
+          calculationMethod: mathematical_breakdown.calculation_method,
+          optimizationLevel: mathematical_breakdown.optimization_level,
+          attributeContributions: mathematical_breakdown.attribute_contributions,
+          perfectMatchIndicators: mathematical_breakdown.perfect_match_indicators
+        } : {
+          formula: 'Enhanced weighted cosine similarity v4',
+          calculationMethod: 'Enhanced weighted cosine similarity v4',
+          similarity: similarity_score,
+          percentage: similarity_percentage
+        }
+      });
+      return factors;
+    }
 
     if (score_breakdown && (direct_preference || collaborative_filtering || activity_based)) {
       // Direct Preference System (35% total weight)

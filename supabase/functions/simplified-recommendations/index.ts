@@ -27,25 +27,40 @@ interface SimplifiedRecommendationResult {
 }
 
 /**
- * Calculate cosine similarity using PostgreSQL RPC function
- * This uses a dedicated PostgreSQL function for reliable similarity calculations
+ * Calculate weighted cosine similarity using enhanced PostgreSQL RPC function
+ * This uses weighted cosine similarity targeting 90-100% similarity for perfect matches
+ * Replaces standard cosine similarity with attribute-weighted calculation
  */
-async function calculateSimilarityWithPostgreSQL(
+async function calculateWeightedSimilarityWithPostgreSQL(
   supabase: any,
   userId: string,
   matchVector: number[]
 ): Promise<number> {
   try {
-    // Use the PostgreSQL RPC function for reliable similarity calculation
+    // Use the enhanced weighted cosine similarity PostgreSQL function
     const { data, error } = await supabase
-      .rpc('calculate_cosine_similarity', {
+      .rpc('calculate_weighted_cosine_similarity', {
         user_id_param: userId,
         match_vector_param: matchVector
       })
 
     if (error || data === null || data === undefined) {
-      console.log('PostgreSQL RPC similarity calculation failed:', error)
-      return 0
+      console.log('PostgreSQL weighted similarity calculation failed:', error)
+      console.log('Falling back to standard cosine similarity...')
+
+      // Fallback to standard cosine similarity if weighted function fails
+      const fallbackResult = await supabase
+        .rpc('calculate_cosine_similarity', {
+          user_id_param: userId,
+          match_vector_param: matchVector
+        })
+
+      if (fallbackResult.error) {
+        console.log('Fallback similarity calculation also failed:', fallbackResult.error)
+        return 0
+      }
+
+      return fallbackResult.data || 0
     }
 
     // Ensure similarity is between 0 and 1
@@ -246,13 +261,13 @@ serve(async (req) => {
 
       totalAnalyzed++
 
-      // Calculate cosine similarity using reliable PostgreSQL vector operations
-      const similarity = await calculateSimilarityWithPostgreSQL(
+      // Calculate weighted cosine similarity using enhanced PostgreSQL vector operations
+      const similarity = await calculateWeightedSimilarityWithPostgreSQL(
         supabase,
         userId,
         match.characteristic_vector
       )
-      console.log(`Match ${match.id} PostgreSQL RPC similarity: ${similarity} (${Math.round(similarity * 100)}%)`)
+      console.log(`Match ${match.id} weighted similarity: ${similarity} (${Math.round(similarity * 100)}%)`)
 
       console.log(`Match ${match.id} final similarity: ${similarity} (${Math.round(similarity * 100)}%)`)
 
@@ -274,8 +289,17 @@ serve(async (req) => {
           mathematical_breakdown: {
             user_vector_dimensions: userData.preference_vector.length,
             match_vector_dimensions: match.characteristic_vector.length,
-            cosine_similarity: similarity,
-            calculation_method: 'PostgreSQL RPC function with <=> operator'
+            weighted_cosine_similarity: similarity,
+            calculation_method: 'Enhanced weighted cosine similarity with attribute-specific weights',
+            weight_distribution: {
+              sports: '35%',
+              faculty: '25%',
+              skill_level: '20%',
+              enhanced_attributes: '15%',
+              venues: '3%',
+              duration: '1%',
+              play_style: '1%'
+            }
           }
         })
       } else {

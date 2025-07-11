@@ -197,6 +197,31 @@ const RecommendationCard = ({
   const extractPreferenceFactors = () => {
     const preferenceFactors = [];
 
+    // For the enhanced weighted cosine similarity system (academic demonstration)
+    if (source === 'enhanced-weighted-cosine-similarity' && mathematical_breakdown) {
+      preferenceFactors.push({
+        icon: <SportsScore color="primary" />,
+        label: 'Enhanced Vector Similarity',
+        description: `${similarity_percentage}% enhanced weighted cosine similarity targeting 90-100% accuracy`,
+        score: similarity_score || 0,
+        weight: '100%',
+        system: 'Enhanced Weighted Cosine Similarity v3',
+        systemColor: '#1976d2',
+        mathematical: {
+          formula: 'enhanced_weighted_cosine_similarity with attribute-specific weights',
+          userVectorDims: mathematical_breakdown.user_vector_dimensions,
+          matchVectorDims: mathematical_breakdown.match_vector_dimensions,
+          enhancedWeightedSimilarity: mathematical_breakdown.enhanced_weighted_cosine_similarity,
+          calculationMethod: mathematical_breakdown.calculation_method,
+          optimizationLevel: mathematical_breakdown.optimization_level,
+          attributeContributions: mathematical_breakdown.attribute_contributions,
+          perfectMatchIndicators: mathematical_breakdown.perfect_match_indicators
+        }
+      });
+
+      return preferenceFactors;
+    }
+
     // For the simplified vector-based recommendation system (academic demonstration)
     if (source === 'simplified-vector-similarity' && mathematical_breakdown) {
       preferenceFactors.push({
