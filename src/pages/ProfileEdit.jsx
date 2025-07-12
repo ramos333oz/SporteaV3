@@ -26,7 +26,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { userService, locationService } from '../services/supabase';
-import recommendationService from '../services/recommendationService';
+import recommendationServiceV3 from '../services/recommendationServiceV3';
 import { useToast } from '../contexts/ToastContext';
 import PhotoCamera from '@mui/icons-material/PhotoCamera';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -42,6 +42,7 @@ import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
 import CakeIcon from '@mui/icons-material/Cake';
 import ProfilePreferences from '../components/ProfilePreferences';
 import { subYears, isAfter, isBefore } from 'date-fns';
+import { invalidateUserCache } from '../services/simplifiedRecommendationService';
 
 // Map sport names to their respective icons (same as in Profile.jsx)
 const getSportIcon = (sportName) => {
@@ -578,6 +579,20 @@ const ProfileEdit = () => {
         }
       }
       
+      // Invalidate recommendation cache since user preferences changed
+      try {
+        invalidateUserCache(user.id);
+        console.log('Recommendation cache invalidated after profile update');
+
+        // Dispatch custom event to notify other components
+        window.dispatchEvent(new CustomEvent('sportea:user-preferences-updated', {
+          detail: { userId: user.id }
+        }));
+      } catch (cacheError) {
+        console.warn('Failed to invalidate recommendation cache:', cacheError);
+        // Don't fail the entire operation if cache invalidation fails
+      }
+
       showSuccessToast('Profile Updated', 'Your profile has been updated successfully');
       navigate('/profile');
     } catch (error) {

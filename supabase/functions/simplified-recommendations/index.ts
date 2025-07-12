@@ -1,357 +1,343 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-// Define CORS headers directly
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'apikey, Content-Type, Authorization, x-client-info, X-Debug-Request-ID, Accept',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-}
+import { corsHeaders } from '../_shared/cors.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-interface SimplifiedRecommendationResult {
-  match: any
-  similarity_score: number
-  similarity_percentage: number
-  explanation: string
-  mathematical_breakdown: {
-    user_vector_dimensions: number
-    match_vector_dimensions: number
-    cosine_similarity: number
-    calculation_method: string
-  }
-}
-
-/**
- * Calculate weighted cosine similarity using enhanced PostgreSQL RPC function
- * This uses weighted cosine similarity targeting 90-100% similarity for perfect matches
- * Replaces standard cosine similarity with attribute-weighted calculation
- */
-async function calculateWeightedSimilarityWithPostgreSQL(
-  supabase: any,
-  userId: string,
-  matchVector: number[]
-): Promise<number> {
-  try {
-    // Use the enhanced weighted cosine similarity PostgreSQL function
-    const { data, error } = await supabase
-      .rpc('calculate_weighted_cosine_similarity', {
-        user_id_param: userId,
-        match_vector_param: matchVector
-      })
-
-    if (error || data === null || data === undefined) {
-      console.log('PostgreSQL weighted similarity calculation failed:', error)
-      console.log('Falling back to standard cosine similarity...')
-
-      // Fallback to standard cosine similarity if weighted function fails
-      const fallbackResult = await supabase
-        .rpc('calculate_cosine_similarity', {
-          user_id_param: userId,
-          match_vector_param: matchVector
-        })
-
-      if (fallbackResult.error) {
-        console.log('Fallback similarity calculation also failed:', fallbackResult.error)
-        return 0
-      }
-
-      return fallbackResult.data || 0
-    }
-
-    // Ensure similarity is between 0 and 1
-    return Math.max(0, Math.min(1, data))
-  } catch (error) {
-    console.log('Error in PostgreSQL RPC similarity calculation:', error)
-    return 0
-  }
-}
-
-/**
- * Generate explanation for similarity score
- */
-function generateExplanation(similarity: number): string {
-  const percentage = Math.round(similarity * 100)
-  
-  if (percentage >= 90) return `${percentage}% similarity - Excellent match! Your preferences align very closely with this match.`
-  if (percentage >= 80) return `${percentage}% similarity - Great match! This match strongly aligns with your preferences.`
-  if (percentage >= 70) return `${percentage}% similarity - Good match! This match aligns well with your preferences.`
-  if (percentage >= 60) return `${percentage}% similarity - Decent match! This match somewhat aligns with your preferences.`
-  if (percentage >= 50) return `${percentage}% similarity - Moderate match! This match has some alignment with your preferences.`
-  if (percentage >= 30) return `${percentage}% similarity - Low match! This match has limited alignment with your preferences.`
-  return `${percentage}% similarity - Minimal match! This match has very little alignment with your preferences.`
+// Scoring weights (must total 100%)
+const WEIGHTS = {
+  SPORTS: 0.40,      // 40% - Most important factor
+  FACULTY: 0.25,     // 25% - Encourages community building
+  SKILL: 0.20,       // 20% - Ensures compatible gameplay
+  SCHEDULE: 0.10,    // 10% - Time availability
+  LOCATION: 0.05     // 5% - Venue preference
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { userId, limit = 10, offset = 0, minSimilarity = 0.01 } = await req.json()
+    const { userId, limit = 10, offset = 0, minScore = 0.15 } = await req.json()
 
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: 'userId is required' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+    console.log(`=== SIMPLIFIED RECOMMENDATIONS START ===`)
+    console.log(`User: ${userId}, Limit: ${limit}, Min Score: ${minScore}`)
+
+    // Get user profile with preferences
+    const userProfile = await getUserProfile(userId)
+    if (!userProfile) {
+      throw new Error('User profile not found')
     }
 
-    console.log(`Processing simplified recommendations for user: ${userId}`)
-
-    // Get user preference vector
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('id, preference_vector')
-      .eq('id', userId)
-      .single()
-
-    if (userError || !userData) {
-      console.log('User lookup error:', userError)
-      return new Response(
-        JSON.stringify({
-          error: 'User not found',
-          recommendations: [],
-          count: 0,
-          algorithm: 'simplified-vector-similarity'
-        }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    console.log(`User found: ${userData.id}, has preference vector: ${!!userData.preference_vector}`)
-
-    if (!userData.preference_vector) {
+    // Get available matches (excluding user's own matches)
+    const availableMatches = await getAvailableMatches(userId)
+    if (!availableMatches || availableMatches.length === 0) {
+      console.log('No available matches found')
       return new Response(
         JSON.stringify({ 
-          error: 'User has no preference vector',
-          message: 'Please update your preferences to get personalized recommendations',
-          recommendations: [],
-          count: 0,
-          algorithm: 'simplified-vector-similarity'
+          recommendations: [], 
+          metadata: { count: 0, total_available: 0, type: 'simplified_direct_matching' }
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Get user's joined matches to exclude them
-    const { data: participations } = await supabase
-      .from('participants')
-      .select('match_id')
-      .eq('user_id', userId)
+    console.log(`Found ${availableMatches.length} available matches`)
 
-    const joinedMatchIds = participations?.map(p => p.match_id) || []
-    console.log(`User has joined ${joinedMatchIds.length} matches:`, joinedMatchIds)
-
-    // Get available matches with characteristic vectors
-    const currentTime = new Date().toISOString()
-    console.log(`Current time for filtering: ${currentTime}`)
-
-    let matchQuery = supabase
-      .from('matches')
-      .select(`
-        id,
-        title,
-        sport_id,
-        location_id,
-        start_time,
-        end_time,
-        max_participants,
-        skill_level,
-        description,
-        host_id,
-        status,
-        characteristic_vector,
-        sports:sport_id (id, name),
-        locations:location_id (id, name, image_url),
-        host:host_id (id, full_name, avatar_url),
-        participants(count)
-      `)
-      .in('status', ['upcoming', 'active'])
-      .neq('host_id', userId) // Don't recommend user's own matches
-      .gte('start_time', currentTime)
-      .not('characteristic_vector', 'is', null) // Only matches with vectors
-
-    console.log('Match query filters applied:', {
-      status: ['upcoming', 'active'],
-      excludeHostId: userId,
-      minStartTime: currentTime,
-      requiresVector: true
-    })
-
-    // Exclude joined matches if any
-    if (joinedMatchIds.length > 0) {
-      matchQuery = matchQuery.not('id', 'in', `(${joinedMatchIds.join(',')})`)
-      console.log(`Excluding ${joinedMatchIds.length} already joined matches`)
-    }
-
-    const { data: matches, error: matchesError } = await matchQuery
-      .order('start_time', { ascending: true })
-      .limit(100) // Get more matches to calculate similarity for
-
-    if (matchesError) {
-      console.error('Error fetching matches:', matchesError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch matches' }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    console.log(`[Simplified Recommendations] Found ${matches?.length || 0} potential matches to analyze`)
-    console.log(`[Simplified Recommendations] Matches found:`, matches?.map(m => ({ id: m.id, title: m.title, has_vector: !!m.characteristic_vector })) || [])
-
-    if (matches && matches.length > 0) {
-      console.log('Detailed match analysis:', matches.map(m => ({
-        id: m.id,
-        title: m.title,
-        status: m.status,
-        start_time: m.start_time,
-        has_vector: !!m.characteristic_vector,
-        vector_length: m.characteristic_vector?.length || 0,
-        host_id: m.host_id
-      })))
-    }
-
-    if (!matches || matches.length === 0) {
-      console.log(`[Simplified Recommendations] No matches found - returning empty result`)
-      return new Response(
-        JSON.stringify({
-          recommendations: [],
-          count: 0,
-          algorithm: 'simplified-vector-similarity',
-          message: 'No available matches found with characteristic vectors'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    // Calculate similarity for each match
-    const recommendations: SimplifiedRecommendationResult[] = []
-    let totalAnalyzed = 0
-    let totalAboveThreshold = 0
-
-    console.log(`Starting similarity analysis with minSimilarity: ${minSimilarity}`)
-    console.log(`User preference vector length: ${userData.preference_vector?.length || 0}`)
-
-    for (const match of matches) {
-      console.log(`Analyzing match: ${match.id} - ${match.title}`)
-
-      if (!match.characteristic_vector) {
-        console.log(`Skipping match ${match.id}: no characteristic vector`)
-        continue
-      }
-
-      totalAnalyzed++
-
-      // Calculate weighted cosine similarity using enhanced PostgreSQL vector operations
-      const similarity = await calculateWeightedSimilarityWithPostgreSQL(
-        supabase,
-        userId,
-        match.characteristic_vector
-      )
-      console.log(`Match ${match.id} weighted similarity: ${similarity} (${Math.round(similarity * 100)}%)`)
-
-      console.log(`Match ${match.id} final similarity: ${similarity} (${Math.round(similarity * 100)}%)`)
-
-      // Only include matches above minimum similarity threshold
-      if (similarity >= minSimilarity) {
-        totalAboveThreshold++
-        console.log(`Match ${match.id} ACCEPTED (above threshold ${minSimilarity})`)
-
-        recommendations.push({
-          match: {
-            ...match,
-            sport: match.sports,
-            location: match.locations,
-            current_participants: match.participants?.[0]?.count || 0
-          },
-          similarity_score: similarity,
-          similarity_percentage: Math.round(similarity * 100),
-          explanation: generateExplanation(similarity),
-          mathematical_breakdown: {
-            user_vector_dimensions: userData.preference_vector.length,
-            match_vector_dimensions: match.characteristic_vector.length,
-            weighted_cosine_similarity: similarity,
-            calculation_method: 'Enhanced weighted cosine similarity with attribute-specific weights',
-            weight_distribution: {
-              sports: '35%',
-              faculty: '25%',
-              skill_level: '20%',
-              enhanced_attributes: '15%',
-              venues: '3%',
-              duration: '1%',
-              play_style: '1%'
-            }
-          }
+    // Calculate match scores using direct preference matching
+    const scoredMatches = []
+    
+    for (const match of availableMatches) {
+      const matchScore = calculateMatchScore(userProfile, match)
+      
+      if (matchScore.totalScore >= minScore) {
+        scoredMatches.push({
+          ...match,
+          similarity_score: matchScore.totalScore,
+          score_breakdown: matchScore.breakdown,
+          explanation: generateExplanation(matchScore.breakdown)
         })
-      } else {
-        console.log(`Match ${match.id} REJECTED (below threshold ${minSimilarity})`)
       }
     }
 
-    console.log(`Analysis complete: ${totalAnalyzed} matches analyzed, ${totalAboveThreshold} above threshold, ${recommendations.length} recommendations generated`)
+    // Sort by total score (highest first)
+    scoredMatches.sort((a, b) => b.similarity_score - a.similarity_score)
 
-    // Sort by similarity score (descending)
-    recommendations.sort((a, b) => b.similarity_score - a.similarity_score)
+    // Apply limit and offset
+    const paginatedResults = scoredMatches.slice(offset, offset + limit)
 
-    // Apply pagination
-    const paginatedRecommendations = recommendations.slice(offset, offset + limit)
-
-    console.log(`Found ${recommendations.length} similar matches, returning ${paginatedRecommendations.length}`)
+    console.log(`Generated ${scoredMatches.length} recommendations, returning ${paginatedResults.length}`)
+    console.log(`=== SIMPLIFIED RECOMMENDATIONS END ===`)
 
     return new Response(
       JSON.stringify({
-        recommendations: paginatedRecommendations,
-        count: paginatedRecommendations.length,
-        total_matches_analyzed: totalAnalyzed,
-        total_similar_matches: recommendations.length,
-        algorithm: 'simplified-vector-similarity',
-        mathematical_approach: 'PostgreSQL RPC function cosine similarity between 384-dimensional vectors',
-        min_similarity_threshold: minSimilarity,
-        user_has_preference_vector: true,
-        vector_dimensions: userData.preference_vector.length,
-        debug_info: {
-          matches_found: matches.length,
-          matches_with_vectors: totalAnalyzed,
-          matches_above_threshold: totalAboveThreshold,
-          current_time: new Date().toISOString(),
-          user_id: userId
+        recommendations: paginatedResults,
+        metadata: {
+          count: paginatedResults.length,
+          total_available: scoredMatches.length,
+          type: 'simplified_direct_matching',
+          algorithm: 'Direct preference matching with weighted scoring',
+          weights: {
+            sports: '40%',
+            faculty: '25%',
+            skill: '20%',
+            schedule: '10%',
+            location: '5%'
+          }
         }
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
-    console.error('Error in simplified-recommendations function:', error)
+    console.error('Error in simplified recommendations:', error)
     return new Response(
-      JSON.stringify({ 
-        error: 'Internal server error',
-        details: error.message 
-      }),
+      JSON.stringify({ error: error.message }),
       { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
   }
 })
+
+/**
+ * Calculate match score using direct preference matching
+ */
+function calculateMatchScore(userProfile: any, match: any) {
+  const breakdown = {
+    sports: calculateSportsScore(userProfile, match),
+    faculty: calculateFacultyScore(userProfile, match),
+    skill: calculateSkillScore(userProfile, match),
+    schedule: calculateScheduleScore(userProfile, match),
+    location: calculateLocationScore(userProfile, match)
+  }
+
+  // Calculate weighted total score
+  const totalScore = 
+    (breakdown.sports * WEIGHTS.SPORTS) +
+    (breakdown.faculty * WEIGHTS.FACULTY) +
+    (breakdown.skill * WEIGHTS.SKILL) +
+    (breakdown.schedule * WEIGHTS.SCHEDULE) +
+    (breakdown.location * WEIGHTS.LOCATION)
+
+  return {
+    totalScore: Math.round(totalScore * 100) / 100, // Round to 2 decimal places
+    breakdown
+  }
+}
+
+/**
+ * Sports matching: Direct preference comparison
+ */
+function calculateSportsScore(userProfile: any, match: any): number {
+  const userSports = userProfile.sport_preferences || []
+  const matchSport = match.sport_name
+
+  // Check if user has this sport in their preferences
+  const hasMatchingSport = userSports.some((sport: any) => 
+    sport.sport_name === matchSport || sport.sport_id === match.sport_id
+  )
+
+  return hasMatchingSport ? 1.0 : 0.0
+}
+
+/**
+ * Faculty matching: Same faculty gets full points, different gets partial
+ */
+function calculateFacultyScore(userProfile: any, match: any): number {
+  const userFaculty = userProfile.faculty
+  const hostFaculty = match.host_faculty
+
+  if (!userFaculty || !hostFaculty) {
+    return 0.5 // Neutral score if faculty info missing
+  }
+
+  if (userFaculty === hostFaculty) {
+    return 1.0 // Same faculty
+  } else {
+    return 0.5 // Different faculty (still gets partial points for diversity)
+  }
+}
+
+/**
+ * Skill level compatibility matrix
+ */
+function calculateSkillScore(userProfile: any, match: any): number {
+  const userSkillLevels = userProfile.skill_levels || {}
+  const matchSport = match.sport_name
+  const matchSkillRequirement = match.skill_level || 'intermediate'
+
+  // Get user's skill level for this specific sport
+  let userSkillLevel = userSkillLevels[matchSport] || 'intermediate'
+
+  // Skill compatibility matrix
+  const skillMatrix: { [key: string]: { [key: string]: number } } = {
+    'beginner': {
+      'beginner': 1.0,
+      'intermediate': 0.75,
+      'advanced': 0.5,
+      'professional': 0.0
+    },
+    'intermediate': {
+      'beginner': 0.75,
+      'intermediate': 1.0,
+      'advanced': 0.75,
+      'professional': 0.5
+    },
+    'advanced': {
+      'beginner': 0.5,
+      'intermediate': 0.75,
+      'advanced': 1.0,
+      'professional': 0.75
+    },
+    'professional': {
+      'beginner': 0.0,
+      'intermediate': 0.5,
+      'advanced': 0.75,
+      'professional': 1.0
+    }
+  }
+
+  return skillMatrix[userSkillLevel]?.[matchSkillRequirement] || 0.5
+}
+
+/**
+ * Schedule overlap calculation
+ */
+function calculateScheduleScore(userProfile: any, match: any): number {
+  const userAvailableDays = userProfile.available_days || []
+  const matchDate = new Date(match.start_time)
+  const matchDay = matchDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
+
+  // Check if user is available on the match day
+  const isAvailableOnDay = userAvailableDays.includes(matchDay)
+
+  if (!isAvailableOnDay) {
+    return 0.0 // User not available on this day
+  }
+
+  // TODO: Add time-specific availability checking
+  // For now, if available on the day, give full points
+  return 1.0
+}
+
+/**
+ * Location preference matching
+ */
+function calculateLocationScore(userProfile: any, match: any): number {
+  // For now, give neutral score since we don't have detailed location preferences
+  // TODO: Implement location preference system
+  return 0.5
+}
+
+/**
+ * Generate human-readable explanation of match score
+ */
+function generateExplanation(breakdown: any): string {
+  const explanations = []
+
+  if (breakdown.sports === 1.0) {
+    explanations.push(`Same sport preference (${Math.round(breakdown.sports * WEIGHTS.SPORTS * 100)}%)`)
+  } else {
+    explanations.push(`Different sport (0%)`)
+  }
+
+  if (breakdown.faculty === 1.0) {
+    explanations.push(`Same faculty (${Math.round(breakdown.faculty * WEIGHTS.FACULTY * 100)}%)`)
+  } else if (breakdown.faculty === 0.5) {
+    explanations.push(`Different faculty (${Math.round(breakdown.faculty * WEIGHTS.FACULTY * 100)}%)`)
+  }
+
+  if (breakdown.skill >= 0.75) {
+    explanations.push(`Compatible skill level (${Math.round(breakdown.skill * WEIGHTS.SKILL * 100)}%)`)
+  } else if (breakdown.skill >= 0.5) {
+    explanations.push(`Moderate skill compatibility (${Math.round(breakdown.skill * WEIGHTS.SKILL * 100)}%)`)
+  } else {
+    explanations.push(`Skill level mismatch (${Math.round(breakdown.skill * WEIGHTS.SKILL * 100)}%)`)
+  }
+
+  if (breakdown.schedule === 1.0) {
+    explanations.push(`Available during match time (${Math.round(breakdown.schedule * WEIGHTS.SCHEDULE * 100)}%)`)
+  } else {
+    explanations.push(`Schedule conflict (0%)`)
+  }
+
+  return explanations.join(', ')
+}
+
+/**
+ * Get user profile with preferences
+ */
+async function getUserProfile(userId: string) {
+  try {
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (userError) throw userError
+
+    // Get sport preferences
+    const { data: sportPrefs, error: sportError } = await supabase
+      .from('sport_preferences_normalized')
+      .select('*')
+      .eq('user_id', userId)
+
+    if (sportError) {
+      console.log('No sport preferences found for user:', userId)
+    }
+
+    return {
+      ...user,
+      sport_preferences: sportPrefs || []
+    }
+
+  } catch (error) {
+    console.error('Error fetching user profile:', error)
+    return null
+  }
+}
+
+/**
+ * Get available matches (excluding user's own matches and past matches)
+ */
+async function getAvailableMatches(userId: string) {
+  try {
+    const now = new Date().toISOString()
+
+    const { data: matches, error } = await supabase
+      .from('matches')
+      .select(`
+        *,
+        sports(name),
+        users!matches_host_id_fkey(faculty),
+        locations(name, campus)
+      `)
+      .neq('host_id', userId) // Exclude user's own matches
+      .gte('start_time', now) // Only future matches
+      .eq('status', 'active')
+      .order('start_time', { ascending: true })
+
+    if (error) throw error
+
+    // Transform data for easier processing
+    return matches.map((match: any) => ({
+      ...match,
+      sport_name: match.sports?.name,
+      host_faculty: match.users?.faculty,
+      venue_name: match.locations?.name,
+      venue_location: match.locations?.campus
+    }))
+
+  } catch (error) {
+    console.error('Error fetching available matches:', error)
+    return []
+  }
+}

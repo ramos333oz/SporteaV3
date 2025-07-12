@@ -598,6 +598,30 @@ export const matchService = {
       }
 
       console.log('Match created successfully with validation:', createdMatchData);
+
+      // Trigger content moderation for the newly created match
+      try {
+        console.log('Triggering content moderation for match:', createdMatchData.id);
+
+        const { data: moderationData, error: moderationError } = await supabase.functions.invoke(
+          'test-enhanced-simple',
+          {
+            body: { matchId: createdMatchData.id }
+          }
+        );
+
+        if (moderationError) {
+          console.error('Content moderation failed:', moderationError);
+          // Don't fail the match creation if moderation fails
+          // Just log the error and continue
+        } else {
+          console.log('Content moderation completed:', moderationData);
+        }
+      } catch (moderationError) {
+        console.error('Content moderation error:', moderationError);
+        // Don't fail the match creation if moderation fails
+      }
+
       // Return in a consistent format that the client expects
       return {
         data: createdMatchData,

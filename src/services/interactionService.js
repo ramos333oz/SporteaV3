@@ -33,8 +33,8 @@ const interactionService = {
       // If the interaction is significant (join, host), trigger an update to user embeddings
       if (['join', 'host'].includes(interactionType)) {
         try {
-          // Non-blocking call to update user embeddings
-          supabase.functions.invoke('generate-user-embeddings-v2', {
+          // Non-blocking call to update user embeddings with v3 function
+          supabase.functions.invoke('generate-user-vectors-v3', {
             body: { userId },
           }).catch(err => {
             console.warn('Background user embedding update failed:', err);

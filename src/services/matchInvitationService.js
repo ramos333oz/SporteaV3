@@ -345,21 +345,58 @@ export const matchInvitationService = {
       const participantIds = new Set(participants.map(p => p.user_id));
       const invitedIds = new Set(invitations.map(i => i.invitee_id));
 
-      // Get user's friends - using a two-step query approach to avoid foreign key issues
-      const { data: friendships, error: friendError } = await supabase
+      // Get user's friends - need to check both directions of friendship
+      // Case 1: Current user is the requester (user_id)
+      const { data: friendships1, error: friendError1 } = await supabase
         .from('friendships')
         .select('id, status, user_id, friend_id')
         .eq('user_id', user.id)
         .eq('status', 'accepted');
 
-      if (friendError) throw friendError;
+      if (friendError1) throw friendError1;
 
-      if (!friendships || friendships.length === 0) {
+      // Case 2: Current user is the addressee (friend_id)
+      const { data: friendships2, error: friendError2 } = await supabase
+        .from('friendships')
+        .select('id, status, user_id, friend_id')
+        .eq('friend_id', user.id)
+        .eq('status', 'accepted');
+
+      if (friendError2) throw friendError2;
+
+      // Combine both directions and normalize the data
+      const allFriendships = [];
+
+      // Add friendships where current user is the requester
+      if (friendships1) {
+        friendships1.forEach(friendship => {
+          allFriendships.push({
+            id: friendship.id,
+            user_id: friendship.user_id,
+            friend_id: friendship.friend_id,
+            status: friendship.status
+          });
+        });
+      }
+
+      // Add friendships where current user is the addressee
+      if (friendships2) {
+        friendships2.forEach(friendship => {
+          allFriendships.push({
+            id: friendship.id,
+            user_id: friendship.friend_id, // Swap to normalize
+            friend_id: friendship.user_id, // Swap to normalize
+            status: friendship.status
+          });
+        });
+      }
+
+      if (allFriendships.length === 0) {
         return { success: true, data: [] };
       }
 
       // Get friend details in a separate query
-      const friendIds = friendships.map(f => f.friend_id);
+      const friendIds = allFriendships.map(f => f.friend_id);
       const { data: friendDetails, error: detailsError } = await supabase
         .from('users')
         .select('id, username, full_name, avatar_url')
@@ -374,8 +411,8 @@ export const matchInvitationService = {
       });
 
       // Filter out friends who are already participants or have been invited
-      const availableFriends = friendships
-        .filter(friendship => 
+      const availableFriends = allFriendships
+        .filter(friendship =>
           !invitedIds.has(friendship.friend_id) &&
           !participantIds.has(friendship.friend_id)
         )

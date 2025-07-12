@@ -65,10 +65,10 @@ class EmbeddingQueueService {
             })
             .eq('id', entry.id);
 
-          if (entry.entity_type === 'user') {
-            // Process user embedding by calling the edge function
+          if (entry.entity_type === 'user' || entry.entity_type === 'user_v3') {
+            // Process user embedding by calling the v3 edge function
             const { data: response, error: functionError } = await supabase.functions.invoke(
-              'generate-user-embeddings-v2',
+              'generate-user-vectors-v3',
               {
                 body: { userId: entry.entity_id }
               }
@@ -96,10 +96,10 @@ class EmbeddingQueueService {
               throw new Error(`Edge function returned unexpected response: ${JSON.stringify(response)}`);
             }
 
-          } else if (entry.entity_type === 'match') {
-            // Process match embedding
+          } else if (entry.entity_type === 'match' || entry.entity_type === 'match_v3') {
+            // Process match embedding with v3 function
             const { data: response, error: functionError } = await supabase.functions.invoke(
-              'generate-match-embeddings',
+              'generate-match-vectors-v3',
               {
                 body: { matchId: entry.entity_id }
               }

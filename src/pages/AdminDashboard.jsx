@@ -42,7 +42,8 @@ import {
   Groups,
   Refresh,
   TrendingDown,
-  Assessment
+  Assessment,
+  Security
 } from '@mui/icons-material';
 import {
   BarChart,
@@ -63,6 +64,14 @@ import {
 } from 'recharts';
 import { supabase } from '../services/supabase';
 import { reportService } from '../services/reportService';
+import {
+  getModerationQueue,
+  getModerationStatistics,
+  updateReviewStatus,
+  approveMatch,
+  rejectMatch
+} from '../services/contentModerationService';
+import EnhancedReviewModal from '../components/admin/EnhancedReviewModal';
 
 const AdminDashboard = () => {
   const [currentTab, setCurrentTab] = useState(0);
@@ -123,8 +132,13 @@ const AdminDashboard = () => {
 
   const loadAnalytics = async () => {
     try {
-      const endpoints = ['overview', 'recommendations', 'users', 'matches', 'feedback'];
+      const endpoints = ['overview', 'recommendations', 'users', 'matches', 'feedback', 'moderation'];
       const endpoint = endpoints[currentTab] || 'overview';
+
+      // Skip analytics loading for content moderation tab (it handles its own data)
+      if (endpoint === 'moderation') {
+        return;
+      }
 
       // Load basic analytics data directly from database
       const analyticsData = await loadBasicAnalytics(endpoint);
@@ -384,6 +398,7 @@ const AdminDashboard = () => {
           <Tab icon={<People />} label="Users" />
           <Tab icon={<SportsScore />} label="Matches" />
           <Tab icon={<Feedback />} label="Feedback" />
+          <Tab icon={<Security />} label="Content Moderation" />
         </Tabs>
 
         {currentTab === 0 && <OverviewTab data={analytics.overview} />}
@@ -391,6 +406,7 @@ const AdminDashboard = () => {
         {currentTab === 2 && <UsersTab data={analytics.users} adminUser={adminUser} />}
         {currentTab === 3 && <MatchesTab data={analytics.matches} />}
         {currentTab === 4 && <FeedbackTab data={analytics.feedback} />}
+        {currentTab === 5 && <ContentModerationTab adminUser={adminUser} />}
       </Container>
     </Box>
   );
@@ -1588,6 +1604,443 @@ const ReportsManagement = ({
             startIcon={updating && <CircularProgress size={20} />}
           >
             {updating ? 'Updating...' : 'Update Report'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+const ContentModerationTab = ({ adminUser }) => {
+  const [moderationQueue, setModerationQueue] = useState([]);
+  const [moderationStats, setModerationStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [actionLoading, setActionLoading] = useState({});
+  const [successMessage, setSuccessMessage] = useState('');
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedQueueId, setSelectedQueueId] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, type: '', queueId: null, item: null });
+  const [filters, setFilters] = useState({
+    status: 'all',
+    priority: 'all',
+    risk_level: 'all'
+  });
+
+  useEffect(() => {
+    loadModerationData();
+  }, [filters]);
+
+  const loadModerationData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [queueResult, statsResult] = await Promise.all([
+        getModerationQueue(filters),
+        getModerationStatistics()
+      ]);
+
+      if (queueResult.success) {
+        setModerationQueue(queueResult.data);
+      } else {
+        setError(queueResult.error);
+      }
+
+      if (statsResult.success) {
+        setModerationStats(statsResult.data);
+      }
+    } catch (error) {
+      console.error('Error loading moderation data:', error);
+      setError('Failed to load moderation data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilterChange = (filterType, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+  };
+
+  const handleApprove = async (queueId, item) => {
+    try {
+      setActionLoading(prev => ({ ...prev, [queueId]: true }));
+      setError(null);
+
+      const result = await approveMatch(queueId, adminUser.id, '');
+
+      if (result.success) {
+        setSuccessMessage(`Match "${result.matchTitle}" approved successfully`);
+        await loadModerationData();
+
+        // Clear success message after 5 seconds
+        setTimeout(() => setSuccessMessage(''), 5000);
+      } else {
+        setError(result.error);
+      }
+    } catch (error) {
+      console.error('Error approving match:', error);
+      setError('Failed to approve match');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [queueId]: false }));
+      setConfirmDialog({ open: false, type: '', queueId: null, item: null });
+    }
+  };
+
+  const handleReject = async (queueId, item, reason = 'Content violates community guidelines') => {
+    try {
+      setActionLoading(prev => ({ ...prev, [queueId]: true }));
+      setError(null);
+
+      const result = await rejectMatch(queueId, adminUser.id, reason, '');
+
+      if (result.success) {
+        setSuccessMessage(`Match "${result.matchTitle}" rejected successfully`);
+        await loadModerationData();
+
+        // Clear success message after 5 seconds
+        setTimeout(() => setSuccessMessage(''), 5000);
+      } else {
+        setError(result.error);
+      }
+    } catch (error) {
+      console.error('Error rejecting match:', error);
+      setError('Failed to reject match');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [queueId]: false }));
+      setConfirmDialog({ open: false, type: '', queueId: null, item: null });
+    }
+  };
+
+  const handleReview = (queueId) => {
+    setSelectedQueueId(queueId);
+    setReviewModalOpen(true);
+  };
+
+  const handleActionComplete = (action, message) => {
+    setSuccessMessage(message);
+    loadModerationData();
+
+    // Clear success message after 5 seconds
+    setTimeout(() => setSuccessMessage(''), 5000);
+  };
+
+  const openConfirmDialog = (type, queueId, item) => {
+    setConfirmDialog({ open: true, type, queueId, item });
+  };
+
+  const closeConfirmDialog = () => {
+    setConfirmDialog({ open: false, type: '', queueId: null, item: null });
+  };
+
+  // Legacy function for backward compatibility
+  const handleReviewAction = async (queueId, decision, notes = '') => {
+    try {
+      const result = await updateReviewStatus(queueId, decision, adminUser.id, notes);
+
+      if (result.success) {
+        await loadModerationData();
+      } else {
+        setError(result.error);
+      }
+    } catch (error) {
+      console.error('Error processing review action:', error);
+      setError('Failed to process review action');
+    }
+  };
+
+  if (loading) return <CircularProgress />;
+
+  return (
+    <Box>
+      {/* Success Message */}
+      {successMessage && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMessage('')}>
+          {successMessage}
+        </Alert>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+      {/* Statistics Cards */}
+      {moderationStats && (
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>
+                  Pending Reviews
+                </Typography>
+                <Typography variant="h4" color="warning.main">
+                  {moderationStats.queue.pending}
+                </Typography>
+                <Typography variant="body2">
+                  {moderationStats.queue.urgent} urgent
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>
+                  Auto Approval Rate
+                </Typography>
+                <Typography variant="h4" color="success.main">
+                  {moderationStats.performance.auto_approval_rate}%
+                </Typography>
+                <Typography variant="body2">
+                  {moderationStats.moderation.auto_approved} auto-approved
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>
+                  High Risk Content
+                </Typography>
+                <Typography variant="h4" color="error.main">
+                  {moderationStats.risk_levels.high}
+                </Typography>
+                <Typography variant="body2">
+                  Requires immediate attention
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>
+                  Total Moderated
+                </Typography>
+                <Typography variant="h4">
+                  {moderationStats.moderation.total}
+                </Typography>
+                <Typography variant="body2" color="success.main">
+                  {moderationStats.moderation.recent} this week
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* Filters */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Filter Moderation Queue
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={4}>
+              <FormControl fullWidth>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={filters.status}
+                  label="Status"
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                >
+                  <MenuItem value="all">All Status</MenuItem>
+                  <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="in_review">In Review</MenuItem>
+                  <MenuItem value="completed">Completed</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <FormControl fullWidth>
+                <InputLabel>Priority</InputLabel>
+                <Select
+                  value={filters.priority}
+                  label="Priority"
+                  onChange={(e) => handleFilterChange('priority', e.target.value)}
+                >
+                  <MenuItem value="all">All Priorities</MenuItem>
+                  <MenuItem value="urgent">Urgent</MenuItem>
+                  <MenuItem value="high">High</MenuItem>
+                  <MenuItem value="medium">Medium</MenuItem>
+                  <MenuItem value="low">Low</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <FormControl fullWidth>
+                <InputLabel>Risk Level</InputLabel>
+                <Select
+                  value={filters.risk_level}
+                  label="Risk Level"
+                  onChange={(e) => handleFilterChange('risk_level', e.target.value)}
+                >
+                  <MenuItem value="all">All Risk Levels</MenuItem>
+                  <MenuItem value="high">High Risk</MenuItem>
+                  <MenuItem value="medium">Medium Risk</MenuItem>
+                  <MenuItem value="low">Low Risk</MenuItem>
+                  <MenuItem value="minimal">Minimal Risk</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Moderation Queue */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Content Moderation Queue
+          </Typography>
+          {moderationQueue.length === 0 ? (
+            <Typography color="textSecondary" sx={{ textAlign: 'center', py: 4 }}>
+              No items in moderation queue
+            </Typography>
+          ) : (
+            <Grid container spacing={2}>
+              {moderationQueue.map((item) => (
+                <Grid item xs={12} key={item.queue_id}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Grid container spacing={2} alignItems="center">
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="h6" gutterBottom>
+                            {item.match_title}
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary" paragraph>
+                            {item.match_description?.substring(0, 150)}...
+                          </Typography>
+                          <Typography variant="caption" display="block">
+                            Host: {item.host_username} | Queued: {new Date(item.queued_at).toLocaleDateString()}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} md={3}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <Chip
+                              label={item.priority.toUpperCase()}
+                              color={
+                                item.priority === 'urgent' ? 'error' :
+                                item.priority === 'high' ? 'warning' :
+                                item.priority === 'medium' ? 'info' : 'default'
+                              }
+                              size="small"
+                            />
+                            <Chip
+                              label={`${item.overall_risk_level.toUpperCase()} RISK`}
+                              color={
+                                item.overall_risk_level === 'high' ? 'error' :
+                                item.overall_risk_level === 'medium' ? 'warning' :
+                                item.overall_risk_level === 'low' ? 'info' : 'success'
+                              }
+                              size="small"
+                            />
+                            <Typography variant="caption">
+                              Toxic: {(item.inappropriate_score * 100).toFixed(1)}%
+                            </Typography>
+                            <Typography variant="caption">
+                              Consistency: {(item.consistency_score * 100).toFixed(1)}%
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={3}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <Button
+                              variant="contained"
+                              color="success"
+                              size="small"
+                              onClick={() => openConfirmDialog('approve', item.queue_id, item)}
+                              disabled={item.status === 'approved' || item.status === 'rejected' || actionLoading[item.queue_id]}
+                              startIcon={actionLoading[item.queue_id] ? <CircularProgress size={16} /> : null}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              variant="contained"
+                              color="error"
+                              size="small"
+                              onClick={() => openConfirmDialog('reject', item.queue_id, item)}
+                              disabled={item.status === 'approved' || item.status === 'rejected' || actionLoading[item.queue_id]}
+                              startIcon={actionLoading[item.queue_id] ? <CircularProgress size={16} /> : null}
+                            >
+                              Reject
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => handleReview(item.queue_id)}
+                              disabled={item.status === 'approved' || item.status === 'rejected'}
+                            >
+                              Review
+                            </Button>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Enhanced Review Modal */}
+      <EnhancedReviewModal
+        open={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        queueId={selectedQueueId}
+        adminUser={adminUser}
+        onActionComplete={handleActionComplete}
+      />
+
+      {/* Confirmation Dialogs */}
+      <Dialog
+        open={confirmDialog.open}
+        onClose={closeConfirmDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {confirmDialog.type === 'approve' ? 'Confirm Approval' : 'Confirm Rejection'}
+        </DialogTitle>
+        <DialogContent>
+          {confirmDialog.type === 'approve' ? (
+            <Alert severity="info">
+              Are you sure you want to approve the match "{confirmDialog.item?.match_title}"?
+              This will mark the match as approved and notify the host.
+            </Alert>
+          ) : (
+            <Alert severity="warning">
+              Are you sure you want to reject the match "{confirmDialog.item?.match_title}"?
+              This action will permanently remove the match from public listings and notify the host with the rejection reason.
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeConfirmDialog} disabled={actionLoading[confirmDialog.queueId]}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color={confirmDialog.type === 'approve' ? 'success' : 'error'}
+            onClick={() => {
+              if (confirmDialog.type === 'approve') {
+                handleApprove(confirmDialog.queueId, confirmDialog.item);
+              } else {
+                handleReject(confirmDialog.queueId, confirmDialog.item);
+              }
+            }}
+            disabled={actionLoading[confirmDialog.queueId]}
+            startIcon={actionLoading[confirmDialog.queueId] ? <CircularProgress size={16} /> : null}
+          >
+            {confirmDialog.type === 'approve' ? 'Approve' : 'Reject'}
           </Button>
         </DialogActions>
       </Dialog>

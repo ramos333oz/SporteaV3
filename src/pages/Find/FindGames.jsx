@@ -96,7 +96,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import EventIcon from "@mui/icons-material/Event";
 import { useAuth } from "../../hooks/useAuth";
 import { participantService } from "../../services/supabase";
-import recommendationService from "../../services/recommendationService";
+import recommendationServiceV3 from "../../services/recommendationServiceV3";
 import interactionService from "../../services/interactionService";
 import { useNavigate } from "react-router-dom";
 import RecommendationsList from "../../components/RecommendationsList";

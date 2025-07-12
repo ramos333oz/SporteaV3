@@ -62,15 +62,19 @@ const sportIcons = {
   '0ec51cfc-f644-4057-99d8-d2c29c1b7dd0': <SportsTennis sx={{ color: '#9C27B0' }} />, // Squash
 };
 
+// Default venue images mapping using database UUIDs (same as LiveMatchBoard)
 const defaultVenueImages = {
-  1: '/images/venues/football-field.jpg',
-  2: '/images/venues/rugby-field.jpg', 
-  3: '/images/venues/basketball-court.jpg',
-  4: '/images/venues/futsal-court.jpg',
-  5: '/images/venues/volleyball-court.jpg',
-  6: '/images/venues/field.jpg',
-  7: '/images/venues/hockey-field.jpg',
-  8: '/images/venues/badminton-court.jpg',
+  '4746e9c1-f772-4515-8d08-6c28563fbfc9': '/images/venues/football-field.jpg', // Football
+  '13e32815-8a3b-48f7-8cc9-5fdad873b851': '/images/venues/rugby-field.jpg', // Rugby
+  'dd400853-7ce6-47bc-aee6-2ee241530f79': '/images/venues/basketball-court.jpg', // Basketball
+  'd662bc78-9e50-4785-ac71-d1e591e4a9ce': '/images/venues/futsal-court.jpg', // Futsal
+  '66e9893a-2be7-47f0-b7d3-d7191901dd77': '/images/venues/volleyball-court.jpg', // Volleyball
+  'dcedf87a-13aa-4c2f-979f-6b71d457f531': '/images/venues/field.jpg', // Frisbee
+  '3aba0f36-38bf-4ca2-b713-3dabd9f993f1': '/images/venues/hockey-field.jpg', // Hockey
+  'fb575fc1-2eac-4142-898a-2f7dae107844': '/images/venues/badminton-court.jpg', // Badminton
+  '9a304214-6c57-4c33-8c5f-3f1955b63caf': '/images/venues/tennis-court.jpg', // Tennis
+  '845d3461-42fc-45c2-a403-8efcaf237c17': '/images/venues/table-tennis-court.jpg', // Table Tennis
+  '0ec51cfc-f644-4057-99d8-d2c29c1b7dd0': '/images/venues/squash-court.jpg', // Squash
 };
 
 const EnhancedRecommendationCard = ({
@@ -119,11 +123,9 @@ const EnhancedRecommendationCard = ({
   const sportName = match.sport?.name || match.sports?.name || 'Sport';
   const sportIcon = sportIcons[sportId] || <SportsSoccer />;
   
-  // Get venue image - prioritize actual venue image from location, fallback to sport-based default
-  const venueImage = match.locations?.image_url ||
-                     match.location?.image_url ||
-                     match.location?.image ||
-                     match.locations?.image ||
+  // Prioritize actual venue image from location, fallback to sport-based default (same as LiveMatchBoard)
+  const venueImage = match.location_image_url ||
+                     (match.locations?.image_url) ||
                      defaultVenueImages[sportId] ||
                      '/images/venues/default-field.jpg';
 
@@ -268,7 +270,7 @@ const EnhancedRecommendationCard = ({
       imageAlt={`${sportName} at ${match.location?.name || match.locations?.name}`}
       imageHeight={140}
       title={match.title || `${sportName} Match`}
-      subtitle={explanation || 'Recommended for you'}
+      subtitle={recommendation.why_recommended || 'Recommended for you'}
       score={displayScore}
       onClick={handleCardClick}
       variant={isFallback ? 'outlined' : 'elevated'}

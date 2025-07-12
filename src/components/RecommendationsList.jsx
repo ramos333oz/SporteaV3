@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Typography, CircularProgress, Skeleton, Alert, Paper, Button, Grid, Snackbar, AlertTitle, Chip, IconButton, Tooltip } from '@mui/material';
 import EnhancedRecommendationCard from './EnhancedRecommendationCard';
-import recommendationService from '../services/recommendationService';
+import { getRecommendations, clearCache, invalidateUserCache } from '../services/simplifiedRecommendationService';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../services/supabase';
 
@@ -75,21 +75,22 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
     }
 
     try {
-      const result = await recommendationService.getRecommendations(user.id, limit);
+      const result = await getRecommendations(user.id, { limit });
 
       // Only update state if component is still mounted and request wasn't aborted
       if (mountedRef.current && !abortControllerRef.current?.signal.aborted) {
         // Store metrics if available for debugging
-        if (result.metrics) {
-          setMetrics(result.metrics);
+        if (result.metadata) {
+          setMetrics(result.metadata);
         }
 
         // Store recommendation type
-        setRecommendationType(result.type || 'standard');
+        setRecommendationType(result.type || 'simplified_direct_matching');
 
         if (result.recommendations?.length > 0) {
           // Fetch existing feedback for all recommended matches
-          const matchIds = result.recommendations.map(rec => rec.match.id);
+          // Note: simplified service returns match data directly, not nested in a 'match' property
+          const matchIds = result.recommendations.map(rec => rec.id);
           const { data: existingFeedback, error: feedbackError } = await supabase
             .from('recommendation_feedback')
             .select('match_id, feedback_type')
@@ -109,9 +110,15 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
           }
 
           // Add existing feedback to each recommendation
+          // Transform to match expected structure with 'match' property for compatibility
           const recommendationsWithFeedback = result.recommendations.map(rec => ({
-            ...rec,
-            existingFeedback: feedbackMap[rec.match.id] || null
+            match: rec, // Wrap the match data in a 'match' property for compatibility
+            similarity_score: rec.similarity_score,
+            score: rec.similarity_score, // Map to expected field name
+            final_score: rec.similarity_score, // Map to expected field name
+            score_breakdown: rec.score_breakdown,
+            explanation: rec.explanation,
+            existingFeedback: feedbackMap[rec.id] || null
           }));
 
           setRecommendations(recommendationsWithFeedback);
@@ -167,39 +174,30 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
   // Generate user embeddings to improve recommendations
   const generateEmbeddings = useCallback(async () => {
     if (!user?.id) return;
-    
+
     try {
       // Show a generating message
-      setFeedbackSnack({ 
-        open: true, 
-        message: 'Updating your preference data to improve recommendations...' 
+      setFeedbackSnack({
+        open: true,
+        message: 'Clearing recommendation cache and refreshing...'
       });
-      
-      const result = await recommendationService.generateUserEmbedding(user.id);
-      
-      if (result.success) {
-        // Show success message
-        setFeedbackSnack({ 
-          open: true, 
-          message: 'Your preferences have been updated! Refreshing recommendations...' 
-        });
-        
-        // Wait a moment and then refresh recommendations
-        setTimeout(() => {
-          debouncedFetchRecommendations();
-        }, 1500);
-      } else {
-        // Show error message
-        setFeedbackSnack({ 
-          open: true, 
-          message: 'Could not update your preferences. Please try again later.' 
-        });
-      }
+
+      // Clear the cache in the simplified recommendation service
+      clearCache();
+
+      // Show success message
+      setFeedbackSnack({
+        open: true,
+        message: 'Cache cleared! Refreshing recommendations...'
+      });
+
+      // Immediately refresh recommendations since cache is now cleared
+      debouncedFetchRecommendations();
     } catch (err) {
-      console.error('Error generating embeddings:', err);
-      setFeedbackSnack({ 
-        open: true, 
-        message: 'Could not update your recommendations. Please try again later.' 
+      console.error('Error clearing cache:', err);
+      setFeedbackSnack({
+        open: true,
+        message: 'Could not refresh your recommendations. Please try again later.'
       });
     }
   }, [user?.id]);
@@ -214,7 +212,7 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
     // Set a new timeout
     debounceTimeoutRef.current = setTimeout(() => {
       fetchRecommendations();
-    }, 300); // 300ms debounce
+    }, 100); // 100ms debounce for faster UI updates
   }, [fetchRecommendations]);
 
   // Handle manual retry
@@ -328,46 +326,8 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
     }
   }, [user?.id]);
   
-  // Check if embeddings need to be generated automatically
-  useEffect(() => {
-    const checkAndGenerateEmbeddings = async () => {
-      if (!user?.id) return;
-      
-      // Check when we last generated embeddings
-      const lastEmbeddingTime = parseInt(localStorage.getItem('sportea_last_embedding_time') || '0');
-      const now = Date.now();
-      
-      // If we've never generated embeddings or it's been more than 24 hours
-      if (!lastEmbeddingTime || (now - lastEmbeddingTime > 24 * 60 * 60 * 1000)) {
-        console.log('Automatically updating user preferences for better recommendations');
-        
-        try {
-          // Quietly attempt to generate embeddings
-          const result = await recommendationService.generateUserEmbedding(user.id);
-          
-          // If successful, refresh recommendations
-          if (result.success) {
-            // Refresh recommendations after a short delay
-            setTimeout(() => {
-              debouncedFetchRecommendations();
-            }, 2000);
-          } else if (result.skipReason === 'recent_error') {
-            // If we're skipping due to a recent error, just continue silently
-            console.log('Skipping automatic embedding generation due to recent error');
-          } else {
-            // Log other errors but don't show to user
-            console.error('Error in automatic preference update:', result.error);
-          }
-        } catch (err) {
-          // Log the error but don't show to user
-          console.error('Exception in automatic preference update:', err);
-        }
-      }
-    };
-    
-    // Run the check once when component mounts
-    checkAndGenerateEmbeddings();
-  }, [user?.id]);
+  // No automatic embedding generation needed for simplified recommendations
+  // The simplified service uses direct preference matching without vectors
 
   // Initial load effect - only runs when user changes
   useEffect(() => {
@@ -392,6 +352,34 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
       }
     };
   }, []);
+
+  // Real-time update listener for automatic recommendation refresh
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Listen for custom events that indicate data changes
+    const handleUserPreferenceUpdate = () => {
+      console.log('[RecommendationsList] User preferences updated, refreshing recommendations');
+      invalidateUserCache(user.id);
+      fetchRecommendations();
+    };
+
+    const handleMatchUpdate = () => {
+      console.log('[RecommendationsList] Match data updated, refreshing recommendations');
+      clearCache(); // Clear all cache since any match update could affect recommendations
+      fetchRecommendations();
+    };
+
+    // Listen for custom events
+    window.addEventListener('sportea:user-preferences-updated', handleUserPreferenceUpdate);
+    window.addEventListener('sportea:match-updated', handleMatchUpdate);
+
+    // Cleanup listeners
+    return () => {
+      window.removeEventListener('sportea:user-preferences-updated', handleUserPreferenceUpdate);
+      window.removeEventListener('sportea:match-updated', handleMatchUpdate);
+    };
+  }, [user?.id, fetchRecommendations]);
 
   if (loading) {
     return (
@@ -616,14 +604,7 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
         ))}
       </Box>
       
-      {/* Show metrics for debugging */}
-      {metrics && import.meta.env.DEV && (
-        <Paper sx={{ p: 2, mt: 2, backgroundColor: '#f5f5f5' }}>
-          <Typography variant="caption" component="pre" sx={{ whiteSpace: 'pre-wrap' }}>
-            {JSON.stringify(metrics, null, 2)}
-          </Typography>
-        </Paper>
-      )}
+
       
       <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
         <Button 

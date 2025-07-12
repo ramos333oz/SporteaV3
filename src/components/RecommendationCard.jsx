@@ -40,7 +40,12 @@ import {
   SportsScore,
   CheckCircle,
   Group,
-  TrendingUp
+  TrendingUp,
+  Sports,
+  Schedule,
+  Star,
+  Person,
+  Info
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 
@@ -86,6 +91,8 @@ const RecommendationCard = ({
     similarity_score,
     similarity_percentage,
     mathematical_breakdown,
+    // Simple explainable system fields
+    algorithm_breakdown,
     source
   } = recommendation || {};
 
@@ -222,8 +229,82 @@ const RecommendationCard = ({
       return preferenceFactors;
     }
 
+    // For the simple explainable recommendation system
+    if (algorithm_breakdown && algorithm_breakdown.algorithm_type === 'Simple Explainable Scoring') {
+      const components = algorithm_breakdown.components || {};
+
+      // Sport Match Component (50%)
+      if (components.sport_match) {
+        preferenceFactors.push({
+          icon: <Sports color="primary" />,
+          label: 'Sport Match',
+          description: components.sport_match.reason,
+          score: components.sport_match.score,
+          maxScore: components.sport_match.max_possible,
+          weight: components.sport_match.weight,
+          system: 'Direct Sport Matching',
+          systemColor: '#1976d2'
+        });
+      }
+
+      // Skill Level Component (20%)
+      if (components.skill_level) {
+        preferenceFactors.push({
+          icon: <TrendingUp color="success" />,
+          label: 'Skill Level',
+          description: components.skill_level.reason,
+          score: components.skill_level.score,
+          maxScore: components.skill_level.max_possible,
+          weight: components.skill_level.weight,
+          system: 'Skill Compatibility',
+          systemColor: '#4caf50'
+        });
+      }
+
+      // Faculty Match Component (15%)
+      if (components.faculty_match) {
+        preferenceFactors.push({
+          icon: <School color="info" />,
+          label: 'Faculty Match',
+          description: components.faculty_match.reason,
+          score: components.faculty_match.score,
+          maxScore: components.faculty_match.max_possible,
+          weight: components.faculty_match.weight,
+          system: 'Social Compatibility',
+          systemColor: '#2196f3'
+        });
+      }
+
+      // Schedule Match Component (10%)
+      if (components.schedule_match) {
+        preferenceFactors.push({
+          icon: <Schedule color="warning" />,
+          label: 'Schedule Match',
+          description: components.schedule_match.reason,
+          score: components.schedule_match.score,
+          maxScore: components.schedule_match.max_possible,
+          weight: components.schedule_match.weight,
+          system: 'Time Compatibility',
+          systemColor: '#ff9800'
+        });
+      }
+
+      // Location Preference Component (5%)
+      if (components.location_preference) {
+        preferenceFactors.push({
+          icon: <LocationOn color="secondary" />,
+          label: 'Location Preference',
+          description: components.location_preference.reason,
+          score: components.location_preference.score,
+          maxScore: components.location_preference.max_possible,
+          weight: components.location_preference.weight,
+          system: 'Location Preference',
+          systemColor: '#9c27b0'
+        });
+      }
+    }
     // For the simplified vector-based recommendation system (academic demonstration)
-    if (source === 'simplified-vector-similarity' && mathematical_breakdown) {
+    else if (source === 'simplified-vector-similarity' && mathematical_breakdown) {
       preferenceFactors.push({
         icon: <SportsScore color="primary" />,
         label: 'Vector Similarity',
@@ -613,6 +694,31 @@ const RecommendationCard = ({
                               • Cosine similarity: {factor.mathematical.cosineSimilarity?.toFixed(4)}<br/>
                               • Result: {Math.round(factor.mathematical.cosineSimilarity * 100)}% similarity
                             </Typography>
+                          </Box>
+                        )}
+                        {/* Score breakdown for simple explainable system */}
+                        {factor.score !== undefined && factor.maxScore && (
+                          <Box sx={{ mt: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                                Score: {factor.score}/{factor.maxScore}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                ({Math.round((factor.score / factor.maxScore) * 100)}%)
+                              </Typography>
+                            </Box>
+                            <LinearProgress
+                              variant="determinate"
+                              value={(factor.score / factor.maxScore) * 100}
+                              sx={{
+                                height: 6,
+                                borderRadius: 3,
+                                backgroundColor: 'grey.200',
+                                '& .MuiLinearProgress-bar': {
+                                  backgroundColor: factor.systemColor || 'primary.main'
+                                }
+                              }}
+                            />
                           </Box>
                         )}
                       </Box>

@@ -35,6 +35,7 @@ import LockIcon from '@mui/icons-material/Lock';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../contexts/ToastContext';
 import { matchService } from '../services/supabase';
+import { invalidateAllCache } from '../services/simplifiedRecommendationService';
 
 const EditMatch = () => {
   const { matchId } = useParams();
@@ -251,7 +252,21 @@ const EditMatch = () => {
 
       // Update match in database
       await matchService.updateMatch(matchId, matchData);
-      
+
+      // Invalidate all recommendation caches since match details changed
+      try {
+        invalidateAllCache();
+        console.log('All recommendation caches invalidated after match update');
+
+        // Dispatch custom event to notify other components
+        window.dispatchEvent(new CustomEvent('sportea:match-updated', {
+          detail: { matchId }
+        }));
+      } catch (cacheError) {
+        console.warn('Failed to invalidate recommendation caches:', cacheError);
+        // Don't fail the entire operation if cache invalidation fails
+      }
+
       showSuccessToast('Match Updated', 'Your match has been updated successfully');
       navigate(`/match/${matchId}`);
     } catch (err) {

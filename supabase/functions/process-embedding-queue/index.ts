@@ -34,8 +34,9 @@ interface QueueEntry {
 }
 
 /**
- * Process pending entries in the embedding queue
- * This function automatically processes user preference vector updates
+ * Process pending entries in the embedding queue - V3 SIMPLIFIED
+ * This function automatically processes 128-dimension vector updates
+ * Handles both user preference changes and match detail changes
  */
 async function processQueue(batchSize: number = 10): Promise<{
   processed: number
@@ -87,10 +88,19 @@ async function processQueue(batchSize: number = 10): Promise<{
           })
           .eq('id', entry.id)
 
-        if (entry.entity_type === 'user') {
-          // Process user embedding
+        if (entry.entity_type === 'user_v3') {
+          // Process user embedding with v3 function
           const { data: response, error: functionError } = await supabase.functions.invoke(
-            'generate-user-embeddings-v2',
+            'generate-user-vectors-v3',
+            {
+              body: { userId: entry.entity_id }
+            }
+          )
+
+        } else if (entry.entity_type === 'user') {
+          // Legacy user processing - redirect to v3
+          const { data: response, error: functionError } = await supabase.functions.invoke(
+            'generate-user-vectors-v3',
             {
               body: { userId: entry.entity_id }
             }
@@ -117,10 +127,19 @@ async function processQueue(batchSize: number = 10): Promise<{
           results.processed++
           console.log(`Successfully processed user ${entry.entity_id}`)
 
-        } else if (entry.entity_type === 'match') {
-          // Process match embedding
+        } else if (entry.entity_type === 'match_v3') {
+          // Process match embedding with v3 function
           const { data: response, error: functionError } = await supabase.functions.invoke(
-            'generate-match-embeddings',
+            'generate-match-vectors-v3',
+            {
+              body: { matchId: entry.entity_id }
+            }
+          )
+
+        } else if (entry.entity_type === 'match') {
+          // Legacy match processing - redirect to v3
+          const { data: response, error: functionError } = await supabase.functions.invoke(
+            'generate-match-vectors-v3',
             {
               body: { matchId: entry.entity_id }
             }
