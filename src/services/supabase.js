@@ -599,27 +599,28 @@ export const matchService = {
 
       console.log('Match created successfully with validation:', createdMatchData);
 
-      // Trigger content moderation for the newly created match
+      // Trigger ML-powered content moderation for the newly created match
       try {
-        console.log('Triggering content moderation for match:', createdMatchData.id);
+        console.log('Triggering ML content moderation for match:', createdMatchData.id);
 
         const { data: moderationData, error: moderationError } = await supabase.functions.invoke(
-          'test-enhanced-simple',
+          'moderate-match-content',
           {
             body: { matchId: createdMatchData.id }
           }
         );
 
         if (moderationError) {
-          console.error('Content moderation failed:', moderationError);
+          console.error('ML content moderation failed:', moderationError);
           // Don't fail the match creation if moderation fails
-          // Just log the error and continue
+          // The system will fall back to manual review
         } else {
-          console.log('Content moderation completed:', moderationData);
+          console.log('ML content moderation completed:', moderationData);
         }
       } catch (moderationError) {
         console.error('Content moderation error:', moderationError);
         // Don't fail the match creation if moderation fails
+        // Optimistic approval workflow continues
       }
 
       // Return in a consistent format that the client expects

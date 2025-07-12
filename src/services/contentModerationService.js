@@ -2,47 +2,30 @@ import { supabase } from './supabase';
 
 /**
  * Content Moderation Service - ML-Powered Administrative Oversight
- * 
- * PURPOSE: Detect and flag inappropriate content in match titles and descriptions
- * 
+ *
+ * PURPOSE: Unified interface for content moderation that proxies to ML-enabled edge function
+ *
+ * ARCHITECTURE CHANGE (v3.0):
+ * - This service now acts as a proxy to the edge function for moderation processing
+ * - Edge function handles actual ML integration with Hugging Face toxic-bert
+ * - Maintains backward compatibility for admin dashboard and existing integrations
+ * - Eliminates dual implementation inconsistency
+ *
  * FEATURES:
- * - Inappropriate content detection using rule-based + API-based analysis
- * - Title-description consistency checking
- * - Sports terminology validation
- * - Risk level assessment with automated actions
- * - Admin dashboard integration
- * 
+ * - ML-powered toxic content detection via edge function
+ * - Configuration-driven moderation (reads from database)
+ * - Robust fallback mechanisms (ML -> rule-based -> manual review)
+ * - Admin dashboard integration and workflow management
+ *
  * RISK LEVELS:
  * - HIGH: Auto-reject + admin alert
- * - MEDIUM: Queue for manual review  
+ * - MEDIUM: Queue for manual review
  * - LOW: Auto-approve with monitoring
  * - MINIMAL: Auto-approve
  */
 
 const DEBUG_MODE = process.env.NODE_ENV !== 'production';
-const LOG_PREFIX = '[Content Moderation Service]';
-
-// Risk thresholds
-const RISK_THRESHOLDS = {
-  HIGH: 0.8,
-  MEDIUM: 0.5,
-  LOW: 0.2
-};
-
-// Sports terminology for validation
-const SPORTS_TERMS = [
-  'basketball', 'badminton', 'football', 'tennis', 'volleyball', 
-  'table tennis', 'futsal', 'frisbee', 'hockey', 'rugby', 'squash',
-  'match', 'game', 'tournament', 'practice', 'training', 'session',
-  'court', 'field', 'venue', 'indoor', 'outdoor', 'beginner', 
-  'intermediate', 'advanced', 'professional', 'casual', 'competitive'
-];
-
-// Inappropriate content keywords (basic rule-based detection)
-const INAPPROPRIATE_KEYWORDS = [
-  'spam', 'promotion', 'advertisement', 'buy', 'sell', 'money',
-  'inappropriate', 'offensive', 'hate', 'discrimination'
-];
+const LOG_PREFIX = '[Content Moderation Service v3.0]';
 
 // Helper logging functions
 function log(...args) {
@@ -56,63 +39,221 @@ function logError(...args) {
 }
 
 /**
- * Main content moderation function
+ * Main content moderation function - Now proxies to ML-enabled edge function
+ *
+ * ARCHITECTURE CHANGE: This function now calls the edge function instead of
+ * performing local rule-based processing. This eliminates the dual implementation
+ * inconsistency and enables actual ML integration.
  */
 async function moderateContent(title, description, matchData = {}) {
   try {
-    log(`=== CONTENT MODERATION START ===`);
+    log(`=== CONTENT MODERATION START (Edge Function Proxy) ===`);
     log(`Title: "${title}"`);
     log(`Description: "${description}"`);
 
-    // Run all moderation checks
-    const moderationResults = await Promise.all([
-      checkInappropriateContent(title, description),
-      checkTitleDescriptionConsistency(title, description),
-      validateSportsContent(title, description, matchData)
-    ]);
+    // Ensure we have a match ID for the edge function
+    if (!matchData.id) {
+      throw new Error('Match ID is required for content moderation');
+    }
 
-    const [inappropriateResult, consistencyResult, sportsResult] = moderationResults;
+    // Call the ML-enabled edge function
+    const { data: moderationResult, error: edgeFunctionError } = await supabase.functions.invoke(
+      'moderate-match-content',
+      {
+        body: {
+          matchId: matchData.id,
+          // Optional: Pass additional context if needed
+          title,
+          description,
+          sport_id: matchData.sport_id
+        }
+      }
+    );
 
-    // Calculate overall risk assessment
-    const riskAssessment = calculateRiskLevel({
-      inappropriate: inappropriateResult,
-      consistency: consistencyResult,
-      sports: sportsResult
-    });
+    if (edgeFunctionError) {
+      logError('Edge function error:', edgeFunctionError);
+      throw new Error(`Edge function failed: ${edgeFunctionError.message}`);
+    }
 
-    log(`Risk Level: ${riskAssessment.level}`);
+    if (!moderationResult || !moderationResult.success) {
+      throw new Error('Edge function returned invalid result');
+    }
+
+    const result = moderationResult.data;
+
+    log(`Risk Level: ${result.overall_risk_level}`);
+    log(`ML Model Used: ${result.model_confidence?.toxic_detection || 'unknown'}`);
+    log(`Processing Time: ${result.processing_time_ms}ms`);
     log(`=== CONTENT MODERATION END ===`);
 
+    // Transform edge function result to match expected interface
     return {
-      riskLevel: riskAssessment.level,
-      overallScore: riskAssessment.score,
+      riskLevel: result.overall_risk_level,
+      overallScore: result.inappropriate_score || 0,
       details: {
-        inappropriate: inappropriateResult,
-        consistency: consistencyResult,
-        sports: sportsResult
+        inappropriate: {
+          score: result.inappropriate_score || 0,
+          confidence: result.model_confidence?.toxic_detection || 'medium',
+          flaggedKeywords: result.flagged_content?.toxic_words || [],
+          details: `ML-powered toxic content detection (${result.model_confidence?.system_version || 'v3.0'})`
+        },
+        consistency: {
+          score: 0, // Removed in v3.0 as per user preference
+          confidence: 'not_applicable',
+          details: 'Title-description consistency removed in v3.0 (toxic-only focus)'
+        },
+        sports: {
+          score: result.sports_validation_score || 0,
+          confidence: result.model_confidence?.sports_validation || 'medium',
+          details: `Sports validation score: ${(result.sports_validation_score || 0).toFixed(2)}`
+        }
       },
-      action: riskAssessment.action,
-      requiresReview: riskAssessment.requiresReview,
-      autoApproved: riskAssessment.autoApproved
+      action: result.auto_approved ? 'auto_approve' : 'manual_review',
+      requiresReview: result.requires_review,
+      autoApproved: result.auto_approved,
+      // Additional ML-specific metadata
+      mlMetadata: {
+        modelUsed: result.flagged_content?.model_used || 'unknown',
+        processingTime: result.processing_time_ms,
+        fallbackUsed: result.flagged_content?.fallback_used || false,
+        systemVersion: result.model_confidence?.system_version || 'v3.0'
+      }
     };
 
   } catch (error) {
-    logError('Error in content moderation:', error);
-    
-    // Default to manual review on error
-    return {
-      riskLevel: 'medium',
-      overallScore: 0.5,
-      details: { error: error.message },
-      action: 'manual_review',
-      requiresReview: true,
-      autoApproved: false
-    };
+    logError('Error in content moderation proxy:', error);
+
+    // Fallback to local rule-based processing if edge function fails
+    log('Falling back to local rule-based processing...');
+
+    try {
+      const fallbackResult = await moderateContentFallback(title, description, matchData);
+      return {
+        ...fallbackResult,
+        mlMetadata: {
+          modelUsed: 'rule-based-fallback',
+          processingTime: 0,
+          fallbackUsed: true,
+          systemVersion: 'v3.0-fallback',
+          fallbackReason: error.message
+        }
+      };
+    } catch (fallbackError) {
+      logError('Fallback moderation also failed:', fallbackError);
+
+      // Ultimate fallback - manual review
+      return {
+        riskLevel: 'medium',
+        overallScore: 0.5,
+        details: {
+          error: `Both ML and fallback moderation failed: ${error.message}`,
+          fallbackError: fallbackError.message
+        },
+        action: 'manual_review',
+        requiresReview: true,
+        autoApproved: false,
+        mlMetadata: {
+          modelUsed: 'error-fallback',
+          processingTime: 0,
+          fallbackUsed: true,
+          systemVersion: 'v3.0-error',
+          fallbackReason: 'Complete system failure'
+        }
+      };
+    }
   }
 }
 
 /**
- * Check for inappropriate content using rule-based detection
+ * Fallback content moderation using local rule-based processing
+ * Used when the ML-enabled edge function is unavailable
+ */
+async function moderateContentFallback(title, description, matchData = {}) {
+  log('Using fallback rule-based moderation...');
+
+  // Simple rule-based toxic content detection
+  const content = (title + ' ' + description).toLowerCase();
+  let toxicScore = 0;
+  const flaggedKeywords = [];
+
+  // Basic inappropriate keywords
+  const inappropriateKeywords = [
+    'spam', 'promotion', 'advertisement', 'buy', 'sell', 'money',
+    'inappropriate', 'offensive', 'hate', 'discrimination', 'fuck', 'shit'
+  ];
+
+  for (const keyword of inappropriateKeywords) {
+    if (content.includes(keyword)) {
+      toxicScore += 0.3;
+      flaggedKeywords.push(keyword);
+    }
+  }
+
+  // Check for excessive capitalization
+  const capsRatio = (content.match(/[A-Z]/g) || []).length / content.length;
+  if (capsRatio > 0.5) {
+    toxicScore += 0.2;
+    flaggedKeywords.push('excessive_caps');
+  }
+
+  // Normalize score
+  toxicScore = Math.min(toxicScore, 1.0);
+
+  // Determine risk level
+  let riskLevel, action, requiresReview, autoApproved;
+
+  if (toxicScore >= 0.8) {
+    riskLevel = 'high';
+    action = 'auto_reject';
+    requiresReview = true;
+    autoApproved = false;
+  } else if (toxicScore >= 0.5) {
+    riskLevel = 'medium';
+    action = 'manual_review';
+    requiresReview = true;
+    autoApproved = false;
+  } else if (toxicScore >= 0.2) {
+    riskLevel = 'low';
+    action = 'auto_approve_monitor';
+    requiresReview = false;
+    autoApproved = true;
+  } else {
+    riskLevel = 'minimal';
+    action = 'auto_approve';
+    requiresReview = false;
+    autoApproved = true;
+  }
+
+  return {
+    riskLevel,
+    overallScore: toxicScore,
+    details: {
+      inappropriate: {
+        score: toxicScore,
+        confidence: toxicScore > 0.5 ? 'high' : 'medium',
+        flaggedKeywords,
+        details: `Rule-based fallback detection: ${toxicScore.toFixed(2)}`
+      },
+      consistency: {
+        score: 0,
+        confidence: 'not_applicable',
+        details: 'Consistency check disabled in fallback mode'
+      },
+      sports: {
+        score: 0,
+        confidence: 'not_applicable',
+        details: 'Sports validation disabled in fallback mode'
+      }
+    },
+    action,
+    requiresReview,
+    autoApproved
+  };
+}
+
+/**
+ * Legacy function - Check for inappropriate content using rule-based detection
+ * DEPRECATED: Now used only as fallback when ML edge function fails
  */
 async function checkInappropriateContent(title, description) {
   const content = (title + ' ' + description).toLowerCase();

@@ -4,7 +4,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 }
+
+// ML Integration Configuration
+const HUGGINGFACE_API_URL = 'https://api-inference.huggingface.co/models'
+const ML_TIMEOUT_MS = parseInt(Deno.env.get('ML_TIMEOUT_MS') || '5000')
+const ML_CONFIDENCE_THRESHOLD = parseFloat(Deno.env.get('ML_CONFIDENCE_THRESHOLD') || '0.7')
+const ENABLE_ML_MODELS = Deno.env.get('ENABLE_ML_MODELS') !== 'false'
 
 interface MatchData {
   id: string
@@ -16,7 +24,7 @@ interface MatchData {
 
 interface ModerationResult {
   inappropriate_score: number
-  consistency_score: number
+  consistency_score: number | null
   sports_validation_score: number
   overall_risk_level: 'minimal' | 'low' | 'medium' | 'high'
   auto_approved: boolean
@@ -37,6 +45,182 @@ interface ModerationSettings {
   sports_validation_weight: number
   moderation_enabled: boolean
   strict_mode: boolean
+  // New ML-specific settings
+  ml_enabled?: boolean
+  ml_confidence_threshold?: number
+  ml_timeout_ms?: number
+  ml_primary_model?: string
+  ml_fallback_model?: string
+  simplified_mode?: boolean
+}
+
+interface MLResult {
+  score: number
+  confidence: 'high' | 'medium' | 'low'
+  model_used: string
+  processing_time_ms: number
+  fallback_used: boolean
+  flagged_words: string[]
+}
+
+interface HuggingFaceResponse {
+  label: string
+  score: number
+}
+
+/**
+ * ML-Powered Toxic Content Detection using Hugging Face API
+ * Primary: unitary/toxic-bert, Fallback: martin-ha/toxic-comment-model
+ */
+async function detectToxicContentML(text: string, settings: ModerationSettings): Promise<MLResult> {
+  const startTime = Date.now()
+
+  // Check if ML is enabled
+  if (!ENABLE_ML_MODELS || !settings.ml_enabled) {
+    console.log('[ML] ML models disabled, using rule-based fallback')
+    return await detectToxicContentRuleBased(text, startTime)
+  }
+
+  const apiKey = Deno.env.get('HUGGINGFACE_API_KEY')
+  if (!apiKey) {
+    console.warn('[ML] No Hugging Face API key found, using rule-based fallback')
+    return await detectToxicContentRuleBased(text, startTime)
+  }
+
+  try {
+    // Primary model: unitary/toxic-bert
+    const primaryModel = settings.ml_primary_model || 'unitary/toxic-bert'
+    console.log(`[ML] Attempting primary model: ${primaryModel}`)
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), settings.ml_timeout_ms || ML_TIMEOUT_MS)
+
+    const response = await fetch(`${HUGGINGFACE_API_URL}/${primaryModel}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inputs: text,
+        parameters: {
+          return_all_scores: true
+        }
+      }),
+      signal: controller.signal
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const result: HuggingFaceResponse[] = await response.json()
+
+    // Find toxic score
+    const toxicResult = result.find(r => r.label === 'TOXIC' || r.label === 'toxic')
+    const toxicScore = toxicResult?.score || 0
+
+    console.log(`[ML] Primary model success: ${toxicScore.toFixed(4)} toxic score`)
+
+    return {
+      score: toxicScore,
+      confidence: toxicScore > (settings.ml_confidence_threshold || ML_CONFIDENCE_THRESHOLD) ? 'high' :
+                 toxicScore > 0.4 ? 'medium' : 'low',
+      model_used: primaryModel,
+      processing_time_ms: Date.now() - startTime,
+      fallback_used: false,
+      flagged_words: toxicScore > 0.5 ? extractToxicWords(text) : []
+    }
+
+  } catch (primaryError) {
+    console.warn(`[ML] Primary model failed: ${primaryError.message}`)
+
+    try {
+      // Fallback model: martin-ha/toxic-comment-model
+      const fallbackModel = settings.ml_fallback_model || 'martin-ha/toxic-comment-model'
+      console.log(`[ML] Attempting fallback model: ${fallbackModel}`)
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3000) // Shorter timeout for fallback
+
+      const response = await fetch(`${HUGGINGFACE_API_URL}/${fallbackModel}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('HUGGINGFACE_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ inputs: text }),
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const result: HuggingFaceResponse[] = await response.json()
+      const toxicScore = result[0]?.score || 0
+
+      console.log(`[ML] Fallback model success: ${toxicScore.toFixed(4)} toxic score`)
+
+      return {
+        score: toxicScore,
+        confidence: 'medium',
+        model_used: fallbackModel,
+        processing_time_ms: Date.now() - startTime,
+        fallback_used: true,
+        flagged_words: toxicScore > 0.5 ? extractToxicWords(text) : []
+      }
+
+    } catch (fallbackError) {
+      console.error(`[ML] All ML models failed, using rule-based fallback: ${fallbackError.message}`)
+      return await detectToxicContentRuleBased(text, startTime, true)
+    }
+  }
+}
+
+/**
+ * Rule-based toxic content detection (fallback when ML fails)
+ */
+async function detectToxicContentRuleBased(text: string, startTime: number, isFallback = false): Promise<MLResult> {
+  console.log(`[ML] Using rule-based detection ${isFallback ? '(ML fallback)' : '(ML disabled)'}`)
+
+  const result = await detectToxicContent(text)
+
+  return {
+    score: result.score,
+    confidence: result.score > 0.5 ? 'medium' : 'low',
+    model_used: 'rule-based-fallback',
+    processing_time_ms: Date.now() - startTime,
+    fallback_used: isFallback,
+    flagged_words: result.flagged
+  }
+}
+
+/**
+ * Extract potentially toxic words from text for detailed reporting
+ */
+function extractToxicWords(text: string): string[] {
+  const toxicPatterns = [
+    /\b(fuck|shit|damn|hell|ass|bitch|bastard|crap)\b/gi,
+    /\b(puki|pantat|bodoh|bangsat|sial|celaka|keparat)\b/gi,
+    /\b(hate|stupid|idiot|loser|pathetic)\b/gi,
+    /\b(kill|murder|destroy|die|death)\b/gi
+  ]
+
+  const flagged: string[] = []
+
+  for (const pattern of toxicPatterns) {
+    const matches = text.match(pattern)
+    if (matches) {
+      flagged.push(...matches.map(m => m.toLowerCase()))
+    }
+  }
+
+  return [...new Set(flagged)]
 }
 
 /**
@@ -219,23 +403,36 @@ async function validateSportsContent(title: string, description: string): Promis
 
 
 /**
- * Calculate overall risk level based on simplified 2-component system
- * New weights: Toxic Content 75%, Sports Relevance 25%
- * Removed: Title-Description Consistency component
+ * Configuration-driven risk level calculation
+ * Supports both simplified mode (100% toxic) and legacy multi-component mode
+ * Reads weights from database settings for dynamic configuration
  */
-function calculateRiskLevel(
-  inappropriateScore: number,
+function calculateRiskLevelConfigurable(
+  toxicScore: number,
   sportsScore: number,
   settings: ModerationSettings
 ): { riskLevel: 'minimal' | 'low' | 'medium' | 'high', overallScore: number } {
 
-  // Simplified 2-component weighted risk score
-  // Toxic Content Detection: 75% weight (increased from 60%)
-  // Sports Relevance Detection: 25% weight (increased from 15%)
-  const overallScore = (
-    (inappropriateScore * 0.75) +
-    ((1 - sportsScore) * 0.25)
-  )
+  let overallScore: number
+
+  // Simplified mode: 100% toxic content focus (user preference)
+  if (settings.simplified_mode) {
+    console.log(`[Risk Calculation] Using simplified mode (100% toxic focus)`)
+    overallScore = toxicScore * 1.0
+  } else {
+    // Legacy mode: configurable weights from database
+    const toxicWeight = settings.toxic_model_weight || 1.0
+    const sportsWeight = settings.sports_validation_weight || 0.0
+    const consistencyWeight = settings.consistency_model_weight || 0.0
+
+    console.log(`[Risk Calculation] Using configurable weights - Toxic: ${toxicWeight}, Sports: ${sportsWeight}, Consistency: ${consistencyWeight}`)
+
+    overallScore = (
+      (toxicScore * toxicWeight) +
+      ((1 - sportsScore) * sportsWeight) +
+      (0 * consistencyWeight) // Consistency removed in v3.0
+    )
+  }
 
   // Determine risk level based on thresholds
   let riskLevel: 'minimal' | 'low' | 'medium' | 'high'
@@ -252,70 +449,105 @@ function calculateRiskLevel(
 
   // Apply strict mode adjustments
   if (settings.strict_mode) {
+    console.log(`[Risk Calculation] Applying strict mode adjustments`)
     if (riskLevel === 'minimal') riskLevel = 'low'
     if (riskLevel === 'low') riskLevel = 'medium'
   }
 
+  console.log(`[Risk Calculation] Final score: ${overallScore.toFixed(4)}, Risk level: ${riskLevel}`)
   return { riskLevel, overallScore }
 }
 
 /**
- * Main content moderation function
+ * Legacy risk calculation function (deprecated)
+ * Kept for backward compatibility
+ */
+function calculateRiskLevel(
+  inappropriateScore: number,
+  sportsScore: number,
+  settings: ModerationSettings
+): { riskLevel: 'minimal' | 'low' | 'medium' | 'high', overallScore: number } {
+  console.warn('[DEPRECATED] Using legacy calculateRiskLevel, consider using calculateRiskLevelConfigurable')
+  return calculateRiskLevelConfigurable(inappropriateScore, sportsScore, settings)
+}
+
+/**
+ * Main content moderation function with ML integration
+ * Implements toxic-only focus (100% weight) as per user preference
  */
 async function moderateContent(
   matchData: MatchData,
   settings: ModerationSettings
 ): Promise<ModerationResult> {
   const startTime = Date.now()
-  
-  console.log(`[Moderation] Processing match: ${matchData.id}`)
+
+  console.log(`[Moderation v3.0] Processing match: ${matchData.id}`)
   console.log(`[Moderation] Title: "${matchData.title}"`)
   console.log(`[Moderation] Description: "${matchData.description?.substring(0, 100)}..."`)
-  
-  // Run simplified 2-component moderation checks
-  const [toxicResult, sportsScore] = await Promise.all([
-    detectToxicContent(`${matchData.title} ${matchData.description || ''}`),
-    validateSportsContent(matchData.title, matchData.description || '')
-  ])
+  console.log(`[Moderation] ML Enabled: ${settings.ml_enabled}`)
+  console.log(`[Moderation] Simplified Mode: ${settings.simplified_mode}`)
 
-  console.log(`[Moderation] Toxic score: ${toxicResult.score} (75% weight)`)
-  console.log(`[Moderation] Sports score: ${sportsScore} (25% weight)`)
-  console.log(`[Moderation] Flagged toxic content:`, toxicResult.flagged)
+  const fullText = `${matchData.title} ${matchData.description || ''}`
 
-  // Calculate overall risk using simplified 2-component system
-  const { riskLevel, overallScore } = calculateRiskLevel(
-    toxicResult.score,
+  // Use ML-powered toxic detection as primary method
+  const mlToxicResult = await detectToxicContentML(fullText, settings)
+
+  console.log(`[Moderation] ML Toxic score: ${mlToxicResult.score.toFixed(4)}`)
+  console.log(`[Moderation] ML Model used: ${mlToxicResult.model_used}`)
+  console.log(`[Moderation] ML Fallback used: ${mlToxicResult.fallback_used}`)
+  console.log(`[Moderation] ML Processing time: ${mlToxicResult.processing_time_ms}ms`)
+
+  // Sports validation (optional based on configuration)
+  let sportsScore = 0
+  if (settings.sports_validation_weight > 0 && !settings.simplified_mode) {
+    sportsScore = await validateSportsContent(matchData.title, matchData.description || '')
+    console.log(`[Moderation] Sports score: ${sportsScore} (${settings.sports_validation_weight * 100}% weight)`)
+  } else {
+    console.log(`[Moderation] Sports validation disabled (simplified mode: ${settings.simplified_mode})`)
+  }
+
+  // Calculate overall risk using configuration-driven weights
+  const { riskLevel, overallScore } = calculateRiskLevelConfigurable(
+    mlToxicResult.score,
     sportsScore,
     settings
   )
-  
-  console.log(`[Moderation] Overall risk: ${riskLevel} (${overallScore.toFixed(3)})`)
-  
+
+  console.log(`[Moderation] Overall risk: ${riskLevel} (${overallScore.toFixed(4)})`)
+  console.log(`[Moderation] Weights - Toxic: ${settings.toxic_model_weight}, Sports: ${settings.sports_validation_weight}`)
+
   // Determine automatic actions
   const autoApproved = riskLevel === 'minimal' && settings.auto_approve_minimal_risk
   const requiresReview = riskLevel !== 'minimal' || !settings.auto_approve_minimal_risk
-  
+
   const processingTime = Date.now() - startTime
   
   return {
-    inappropriate_score: Number(toxicResult.score.toFixed(4)),
-    consistency_score: null, // Removed in simplified 2-component system
+    inappropriate_score: Number(mlToxicResult.score.toFixed(4)),
+    consistency_score: null, // Removed in v3.0 (toxic-only focus)
     sports_validation_score: Number(sportsScore.toFixed(4)),
     overall_risk_level: riskLevel,
     auto_approved: autoApproved,
     requires_review: requiresReview,
     flagged_content: {
-      toxic_words: toxicResult.flagged,
+      toxic_words: mlToxicResult.flagged_words,
+      model_used: mlToxicResult.model_used,
+      fallback_used: mlToxicResult.fallback_used,
       risk_factors: {
-        high_toxicity: toxicResult.score > 0.7,
+        high_toxicity: mlToxicResult.score > (settings.ml_confidence_threshold || 0.7),
+        medium_toxicity: mlToxicResult.score > 0.4 && mlToxicResult.score <= (settings.ml_confidence_threshold || 0.7),
         non_sports_content: sportsScore < 0.2,
+        ml_processing_failed: mlToxicResult.fallback_used,
         malay_content_detected: /\b(sukan|latihan|permainan|bola|larian)\b/i.test(`${matchData.title} ${matchData.description || ''}`)
       }
     },
     model_confidence: {
-      toxic_detection: toxicResult.score > 0.5 ? 'high' : 'medium',
+      toxic_detection: mlToxicResult.confidence,
+      ml_model_used: mlToxicResult.model_used,
+      ml_processing_time: mlToxicResult.processing_time_ms,
       sports_validation: sportsScore > 0.7 ? 'high' : 'medium',
-      system_version: '2.0-simplified'
+      system_version: '3.0-ml-enabled',
+      configuration_mode: settings.simplified_mode ? 'toxic-only' : 'multi-component'
     },
     processing_time_ms: processingTime
   }
@@ -324,7 +556,10 @@ async function moderateContent(
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders
+    })
   }
 
   try {
@@ -358,16 +593,80 @@ serve(async (req) => {
       throw new Error(`Failed to fetch match data: ${matchError?.message}`)
     }
 
-    // Fetch moderation settings
+    // Fetch ML-enhanced moderation settings from database
     const { data: settings, error: settingsError } = await supabase
       .from('content_moderation_settings')
-      .select('*')
+      .select(`
+        *,
+        ml_enabled,
+        ml_confidence_threshold,
+        ml_timeout_ms,
+        ml_primary_model,
+        ml_fallback_model,
+        simplified_mode
+      `)
       .limit(1)
       .single()
 
     if (settingsError || !settings) {
-      throw new Error(`Failed to fetch moderation settings: ${settingsError?.message}`)
+      console.error('[Settings] Error fetching moderation settings:', settingsError)
+      // Use default settings if database fetch fails
+      console.log('[Settings] Using default ML-enabled settings as fallback')
+      const defaultSettings: ModerationSettings = {
+        high_risk_threshold: 0.8,
+        medium_risk_threshold: 0.5,
+        low_risk_threshold: 0.2,
+        auto_reject_high_risk: true,
+        auto_approve_minimal_risk: true,
+        toxic_model_weight: 1.0,
+        consistency_model_weight: 0.0,
+        sports_validation_weight: 0.0,
+        moderation_enabled: true,
+        strict_mode: false,
+        ml_enabled: true,
+        ml_confidence_threshold: 0.7,
+        ml_timeout_ms: 5000,
+        ml_primary_model: 'unitary/toxic-bert',
+        ml_fallback_model: 'martin-ha/toxic-comment-model',
+        simplified_mode: true
+      }
+
+      const moderationResult = await moderateContent(matchData, defaultSettings)
+
+      // Store results even with default settings
+      await supabase
+        .from('content_moderation_results')
+        .insert({
+          match_id: matchId,
+          inappropriate_score: moderationResult.inappropriate_score,
+          consistency_score: moderationResult.consistency_score,
+          sports_validation_score: moderationResult.sports_validation_score,
+          overall_risk_level: moderationResult.overall_risk_level,
+          auto_approved: moderationResult.auto_approved,
+          requires_review: moderationResult.requires_review,
+          flagged_content: moderationResult.flagged_content,
+          model_confidence: moderationResult.model_confidence,
+          processing_time_ms: moderationResult.processing_time_ms
+        })
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Content moderation completed with default ML settings',
+          data: moderationResult,
+          warning: 'Used default settings due to database error'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
+
+    console.log('[Settings] Loaded ML configuration:', {
+      ml_enabled: settings.ml_enabled,
+      simplified_mode: settings.simplified_mode,
+      toxic_weight: settings.toxic_model_weight,
+      sports_weight: settings.sports_validation_weight,
+      ml_primary_model: settings.ml_primary_model || 'unitary/toxic-bert'
+    })
 
     // Check if moderation is enabled
     if (!settings.moderation_enabled) {
