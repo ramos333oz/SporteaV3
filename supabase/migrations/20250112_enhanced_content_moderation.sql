@@ -136,9 +136,11 @@ BEGIN
     UPDATE matches SET moderation_status = 'approved' WHERE id = NEW.match_id;
   END IF;
   
-  -- Update queue status and completion time
-  NEW.status = CASE 
-    WHEN NEW.admin_decision IN ('approve', 'reject', 'warn') THEN 'approved'
+  -- Update queue status and completion time - FIX: Set correct status based on decision
+  NEW.status = CASE
+    WHEN NEW.admin_decision = 'approve' THEN 'approved'
+    WHEN NEW.admin_decision = 'reject' THEN 'rejected'
+    WHEN NEW.admin_decision = 'warn' THEN 'approved'
     ELSE NEW.status
   END;
   NEW.completed_at = CASE 
