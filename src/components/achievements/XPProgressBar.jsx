@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, LinearProgress, Fade } from '@mui/material';
-import { calculateNextLevelXP, getLevelColor } from '../../services/achievementService';
+import { getLevelColor } from '../../services/achievementService';
+import { getXPForLevel, getXPToNextLevel, getLevelProgress } from '../../utils/levelCalculation';
 
 /**
  * Enhanced XPProgressBar Component with Real-time Updates
@@ -45,11 +46,10 @@ const XPProgressBar = ({
     setXP(currentXP);
     setLevel(currentLevel);
   }, [currentXP, currentLevel]);
-  const nextLevelXP = calculateNextLevelXP(level);
-  const currentLevelXP = level > 1 ? calculateNextLevelXP(level - 1) : 0;
-  const xpForCurrentLevel = xp - currentLevelXP;
-  const xpNeededForNextLevel = nextLevelXP - currentLevelXP;
-  const progressPercentage = (xpForCurrentLevel / xpNeededForNextLevel) * 100;
+
+  // Use simplified level calculation
+  const xpToNext = getXPToNextLevel(xp);
+  const progressPercentage = getLevelProgress(xp);
 
   const sizeConfig = {
     small: { height: 6, fontSize: '0.75rem' },
@@ -67,7 +67,7 @@ const XPProgressBar = ({
             Level {level}
           </Typography>
           <Typography variant="body2" sx={{ fontSize: config.fontSize }} color="text.secondary">
-            {xpForCurrentLevel}/{xpNeededForNextLevel} XP
+            {xpToNext} XP to next level
           </Typography>
         </Box>
       )}
@@ -114,7 +114,7 @@ const XPProgressBar = ({
           color="text.secondary" 
           sx={{ mt: 0.5, display: 'block', textAlign: 'center' }}
         >
-          {nextLevelXP - currentXP} XP to next level
+          {xpToNext} XP to next level
         </Typography>
       )}
     </Box>

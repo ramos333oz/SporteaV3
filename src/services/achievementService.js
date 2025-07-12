@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { calculateLevel, GAMIFICATION_CONSTANTS } from '../utils/levelCalculation';
 
 // XP Values for different actions (Updated per user requirements)
 export const XP_VALUES = {
@@ -41,13 +42,11 @@ export const getLevelColor = (level) => {
   return LEVEL_COLORS[1];
 };
 
-// Calculate next level XP requirement
+// Simplified XP calculation for next level (linear progression)
 export const calculateNextLevelXP = (currentLevel) => {
-  if (currentLevel <= 10) return 50 * currentLevel;
-  if (currentLevel <= 25) return 500 + (100 * (currentLevel - 10));
-  if (currentLevel <= 50) return 2000 + (120 * (currentLevel - 25));
-  if (currentLevel <= 75) return 5000 + (200 * (currentLevel - 50));
-  return 10000 + (400 * (currentLevel - 75));
+  // In simplified system, each level requires 500 XP
+  // So next level XP is simply currentLevel * 500
+  return currentLevel * GAMIFICATION_CONSTANTS.XP_PER_LEVEL;
 };
 
 class AchievementService {
@@ -192,18 +191,10 @@ class AchievementService {
     }
   }
 
-  // Calculate level from total XP
+  // Calculate level from total XP (simplified linear progression)
   calculateLevelFromXP(totalXP) {
-    let level = 1;
-    let xpRequired = 0;
-
-    while (xpRequired <= totalXP) {
-      level++;
-      xpRequired += calculateNextLevelXP(level - 1);
-      if (level > 100) break; // Cap at level 100
-    }
-
-    return Math.max(1, level - 1);
+    // Use the simplified linear calculation from utils
+    return calculateLevel(totalXP);
   }
 
   // Real-time XP update broadcasting
@@ -217,6 +208,61 @@ class AchievementService {
       console.log(`Broadcasting XP update for user ${userId}:`, updateData);
     } catch (error) {
       console.error('Error broadcasting XP update:', error);
+    }
+  }
+
+  // Simplified leaderboard query for performance
+  async getSimpleLeaderboard({ timeframe = 'all', groupType = 'global', limit = 50, userId = null }) {
+    try {
+      let query = supabase
+        .from('simple_leaderboard')
+        .select('*');
+
+      // Apply timeframe filtering
+      if (timeframe === 'weekly') {
+        // For weekly, we'd need to filter by weekly_xp instead
+        // For now, using total_xp as the view doesn't have date filtering
+        query = query.order('weekly_xp', { ascending: false });
+      } else if (timeframe === 'monthly') {
+        query = query.order('monthly_xp', { ascending: false });
+      } else {
+        query = query.order('total_xp', { ascending: false });
+      }
+
+      // Apply group filtering
+      if (groupType === 'friends' && userId) {
+        // Get user's friends first
+        const friends = await this.getUserFriends(userId);
+        const friendIds = friends.map(f => f.id);
+        if (friendIds.length > 0) {
+          query = query.in('user_id', friendIds);
+        } else {
+          return []; // No friends, return empty array
+        }
+      } else if (groupType === 'faculty' && userId) {
+        // Get user's faculty first
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('faculty')
+          .eq('id', userId)
+          .single();
+
+        if (userProfile?.faculty) {
+          query = query.eq('faculty', userProfile.faculty);
+        }
+      }
+
+      // Apply limit
+      query = query.limit(limit);
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching simple leaderboard:', error);
+      throw error;
     }
   }
 
@@ -243,6 +289,74 @@ class AchievementService {
       console.log(`Level up notification sent for user ${userId}: ${oldLevel} → ${newLevel}`);
     } catch (error) {
       console.error('Error showing level up notification:', error);
+    }
+  }
+
+  // Achievement unlock notification system
+  async showAchievementNotification(userId, achievement) {
+    try {
+      // Create notification in database
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          type: 'achievement_unlock',
+          title: 'Achievement Unlocked!',
+          content: `🎉 ${achievement.name}: ${achievement.description}`,
+          is_read: false
+        });
+
+      // Mark achievement as notified
+      await supabase
+        .from('user_achievement_progress')
+        .update({ notified: true })
+        .eq('user_id', userId)
+        .eq('achievement_id', achievement.id);
+
+      // Broadcast achievement unlock event
+      window.dispatchEvent(new CustomEvent('sportea:achievement_unlock', {
+        detail: { userId, achievement }
+      }));
+
+      console.log(`Achievement notification sent for user ${userId}: ${achievement.name}`);
+    } catch (error) {
+      console.error('Error showing achievement notification:', error);
+    }
+  }
+
+  // Check and send notifications for unnotified achievements
+  async checkAndNotifyAchievements(userId) {
+    try {
+      // Get all unlocked but unnotified achievements
+      const { data: unnotifiedAchievements, error } = await supabase
+        .from('user_achievement_progress')
+        .select(`
+          *,
+          achievements (
+            id,
+            name,
+            description,
+            xp_reward,
+            icon
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('unlocked', true)
+        .eq('notified', false);
+
+      if (error) throw error;
+
+      // Send notifications for each unnotified achievement
+      for (const progress of unnotifiedAchievements || []) {
+        if (progress.achievements) {
+          await this.showAchievementNotification(userId, progress.achievements);
+        }
+      }
+
+      return unnotifiedAchievements?.length || 0;
+    } catch (error) {
+      console.error('Error checking and notifying achievements:', error);
+      return 0;
     }
   }
 

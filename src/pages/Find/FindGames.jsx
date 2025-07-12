@@ -95,7 +95,9 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import SearchIcon from "@mui/icons-material/Search";
 import EventIcon from "@mui/icons-material/Event";
 import { useAuth } from "../../hooks/useAuth";
+import { useAchievements } from "../../hooks/useAchievements";
 import { participantService } from "../../services/supabase";
+import { XP_VALUES } from "../../services/achievementService";
 import recommendationServiceV3 from "../../services/recommendationServiceV3";
 import interactionService from "../../services/interactionService";
 import { useNavigate } from "react-router-dom";
@@ -160,6 +162,7 @@ const SportIcon = ({ sportName }) => {
 const FindGames = ({ matches: propMatches, sports: propSports }) => {
   // State management
   const { user, supabase } = useAuth();
+  const { awardXP } = useAchievements();
   const [matches, setMatches] = useState(propMatches || []);
   const [userCreatedMatches, setUserCreatedMatches] = useState([]);
   const [userParticipations, setUserParticipations] = useState({});
@@ -921,6 +924,21 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       } catch (error) {
         console.error("Error in interaction tracking:", error);
         // Continue execution - this is non-blocking
+      }
+
+      // 🎯 ACHIEVEMENT TRACKING: Award XP and check achievements for joining match
+      try {
+        console.log('🎯 Triggering achievement check for match joining...');
+        await awardXP(XP_VALUES.MATCH_JOINED, 'Joined a match', {
+          actionType: 'MATCH_JOINED',
+          matchId: match.id,
+          sport: match.sport,
+          updateStreak: true
+        });
+        console.log('✅ Achievement check completed for match joining');
+      } catch (achievementError) {
+        console.error('❌ Error checking achievements after joining match:', achievementError);
+        // Don't fail the match join if achievement tracking fails
       }
 
       // Generate new user embeddings to improve future recommendations (non-blocking)

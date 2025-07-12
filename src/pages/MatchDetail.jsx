@@ -47,10 +47,12 @@ import {
 import { format, formatDistance, formatDistanceToNow, isPast, isFuture, isAfter, differenceInMinutes, differenceInSeconds, intervalToDuration } from 'date-fns';
 
 import { useAuth } from '../hooks/useAuth';
+import { useAchievements } from '../hooks/useAchievements';
 import { useProductionRealtime } from '../hooks/useProductionRealtime';
 import { useToast } from '../contexts/ToastContext';
 import { matchService, participantService, supabase } from '../services/supabase';
 import { notificationService } from '../services/notifications';
+import { XP_VALUES } from '../services/achievementService';
 import FriendInvitationModal from '../components/FriendInvitationModal';
 
 // Match Status Indicator component
@@ -258,6 +260,7 @@ const MatchDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { awardXP } = useAchievements();
   const { connectionState } = useProductionRealtime();
   const { showInfoToast, showSuccessToast, showWarningToast } = useToast();
   
@@ -365,6 +368,21 @@ const MatchDetail = () => {
           showSuccessToast('Joined Successfully!', 'You have successfully joined the match via Direct Join invitation!');
           // Force refetch to update participant count
           fetchParticipants();
+
+          // 🎯 ACHIEVEMENT TRACKING: Award XP and check achievements for joining match
+          try {
+            console.log('🎯 Triggering achievement check for match joining...');
+            await awardXP(XP_VALUES.MATCH_JOINED, 'Joined a match', {
+              actionType: 'MATCH_JOINED',
+              matchId: matchId,
+              sport: match?.sport,
+              updateStreak: true
+            });
+            console.log('✅ Achievement check completed for match joining');
+          } catch (achievementError) {
+            console.error('❌ Error checking achievements after joining match:', achievementError);
+            // Don't fail the match join if achievement tracking fails
+          }
         } else {
           // Regular join request - user is pending approval
           setUserParticipation({
@@ -373,6 +391,21 @@ const MatchDetail = () => {
             status: 'pending'
           });
           showSuccessToast('Request Sent', 'Successfully sent request to join match. Waiting for host approval.');
+
+          // 🎯 ACHIEVEMENT TRACKING: Award XP and check achievements for joining match
+          try {
+            console.log('🎯 Triggering achievement check for match joining...');
+            await awardXP(XP_VALUES.MATCH_JOINED, 'Joined a match', {
+              actionType: 'MATCH_JOINED',
+              matchId: matchId,
+              sport: match?.sport,
+              updateStreak: true
+            });
+            console.log('✅ Achievement check completed for match joining');
+          } catch (achievementError) {
+            console.error('❌ Error checking achievements after joining match:', achievementError);
+            // Don't fail the match join if achievement tracking fails
+          }
         }
       } else if (result && !result.success) {
         // Handle cases where request failed but we need to update UI state
