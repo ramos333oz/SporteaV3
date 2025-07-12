@@ -16,24 +16,59 @@ import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
 import SportsIcon from '@mui/icons-material/Sports';
 
 const SportSelection = ({ matchData, onUpdateMatchData }) => {
-  // List of available sports
+  // List of available sports with correct database UUIDs
   const sportsList = [
-    { id: 'football', name: 'Football', icon: <SportsSoccerIcon sx={{ fontSize: 40 }} />, constraints: { minPlayers: 6, maxPlayers: 22 } },
-    { id: 'futsal', name: 'Futsal', icon: <SportsSoccerIcon sx={{ fontSize: 40 }} />, constraints: { minPlayers: 4, maxPlayers: 12 } },
-    { id: 'basketball', name: 'Basketball', icon: <SportsBasketballIcon sx={{ fontSize: 40 }} />, constraints: { minPlayers: 4, maxPlayers: 15 } },
-    { id: 'badminton', name: 'Badminton', icon: <SportsTennisIcon sx={{ fontSize: 40 }} />, constraints: { minPlayers: 2, maxPlayers: 8 } },
-    { id: 'volleyball', name: 'Volleyball', icon: <SportsVolleyballIcon sx={{ fontSize: 40 }} />, constraints: { minPlayers: 6, maxPlayers: 15 } },
-    { id: 'running', name: 'Running', icon: <DirectionsRunIcon sx={{ fontSize: 40 }} />, constraints: { minPlayers: 2, maxPlayers: 30 } },
-    { id: 'gym', name: 'Gym Session', icon: <FitnessCenterIcon sx={{ fontSize: 40 }} />, constraints: { minPlayers: 2, maxPlayers: 20 } },
-    { id: 'other', name: 'Other', icon: <SportsIcon sx={{ fontSize: 40 }} />, constraints: { minPlayers: 2, maxPlayers: 50 } }
+    {
+      id: '4746e9c1-f772-4515-8d08-6c28563fbfc9',
+      name: 'Football',
+      displayName: 'Football',
+      icon: <SportsSoccerIcon sx={{ fontSize: 40 }} />,
+      constraints: { minPlayers: 6, maxPlayers: 22 }
+    },
+    {
+      id: 'd662bc78-9e50-4785-ac71-d1e591e4a9ce',
+      name: 'Futsal',
+      displayName: 'Futsal',
+      icon: <SportsSoccerIcon sx={{ fontSize: 40 }} />,
+      constraints: { minPlayers: 4, maxPlayers: 12 }
+    },
+    {
+      id: 'dd400853-7ce6-47bc-aee6-2ee241530f79',
+      name: 'Basketball',
+      displayName: 'Basketball',
+      icon: <SportsBasketballIcon sx={{ fontSize: 40 }} />,
+      constraints: { minPlayers: 4, maxPlayers: 15 }
+    },
+    {
+      id: 'fb575fc1-2eac-4142-898a-2f7dae107844',
+      name: 'Badminton',
+      displayName: 'Badminton',
+      icon: <SportsTennisIcon sx={{ fontSize: 40 }} />,
+      constraints: { minPlayers: 2, maxPlayers: 8 }
+    },
+    {
+      id: '66e9893a-2be7-47f0-b7d3-d7191901dd77',
+      name: 'Volleyball',
+      displayName: 'Volleyball',
+      icon: <SportsVolleyballIcon sx={{ fontSize: 40 }} />,
+      constraints: { minPlayers: 6, maxPlayers: 15 }
+    },
+    {
+      id: '9a304214-6c57-4c33-8c5f-3f1955b63caf',
+      name: 'Tennis',
+      displayName: 'Tennis',
+      icon: <SportsTennisIcon sx={{ fontSize: 40 }} />,
+      constraints: { minPlayers: 2, maxPlayers: 4 }
+    }
   ];
   
   const handleSelectSport = (sport) => {
-    onUpdateMatchData({ 
-      sport: sport.id,
-      sport_id: sport.id, // Add explicit sport_id field for consistency
-      sportIcon: sport.icon, 
-      sportName: sport.name, // Include the name for better debugging
+    onUpdateMatchData({
+      sport: sport.id, // Use UUID as the sport identifier
+      sport_id: sport.id, // UUID for database operations
+      sportIcon: sport.icon,
+      sportName: sport.name, // Display name
+      sportDisplayName: sport.displayName, // For UI display
       maxParticipants: sport.constraints.maxPlayers,
       minParticipants: sport.constraints.minPlayers
     });
@@ -95,7 +130,7 @@ const SportSelection = ({ matchData, onUpdateMatchData }) => {
                   align="center"
                   color={matchData.sport === sport.id ? 'primary' : 'text.primary'}
                 >
-                  {sport.name}
+                  {sport.displayName}
                 </Typography>
                 <Typography 
                   variant="body2" 

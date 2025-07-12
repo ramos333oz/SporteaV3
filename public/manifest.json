@@ -1,0 +1,16 @@
+{
+  "name": "Sportea",
+  "short_name": "Sportea",
+  "description": "Sports matching and community platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#8A1538",
+  "theme_color": "#8A1538",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

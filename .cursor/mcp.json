@@ -1,0 +1,116 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@smithery-ai/github",
+        "--key",
+        "e1fe3fce-a1bb-4049-9562-92a0e47f6596",
+        "--profile",
+        "ok-spider-OZ4efQ"
+      ]
+    },
+    "supabase": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_6c664fb2b173b6ce94ece18bccf8a26c4d44eb80"
+      ]
+    },
+    "context7": {
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "exa": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "exa",
+        "--key",
+        "e1fe3fce-a1bb-4049-9562-92a0e47f6596"
+      ]
+    },
+    "TaskManager": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@kazuph/mcp-taskmanager",
+        "--key",
+        "e1fe3fce-a1bb-4049-9562-92a0e47f6596"
+      ],
+      "env": {}
+    },
+    "Clear Thought Server": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@chirag127/clear-thought-mcp-server",
+        "--key",
+        "e1fe3fce-a1bb-4049-9562-92a0e47f6596"
+      ],
+      "env": {}
+    },
+    "Playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ]
+    },
+    "Browserbase": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@browserbasehq/mcp-browserbase",
+        "--key",
+        "e1fe3fce-a1bb-4049-9562-92a0e47f6596",
+        "--profile",
+        "ok-spider-OZ4efQ"
+      ],
+      "env": {}
+    },
+    "Toolbox": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@smithery/toolbox",
+        "--key",
+        "e1fe3fce-a1bb-4049-9562-92a0e47f6596",
+        "--profile",
+        "ok-spider-OZ4efQ"
+      ],
+      "env": {}
+    },
+    "Sequential thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    }
+  }
+} 

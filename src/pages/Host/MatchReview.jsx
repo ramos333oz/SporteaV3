@@ -1,7 +1,7 @@
 import React from 'react';
-import { 
-  Box, 
-  Typography, 
+import {
+  Box,
+  Typography,
   Paper,
   Grid,
   Divider,
@@ -25,13 +25,25 @@ import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import LockIcon from '@mui/icons-material/Lock';
 import { format } from 'date-fns';
+// import ValidationStatus from './ValidationStatus';
 
 const MatchReview = ({ matchData, onUpdateMatchData }) => {
   const [termsAccepted, setTermsAccepted] = React.useState(false);
+  const [canCreateMatch, setCanCreateMatch] = React.useState(true);
   
   const handleTermsAcceptedChange = (event) => {
     setTermsAccepted(event.target.checked);
-    onUpdateMatchData({ termsAccepted: event.target.checked });
+    onUpdateMatchData({
+      termsAccepted: event.target.checked,
+      canCreateMatch: event.target.checked && canCreateMatch
+    });
+  };
+
+  const handleValidationChange = (isValid) => {
+    setCanCreateMatch(isValid);
+    onUpdateMatchData({
+      canCreateMatch: isValid && termsAccepted
+    });
   };
   
   // Format date and time for display
@@ -72,7 +84,13 @@ const MatchReview = ({ matchData, onUpdateMatchData }) => {
       <Typography variant="body1" color="text.secondary" paragraph>
         Please review all match details before creating your match. You'll be able to edit these details after creation if needed.
       </Typography>
-      
+
+      {/* Validation Status Component - Temporarily disabled for debugging */}
+      {/* <ValidationStatus
+        matchData={matchData}
+        onValidationChange={handleValidationChange}
+      /> */}
+
       <Paper elevation={2} sx={{ p: 3, borderRadius: 2, mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Box 

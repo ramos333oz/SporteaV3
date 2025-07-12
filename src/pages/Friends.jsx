@@ -27,9 +27,13 @@ import {
   DialogContentText,
   DialogActions,
   Snackbar,
-  Badge
+  Badge,
+  ToggleButton,
+  ToggleButtonGroup,
+  FormControl,
+  FormLabel
 } from '@mui/material';
-import { 
+import {
   PersonAdd as PersonAddIcon,
   Search as SearchIcon,
   Check as CheckIcon,
@@ -38,11 +42,13 @@ import {
   PersonRemove as PersonRemoveIcon,
   Email as EmailIcon,
   CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon
+  Cancel as CancelIcon,
+  Badge as BadgeIcon,
+  AlternateEmail as AlternateEmailIcon
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../contexts/ToastContext';
-import { friendshipService } from '../services/supabase';
+import { friendshipService, supabase } from '../services/supabase';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
@@ -231,18 +237,18 @@ const Friends = () => {
   const { user } = useAuth();
   const { showSuccessToast, showErrorToast } = useToast();
   const [activeTab, setActiveTab] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [friends, setFriends] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
   const [blockedUsers, setBlockedUsers] = useState([]);
-  const [actionLoading, setActionLoading] = useState(null); // Track which friendship is being processed
-  const navigate = useNavigate();
-
-  // Add friend dialog
+  const [actionLoading, setActionLoading] = useState(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [friendEmail, setFriendEmail] = useState('');
-  const [addingFriend, setAddingFriend] = useState(false);
+  const [friendInput, setFriendInput] = useState('');
+  const [inputMethod, setInputMethod] = useState('student_id'); // 'email' or 'id'
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
@@ -252,26 +258,46 @@ const Friends = () => {
 
   const fetchFriends = async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Use friendshipService to get all relevant friendship data
-      const { success, data, error } = await friendshipService.getAllFriendships();
-      
-      if (!success) {
-        throw new Error(error || 'Failed to fetch friendship data');
+      // Get friends
+      const friendsResult = await friendshipService.getFriends();
+      if (!friendsResult.success) {
+        throw new Error(friendsResult.error || 'Failed to fetch friends');
       }
+      setFriends(friendsResult.data || []);
       
-      // Process friendship data
-      setFriends(data.friends || []);
-      setPendingRequests(data.pendingRequests || []);
-      setSentRequests(data.sentRequests || []);
+      // Get pending requests
+      const pendingResult = await friendshipService.getPendingRequests();
+      if (!pendingResult.success) {
+        throw new Error(pendingResult.error || 'Failed to fetch pending requests');
+      }
+      setPendingRequests(pendingResult.data || []);
+      
+      // Get sent requests
+      const sentResult = await friendshipService.getSentRequests();
+      if (!sentResult.success) {
+        throw new Error(sentResult.error || 'Failed to fetch sent requests');
+      }
+      setSentRequests(sentResult.data || []);
       
       // Get blocked users
-      const blockedData = await friendshipService.getBlockedUsers();
-      if (blockedData.success) {
-        setBlockedUsers(blockedData.data || []);
+      try {
+        const blockedData = await friendshipService.getBlockedUsers();
+        if (!blockedData.success) {
+          console.warn('Failed to fetch blocked users:', blockedData.error);
+          setBlockedUsers([]);
+        } else {
+          setBlockedUsers(blockedData.data || []);
+        }
+      } catch (blockError) {
+        console.warn('Error fetching blocked users:', blockError);
+        setBlockedUsers([]);
       }
+      
     } catch (error) {
-      console.error('Error fetching friends:', error);
+      console.error('Error getting friends:', error);
+      setError(error.message || 'Failed to load friends');
       showErrorToast('Failed to load friends');
     } finally {
       setLoading(false);
@@ -412,6 +438,15 @@ const Friends = () => {
                   >
                     View Profile
                   </Button>
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    onClick={() => handleBlockUser(friend)}
+                    disabled={actionLoading === friend.id}
+                    sx={{ mr: 1 }}
+                  >
+                    Block
+                  </Button>
                   <IconButton
                     edge="end"
                     aria-label="remove"
@@ -484,13 +519,13 @@ const Friends = () => {
               }
             >
               <ListItemAvatar>
-                <Avatar src={request.users.avatar_url} alt={request.users.full_name || request.users.username}>
-                  {(request.users.full_name || request.users.username || '?')[0].toUpperCase()}
+                <Avatar src={request.avatar_url} alt={request.full_name || request.username}>
+                  {(request.full_name || request.username || '?')[0].toUpperCase()}
                 </Avatar>
               </ListItemAvatar>
               <ListItemText
-                primary={request.users.full_name || request.users.username}
-                secondary={`@${request.users.username || 'unknown'} · Requested ${new Date(request.created_at).toLocaleDateString()}`}
+                primary={request.full_name || request.username}
+                secondary={`@${request.username || 'unknown'} · Requested ${new Date(request.created_at).toLocaleDateString()}`}
               />
             </ListItem>
             <Divider variant="inset" component="li" />
@@ -527,13 +562,13 @@ const Friends = () => {
               }
             >
               <ListItemAvatar>
-                <Avatar src={request.friends.avatar_url} alt={request.friends.full_name || request.friends.username}>
-                  {(request.friends.full_name || request.friends.username || '?')[0].toUpperCase()}
+                <Avatar src={request.avatar_url} alt={request.full_name || request.username}>
+                  {(request.full_name || request.username || '?')[0].toUpperCase()}
                 </Avatar>
               </ListItemAvatar>
               <ListItemText
-                primary={request.friends.full_name || request.friends.username}
-                secondary={`@${request.friends.username || 'unknown'} · Sent ${new Date(request.created_at).toLocaleDateString()}`}
+                primary={request.full_name || request.username}
+                secondary={`@${request.username || 'unknown'} · Sent ${new Date(request.created_at).toLocaleDateString()}`}
               />
             </ListItem>
             <Divider variant="inset" component="li" />
@@ -546,11 +581,15 @@ const Friends = () => {
   const handleOpenAddDialog = () => {
     setOpenAddDialog(true);
     setFriendEmail('');
+    setFriendInput('');
+    setInputMethod('student_id');
   };
 
   const handleCloseAddDialog = () => {
     setOpenAddDialog(false);
     setFriendEmail('');
+    setFriendInput('');
+    setInputMethod('student_id');
   };
 
   const renderBlockedUsers = () => {
@@ -596,29 +635,71 @@ const Friends = () => {
   };
   
   const handleSendFriendRequest = async () => {
-    if (!friendEmail.trim()) return;
-    
+    const inputValue = friendInput.trim();
+    if (!inputValue) return;
+
     try {
-      setAddingFriend(true);
-      
-      // First find the user by email
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, email')
-        .eq('email', friendEmail.trim())
-        .single();
-        
-      if (userError) {
-        showErrorToast('User not found with that email');
-        setAddingFriend(false);
-        return;
+      setActionLoading(true);
+      let userData;
+
+      if (inputMethod === 'email') {
+        // Find user by email
+        const { data, error: userError } = await supabase
+          .from('users')
+          .select('id, email, username, full_name')
+          .eq('email', inputValue)
+          .single();
+
+        if (userError) {
+          showErrorToast('User not found with that email address');
+          setActionLoading(false);
+          return;
+        }
+        userData = data;
+      } else if (inputMethod === 'student_id') {
+        // Find user by student ID (extract from email)
+        const studentEmail = `${inputValue}@student.uitm.edu.my`;
+        const { data, error: userError } = await supabase
+          .from('users')
+          .select('id, email, username, full_name')
+          .eq('email', studentEmail)
+          .single();
+
+        if (userError) {
+          showErrorToast('Student not found with that ID');
+          setActionLoading(false);
+          return;
+        }
+        userData = data;
+      } else {
+        // Legacy support for username/UUID search
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(inputValue);
+
+        let query = supabase
+          .from('users')
+          .select('id, email, username, full_name');
+
+        if (isUUID) {
+          query = query.eq('id', inputValue);
+        } else {
+          query = query.ilike('username', inputValue);
+        }
+
+        const { data, error: userError } = await query.single();
+
+        if (userError) {
+          showErrorToast('User not found with that ID or username');
+          setActionLoading(false);
+          return;
+        }
+        userData = data;
       }
-      
+
       // Send friend request
       const result = await friendshipService.sendFriendRequest(userData.id);
-      
+
       if (result.success) {
-        showSuccessToast('Friend request sent successfully');
+        showSuccessToast(`Friend request sent to ${userData.full_name || userData.username || userData.email}`);
         handleCloseAddDialog();
         fetchFriends(); // Reload all friend data
       } else {
@@ -628,7 +709,7 @@ const Friends = () => {
       console.error('Error sending friend request:', error);
       showErrorToast('Failed to send friend request');
     } finally {
-      setAddingFriend(false);
+      setActionLoading(false);
     }
   };
 
@@ -643,90 +724,155 @@ const Friends = () => {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Paper elevation={2}>
-        <Box sx={{ p: 3 }}>
-          <Typography variant="h4" gutterBottom>
-            Friends
-          </Typography>
-          
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            indicatorColor="primary"
-            textColor="primary"
-            variant="fullWidth"
-            sx={{ mb: 3 }}
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4" component="h1">Friends</Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<PersonAddIcon />}
+          onClick={handleOpenAddDialog}
+        >
+          Add Friend
+        </Button>
+      </Box>
+
+      {/* Add error display */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+          <Button 
+            size="small" 
+            sx={{ ml: 2 }} 
+            onClick={fetchFriends}
           >
-            <Tab label="Friends" />
-            <Tab 
-              label={
-                <Badge color="error" badgeContent={pendingRequests.length} showZero={false}>
-                  Requests
-                </Badge>
-              } 
-            />
-            <Tab label="Sent" />
-            <Tab 
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <BlockIcon fontSize="small" sx={{ mr: 0.5 }} />
-                  Blocked
-                </Box>
-              } 
-            />
-          </Tabs>
-          
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <>
-              {activeTab === 0 && renderFriendsList()}
-              {activeTab === 1 && renderPendingRequests()}
-              {activeTab === 2 && renderSentRequests()}
-              {activeTab === 3 && renderBlockedUsers()}
-            </>
-          )}
-        </Box>
+            Retry
+          </Button>
+        </Alert>
+      )}
+      
+      <Paper sx={{ mb: 4 }}>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          variant="fullWidth"
+          indicatorColor="primary"
+          textColor="primary"
+        >
+          <Tab label="Friends" />
+          <Tab 
+            label={
+              <Badge badgeContent={pendingRequests.length} color="error" showZero={false}>
+                Requests
+              </Badge>
+            } 
+          />
+          <Tab 
+            label={
+              <Badge badgeContent={sentRequests.length} color="primary" showZero={false}>
+                Sent
+              </Badge>
+            } 
+          />
+          <Tab label="Blocked" />
+        </Tabs>
       </Paper>
 
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <>
+          {activeTab === 0 && renderFriendsList()}
+          {activeTab === 1 && renderPendingRequests()}
+          {activeTab === 2 && renderSentRequests()}
+          {activeTab === 3 && renderBlockedUsers()}
+        </>
+      )}
+
       {/* Add Friend Dialog */}
-      <Dialog open={openAddDialog} onClose={handleCloseAddDialog}>
+      <Dialog open={openAddDialog} onClose={handleCloseAddDialog} maxWidth="sm" fullWidth>
         <DialogTitle>Add Friend</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            Enter the email address of the user you want to add as a friend.
+          <DialogContentText sx={{ mb: 3 }}>
+            Add a friend by their student ID or email address.
           </DialogContentText>
+
+          <FormControl component="fieldset" sx={{ mb: 3 }}>
+            <FormLabel component="legend" sx={{ mb: 1 }}>Search Method</FormLabel>
+            <ToggleButtonGroup
+              value={inputMethod}
+              exclusive
+              onChange={(e, newMethod) => {
+                if (newMethod !== null) {
+                  setInputMethod(newMethod);
+                  setFriendInput('');
+                }
+              }}
+              aria-label="input method"
+              size="small"
+              fullWidth
+            >
+              <ToggleButton value="student_id" aria-label="student id">
+                <BadgeIcon sx={{ mr: 1 }} />
+                Student ID
+              </ToggleButton>
+              <ToggleButton value="email" aria-label="email">
+                <EmailIcon sx={{ mr: 1 }} />
+                Email Address
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </FormControl>
+
           <TextField
             autoFocus
             margin="dense"
-            label="Email Address"
-            type="email"
+            label={
+              inputMethod === 'student_id'
+                ? 'Student ID'
+                : inputMethod === 'email'
+                ? 'Email Address'
+                : 'User ID or Username'
+            }
+            type={inputMethod === 'email' ? 'email' : 'text'}
             fullWidth
             variant="outlined"
-            value={friendEmail}
-            onChange={(e) => setFriendEmail(e.target.value)}
-            disabled={addingFriend}
+            value={friendInput}
+            onChange={(e) => setFriendInput(e.target.value)}
+            disabled={actionLoading}
+            placeholder={
+              inputMethod === 'student_id'
+                ? '2022812795'
+                : inputMethod === 'email'
+                ? 'example@student.uitm.edu.my'
+                : 'Enter user ID or username'
+            }
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <EmailIcon />
+                  {inputMethod === 'email' ? <AlternateEmailIcon /> : <BadgeIcon />}
                 </InputAdornment>
               ),
             }}
+            helperText={
+              inputMethod === 'student_id'
+                ? 'Enter the student ID (the number before @student.uitm.edu.my)'
+                : inputMethod === 'email'
+                ? 'Enter the email address of the user you want to add'
+                : 'Enter the user ID or username of the user you want to add'
+            }
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseAddDialog} disabled={addingFriend}>
+          <Button onClick={handleCloseAddDialog} disabled={actionLoading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleSendFriendRequest} 
-            variant="contained" 
-            disabled={!friendEmail.trim() || addingFriend}
+          <Button
+            onClick={handleSendFriendRequest}
+            variant="contained"
+            disabled={!friendInput.trim() || actionLoading}
           >
-            {addingFriend ? <CircularProgress size={24} /> : 'Send Request'}
+            {actionLoading ? <CircularProgress size={24} /> : 'Send Request'}
           </Button>
         </DialogActions>
       </Dialog>

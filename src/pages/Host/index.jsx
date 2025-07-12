@@ -26,6 +26,7 @@ import HostedMatches from './HostedMatches';
 import { useAuth } from '../../hooks/useAuth';
 import { matchService } from '../../services/supabase';
 import { useNavigate } from 'react-router-dom';
+import { useAchievements } from '../../hooks/useAchievements';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -38,6 +39,7 @@ const Alert = React.forwardRef(function Alert(props, ref) {
 const Host = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { awardXP } = useAchievements();
   const [activeStep, setActiveStep] = useState(0);
   const [showNewMatch, setShowNewMatch] = useState(false);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
@@ -138,11 +140,11 @@ const Host = () => {
       
       // Format the date and time for the database
       const startDateTime = new Date(matchData.date);
-      
+
       // Handle different time formats
       let hours = 0;
       let minutes = 0;
-      
+
       if (matchData.time) {
         if (typeof matchData.time === 'string' && matchData.time.includes(':')) {
           // Format: "HH:MM" string
@@ -150,7 +152,7 @@ const Host = () => {
           hours = parseInt(timeParts[0], 10);
           minutes = parseInt(timeParts[1], 10);
         } else if (matchData.time instanceof Date) {
-          // Format: Date object
+          // Format: Date object - get the time components directly
           hours = matchData.time.getHours();
           minutes = matchData.time.getMinutes();
         } else {
@@ -166,9 +168,14 @@ const Host = () => {
         hours = now.getHours();
         minutes = now.getMinutes();
       }
-      
-      // Set the hours and minutes
-      startDateTime.setHours(hours, minutes);
+
+      // Set the hours and minutes in local time
+      // This ensures the time is interpreted correctly regardless of timezone
+      startDateTime.setHours(hours, minutes, 0, 0); // Set seconds and milliseconds to 0
+
+      console.log('Selected time:', { hours, minutes });
+      console.log('Start DateTime (local):', startDateTime.toString());
+      console.log('Start DateTime (ISO/UTC):', startDateTime.toISOString());
       
       // Calculate end time based on duration
       const endDateTime = new Date(startDateTime);
@@ -227,7 +234,22 @@ const Host = () => {
       // Store the created match ID for potential redirection
       setCreatedMatchId(matchId);
       console.log('Match created successfully with ID:', matchId);
-      
+
+      // 🎯 ACHIEVEMENT TRACKING: Check for "Getting Started" achievement
+      try {
+        console.log('🎯 Triggering achievement check for match hosting...');
+        await awardXP(0, 'Match hosted', {
+          actionType: 'MATCH_HOSTED',
+          matchId: matchId,
+          sport: matchData.sport,
+          updateStreak: true
+        });
+        console.log('✅ Achievement check completed for match hosting');
+      } catch (achievementError) {
+        console.error('❌ Error checking achievements after match creation:', achievementError);
+        // Don't fail the match creation if achievement tracking fails
+      }
+
       // Show success message
       setSnackbar({
         open: true,
@@ -240,10 +262,31 @@ const Host = () => {
       
     } catch (error) {
       console.error('Error creating match:', error);
+
+      // Enhanced error handling for rate limiting and conflicts
+      let errorMessage = error.message;
+      let severity = 'error';
+
+      if (error.type === 'RATE_LIMIT_EXCEEDED') {
+        severity = 'warning';
+        if (error.code === 'daily_limit_reached') {
+          errorMessage = 'You\'ve reached your daily hosting limit of 2 matches. Try again tomorrow.';
+        } else if (error.code === 'weekly_limit_exceeded') {
+          errorMessage = 'You\'ve reached your weekly hosting limit. Weekly limits reset on Monday.';
+        } else if (error.code === 'monthly_limit_exceeded') {
+          errorMessage = 'You\'ve reached your monthly hosting limit. Monthly limits reset on the 1st.';
+        } else if (error.code === 'cooldown_active') {
+          errorMessage = 'Please wait 4 hours between hosting matches to ensure quality.';
+        }
+      } else if (error.type === 'BOOKING_CONFLICT') {
+        severity = 'warning';
+        errorMessage = 'This court is already booked for the selected time. Please choose a different time or court.';
+      }
+
       setSnackbar({
         open: true,
-        message: `Failed to create match: ${error.message}`,
-        severity: 'error'
+        message: errorMessage,
+        severity: severity
       });
     } finally {
       setIsSubmitting(false);
@@ -396,8 +439,14 @@ const Host = () => {
                       variant="contained"
                       onClick={handleCreateMatch}
                       sx={{ borderRadius: 2 }}
-                      disabled={isSubmitting || !matchData.termsAccepted}
-                      title={!matchData.termsAccepted ? 'You must accept the terms and conditions to create a match' : ''}
+                      disabled={isSubmitting || !matchData.termsAccepted || !matchData.canCreateMatch}
+                      title={
+                        !matchData.termsAccepted
+                          ? 'You must accept the terms and conditions to create a match'
+                          : !matchData.canCreateMatch
+                          ? 'Please resolve validation issues before creating the match'
+                          : ''
+                      }
                     >
                       {isSubmitting ? (
                         <>

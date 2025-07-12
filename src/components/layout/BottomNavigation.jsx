@@ -4,7 +4,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import HomeIcon from '@mui/icons-material/Home';
 import SearchIcon from '@mui/icons-material/Search';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
+import PeopleIcon from '@mui/icons-material/People';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { useAuth } from '../../hooks/useAuth';
+import { UserAvatarWithLevel } from '../achievements';
 
 const BottomNavigation = () => {
   const { user } = useAuth();
@@ -17,7 +20,9 @@ const BottomNavigation = () => {
     if (pathname === '/home' || pathname === '/') return 0;
     if (pathname.startsWith('/find')) return 1;
     if (pathname.startsWith('/host')) return 2;
-    if (pathname.startsWith('/profile')) return 3;
+    if (pathname.startsWith('/friends')) return 3;
+    if (pathname.startsWith('/leaderboard')) return 4;
+    if (pathname.startsWith('/profile')) return 5;
     return 0; // Default to home
   }
   
@@ -28,7 +33,7 @@ const BottomNavigation = () => {
   
   const handleChange = (event, newValue) => {
     setValue(newValue);
-    
+
     // Navigate to the appropriate route
     switch (newValue) {
       case 0:
@@ -41,6 +46,12 @@ const BottomNavigation = () => {
         navigate('/host');
         break;
       case 3:
+        navigate('/friends');
+        break;
+      case 4:
+        navigate('/leaderboard');
+        break;
+      case 5:
         navigate('/profile');
         break;
       default:
@@ -100,22 +111,38 @@ const BottomNavigation = () => {
               },
             }}
           />
-          <BottomNavigationAction 
-            label="Profile" 
+          <BottomNavigationAction
+            label="Friends"
+            icon={<PeopleIcon />}
+          />
+          <BottomNavigationAction
+            label="Leaderboard"
             icon={
-              <Avatar 
-                src={user?.user_metadata?.avatar_url}
-                alt={user?.user_metadata?.full_name}
-                sx={{ 
-                  width: 28, 
-                  height: 28,
+              <EmojiEventsIcon
+                sx={{
+                  fontSize: 28,
+                  color: value === 4 ? 'primary.main' : 'text.secondary'
+                }}
+              />
+            }
+          />
+          <BottomNavigationAction
+            label="Profile"
+            icon={
+              <UserAvatarWithLevel
+                user={{
+                  avatar_url: user?.user_metadata?.avatar_url,
+                  full_name: user?.user_metadata?.full_name,
+                  level: user?.level || 1
+                }}
+                size={28}
+                badgeSize="small"
+                sx={{
                   bgcolor: 'primary.main',
                   fontSize: '0.875rem',
                 }}
-              >
-                {user?.user_metadata?.full_name?.charAt(0) || 'U'}
-              </Avatar>
-            } 
+              />
+            }
           />
         </MuiBottomNavigation>
       </Paper>

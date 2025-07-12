@@ -201,22 +201,69 @@ export const userService = {
       .select('*')
       .eq('id', userId)
       .single();
-    
+
     if (error) throw error;
     return data;
   },
-  
+
+  // Get enhanced user profile with gamification data
+  getEnhancedProfile: async (userId) => {
+    try {
+      // Get basic profile
+      const profile = await userService.getProfile(userId);
+
+      // Get gamification data
+      const { data: gamificationData, error: gamError } = await supabase
+        .from('user_gamification')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (gamError && gamError.code !== 'PGRST116') {
+        console.error('Error fetching gamification data:', gamError);
+      }
+
+      // Get achievements
+      const { data: achievements, error: achError } = await supabase
+        .from('user_achievement_progress')
+        .select(`
+          *,
+          achievement:achievements(*)
+        `)
+        .eq('user_id', userId)
+        .eq('is_completed', true);
+
+      if (achError) {
+        console.error('Error fetching achievements:', achError);
+      }
+
+      return {
+        ...profile,
+        level: gamificationData?.current_level || 1,
+        xp: gamificationData?.total_xp || 0,
+        streak: gamificationData?.current_streak || 0,
+        communityScore: gamificationData?.community_score || 0,
+        achievements: achievements || [],
+        gamificationData: gamificationData
+      };
+    } catch (error) {
+      console.error('Error fetching enhanced profile:', error);
+      // Return basic profile if gamification data fails
+      return await userService.getProfile(userId);
+    }
+  },
+
   // Update user profile
   updateProfile: async (userId, updates) => {
     const { data, error } = await supabase
       .from('users')
       .update(updates)
       .eq('id', userId);
-    
+
     if (error) throw error;
     return data;
   },
-  
+
   // Get user's sports preferences
   getSportPreferences: async (userId) => {
     const { data, error } = await supabase
@@ -224,7 +271,7 @@ export const userService = {
       .select('sport_preferences')
       .eq('id', userId)
       .single();
-    
+
     if (error) throw error;
     return data.sport_preferences;
   }
@@ -271,12 +318,15 @@ export const matchService = {
     }
   },
   
-  // Create a new match
-  createMatch: async (matchData) => {
+  // Create a new match with rate limiting and conflict checking
+  createMatch: async (inputMatchData) => {
     try {
       // Log input data for debugging
-      console.log('Creating match with initial data:', matchData);
-      
+      console.log('Creating match with initial data:', inputMatchData);
+
+      // Create a local copy to avoid scoping issues
+      const matchData = { ...inputMatchData };
+
       // Validate required fields
       const requiredFields = ['title', 'sport_id', 'host_id', 'location_id', 'start_time', 'end_time'];
       for (const field of requiredFields) {
@@ -284,17 +334,17 @@ export const matchService = {
           throw new Error(`Missing required field: ${field}`);
         }
       }
-      
+
       // Get the current authenticated user
       const { data: authData } = await supabase.auth.getUser();
       if (!authData?.user) {
         throw new Error('You must be logged in to create a match');
       }
-      
+
       // Ensure we're using the current authenticated user's ID as host_id
       // This is critical for RLS policies to work properly
       const host_id = authData.user.id;
-      
+
       // If the provided host_id doesn't match the authenticated user, that's a problem
       if (matchData.host_id !== host_id) {
         console.warn(`Provided host_id (${matchData.host_id}) doesn't match authenticated user (${host_id}). Using authenticated user.`);
@@ -493,29 +543,212 @@ export const matchService = {
       
       // Log the cleaned data
       console.log('Sending to Supabase (cleaned):', cleanedData);
-      
-      // Create the match
-      const { data, error } = await supabase
-        .from('matches')
-        .insert([cleanedData])
-        .select()
-        .single();
-        
-      if (error) {
-        console.error('Supabase error creating match:', error);
+
+      // Use the new validation function that includes rate limiting and conflict checking
+      const { data: validationResult, error: validationError } = await supabase
+        .rpc('create_match_with_validation', {
+          p_title: cleanedData.title,
+          p_sport_id: cleanedData.sport_id,
+          p_host_id: cleanedData.host_id,
+          p_location_id: cleanedData.location_id,
+          p_start_time: cleanedData.start_time,
+          p_end_time: cleanedData.end_time,
+          p_max_participants: cleanedData.max_participants,
+          p_skill_level: cleanedData.skill_level,
+          p_description: cleanedData.description,
+          p_rules: cleanedData.rules,
+          p_is_private: cleanedData.is_private,
+          p_access_code: cleanedData.access_code
+        });
+
+      if (validationError) {
+        console.error('Validation function error:', validationError);
+        throw validationError;
+      }
+
+      // Check if validation passed
+      if (!validationResult.success) {
+        console.log('Match creation blocked by validation:', validationResult);
+
+        // Create a user-friendly error based on the validation result
+        const errorMessage = validationResult.message || 'Match creation failed validation';
+        const error = new Error(errorMessage);
+        error.type = validationResult.error_type;
+        error.code = validationResult.error_code;
+        error.details = validationResult.details;
+
         throw error;
       }
-      
-      console.log('Match created successfully:', data);
+
+      // Get the created match data
+      const { data: createdMatchData, error: fetchError } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', validationResult.match_id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching created match:', fetchError);
+        // Match was created but we couldn't fetch it - still return success
+        return {
+          data: { id: validationResult.match_id },
+          error: null,
+          validation_details: validationResult
+        };
+      }
+
+      console.log('Match created successfully with validation:', createdMatchData);
+
+      // Trigger content moderation for the newly created match
+      try {
+        console.log('Triggering content moderation for match:', createdMatchData.id);
+
+        const { data: moderationData, error: moderationError } = await supabase.functions.invoke(
+          'test-enhanced-simple',
+          {
+            body: { matchId: createdMatchData.id }
+          }
+        );
+
+        if (moderationError) {
+          console.error('Content moderation failed:', moderationError);
+          // Don't fail the match creation if moderation fails
+          // Just log the error and continue
+        } else {
+          console.log('Content moderation completed:', moderationData);
+        }
+      } catch (moderationError) {
+        console.error('Content moderation error:', moderationError);
+        // Don't fail the match creation if moderation fails
+      }
+
       // Return in a consistent format that the client expects
-      return { data: data, error: null };
+      return {
+        data: createdMatchData,
+        error: null,
+        validation_details: validationResult
+      };
     } catch (error) {
       console.error('Error in createMatch:', error);
       // Return a consistent error format that the client can handle
       return { data: null, error: error };
     }
   },
-  
+
+  // Check rate limits for a user
+  checkRateLimits: async (userId = null) => {
+    try {
+      // If no userId provided, use current authenticated user
+      if (!userId) {
+        const { data: authData } = await supabase.auth.getUser();
+        if (!authData?.user) {
+          throw new Error('You must be logged in to check rate limits');
+        }
+        userId = authData.user.id;
+      }
+
+      const { data, error } = await supabase
+        .rpc('get_user_rate_limit_status', { p_user_id: userId });
+
+      if (error) {
+        console.error('Error checking rate limits:', error);
+        throw error;
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error in checkRateLimits:', error);
+      return { data: null, error: error };
+    }
+  },
+
+  // Check for court booking conflicts
+  checkBookingConflicts: async (conflictData) => {
+    try {
+      const {
+        location_id,
+        sport_id,
+        scheduled_date,
+        start_time,
+        end_time,
+        exclude_match_id = null
+      } = conflictData;
+
+      // Validate required fields
+      const requiredFields = ['location_id', 'sport_id', 'scheduled_date', 'start_time', 'end_time'];
+      for (const field of requiredFields) {
+        if (!conflictData[field]) {
+          throw new Error(`Missing required field for conflict check: ${field}`);
+        }
+      }
+
+      const { data, error } = await supabase
+        .rpc('check_court_booking_conflicts', {
+          p_location_id: location_id,
+          p_sport_id: sport_id,
+          p_scheduled_date: scheduled_date,
+          p_start_time: start_time,
+          p_end_time: end_time,
+          p_exclude_match_id: exclude_match_id
+        });
+
+      if (error) {
+        console.error('Error checking booking conflicts:', error);
+        throw error;
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error in checkBookingConflicts:', error);
+      return { data: null, error: error };
+    }
+  },
+
+  // Validate match creation without actually creating it
+  validateMatchCreation: async (matchData) => {
+    try {
+      // Get the current authenticated user
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData?.user) {
+        throw new Error('You must be logged in to validate match creation');
+      }
+
+      const host_id = authData.user.id;
+
+      // Check rate limits
+      const rateLimitResult = await matchService.checkRateLimits(host_id);
+      if (rateLimitResult.error) {
+        return { data: null, error: rateLimitResult.error };
+      }
+
+      // Check for conflicts
+      const conflictResult = await matchService.checkBookingConflicts({
+        location_id: matchData.location_id,
+        sport_id: matchData.sport_id,
+        scheduled_date: new Date(matchData.start_time).toISOString().split('T')[0],
+        start_time: matchData.start_time,
+        end_time: matchData.end_time
+      });
+
+      if (conflictResult.error) {
+        return { data: null, error: conflictResult.error };
+      }
+
+      // Return validation results
+      return {
+        data: {
+          rate_limits: rateLimitResult.data,
+          conflicts: conflictResult.data,
+          can_create: !conflictResult.data.has_conflict
+        },
+        error: null
+      };
+    } catch (error) {
+      console.error('Error in validateMatchCreation:', error);
+      return { data: null, error: error };
+    }
+  },
+
   // Get match by id
   getMatch: async (matchId) => {
     const { data, error } = await supabase
@@ -989,104 +1222,184 @@ export const participantService = {
     }
   },
   
-  // Join a match
-  joinMatch: async (matchId, userId) => {
+  // Check rate limiting for join requests
+  checkRateLimit: async (matchId, userId) => {
     try {
-      // Check if user is already a participant
-      const { isParticipant, status } = await participantService.checkParticipationStatus(matchId, userId);
-      
-      if (isParticipant) {
-        // If user has already joined and status is not 'left', return appropriate message
-        if (status !== 'pending') {
-          return {
-            success: false,
-            message: `You have already ${status === 'confirmed' ? 'joined' : 'confirmed'} this match`,
-            status
-          };
-        }
-        
-        // If status is 'left', update the status to 'pending' to rejoin
-        const { data, error } = await supabase
-          .from('participants')
-          .update({ status: 'pending' })
-          .eq('match_id', matchId)
-          .eq('user_id', userId)
-          .select();
-          
-        if (error) throw error;
-        
-        return {
-          success: true,
-          message: 'Successfully requested to rejoin the match',
-          status: 'pending',
-          data
-        };
-      }
-      
-      // Get match data for validation
-      const { data: match, error: matchError } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('id', matchId)
-        .single();
-        
-      if (matchError) throw matchError;
-      
-      // Insert new participant with 'pending' status
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+      // Check if user has made requests in the last hour
       const { data, error } = await supabase
-        .from('participants')
-        .insert([{
-          match_id: matchId,
-          user_id: userId,
-          status: 'pending'
-        }])
-        .select();
-        
-      if (error) throw error;
-      
-      // Create notification for the match host
-      try {
-        console.log(`Creating join request notification for host ${match.host_id} from user ${userId}`);
-        
-        // Get user data for a better notification
-        const { data: userData } = await supabase
-          .from('users')
-          .select('full_name, username, avatar_url')
-          .eq('id', userId)
-          .single();
-          
-        const notificationData = {
-          user_id: match.host_id, // Send notification to the host
-          type: 'match_join_request',
-          title: 'New Join Request',
-          content: JSON.stringify({
-            message: `${userData?.full_name || userData?.username || 'A user'} wants to join your match "${match.title}"`,
-            sender_id: userId
-          }),
-          match_id: matchId,
-          is_read: false
-        };
-        
-        // Use the direct method to create a notification
-        const { data: notificationResult, error: notifError } = await supabase
-          .from('notifications')
-          .insert([notificationData])
-          .select();
-        
-        if (notifError) throw notifError;
-        
-        console.log('Join request notification created:', notificationResult);
-      } catch (notifError) {
-        console.error('Non-critical error creating notification:', notifError);
-        console.error('Notification error details:', JSON.stringify(notifError));
-        // Continue execution - this is non-blocking
+        .from('match_join_requests')
+        .select('request_count, last_request_at')
+        .eq('user_id', userId)
+        .eq('match_id', matchId)
+        .gte('last_request_at', oneHourAgo)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data && data.request_count >= 3) {
+        return { allowed: false, reason: 'Rate limit exceeded. You can only request to join the same match 3 times per hour.' };
       }
 
+      return { allowed: true };
+    } catch (error) {
+      console.error('Error checking rate limit:', error);
+      return { allowed: true }; // Allow on error to not block users
+    }
+  },
+
+  // Update request count for rate limiting
+  updateRequestCount: async (matchId, userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('match_join_requests')
+        .upsert({
+          user_id: userId,
+          match_id: matchId,
+          request_count: 1,
+          last_request_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,match_id',
+          ignoreDuplicates: false
+        })
+        .select();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating request count:', error);
+      // Don't throw error to not block the join process
+    }
+  },
+
+  // Join a match - Updated to use database transaction
+  joinMatch: async (matchId, userId) => {
+    try {
+      // Check rate limiting first
+      const { allowed, reason } = await participantService.checkRateLimit(matchId, userId);
+      if (!allowed) {
+        throw new Error(reason);
+      }
+
+      // First, check if user has a "Direct Join" invitation for this match
+      const { data: invitation, error: invitationError } = await supabase
+        .from('match_invitations')
+        .select('*')
+        .eq('match_id', matchId)
+        .eq('invitee_id', userId)
+        .in('status', ['pending', 'accepted'])
+        .eq('invitation_type', 'direct')
+        .single();
+
+      // If user has a "Direct Join" invitation, handle it appropriately
+      if (invitation && !invitationError) {
+        console.log('Found Direct Join invitation with status:', invitation.status);
+
+        if (invitation.status === 'pending' || invitation.status === 'accepted') {
+          // For both pending and accepted invitations, we'll handle them directly here
+          // to avoid circular dependency with matchInvitationService
+          
+          try {
+            // Update invitation status if needed
+            if (invitation.status === 'pending') {
+              console.log('Updating invitation status to accepted...');
+              const { error: updateError } = await supabase
+                .from('match_invitations')
+                .update({ 
+                  status: 'accepted', 
+                  responded_at: new Date().toISOString() 
+                })
+                .eq('id', invitation.id);
+                
+              if (updateError) throw updateError;
+            }
+            
+            // Check if participant record already exists
+            const { data: existingParticipant, error: selectError } = await supabase
+              .from('participants')
+              .select('id, status')
+              .eq('match_id', matchId)
+              .eq('user_id', userId)
+              .single();
+
+            if (selectError && selectError.code !== 'PGRST116') { // PGRST116 is "not found" which is expected
+              throw selectError;
+            }
+
+            if (existingParticipant) {
+              console.log('Existing participant found, updating status:', existingParticipant);
+              // Update existing participant record
+              const { error } = await supabase
+                .from('participants')
+                .update({
+                  status: 'confirmed',
+                  joined_at: new Date().toISOString()
+                })
+                .eq('id', existingParticipant.id);
+
+              if (error) throw error;
+            } else {
+              console.log('No existing participant, creating new record');
+              // Create new participant record
+              const { error } = await supabase
+                .from('participants')
+                .insert({
+                  match_id: matchId,
+                  user_id: userId,
+                  status: 'confirmed',
+                  joined_at: new Date().toISOString()
+                });
+
+              if (error) throw error;
+            }
+            
+            return {
+              success: true,
+              message: 'Successfully joined match via Direct Join invitation!',
+              status: 'confirmed',
+              joinType: 'direct_invitation'
+            };
+          } catch (directJoinError) {
+            console.error('Error processing direct invitation:', directJoinError);
+            throw new Error('Failed to process Direct Join invitation: ' + directJoinError.message);
+          }
+        }
+      }
+
+      // No Direct Join invitation found, proceed with regular join request flow
+      console.log('No Direct Join invitation found, using regular join flow...');
+
+      // Call the database transaction function
+      const { data: result, error } = await supabase.rpc('join_match_transaction', {
+        p_match_id: matchId,
+        p_user_id: userId
+      });
+
+      if (error) {
+        console.error('Database transaction error:', error);
+        throw new Error(`Transaction failed: ${error.message}`);
+      }
+
+      // Handle the JSON response from the stored procedure
+      if (!result.success) {
+        return {
+          success: false,
+          message: result.error,
+          code: result.code,
+          status: result.status
+        };
+      }
+
+      // Update request count for rate limiting
+      await participantService.updateRequestCount(matchId, userId);
+
+      // Return success response
       return {
         success: true,
-        message: 'Successfully requested to join the match',
-        status: 'pending',
-        data
+        message: result.message,
+        data: result.data,
+        status: 'pending'
       };
     } catch (error) {
       console.error('Error joining match:', error);
@@ -1094,134 +1407,108 @@ export const participantService = {
     }
   },
   
-  // Add a function to accept a join request
-  acceptJoinRequest: async (matchId, userId) => {
+  // Accept a join request - Updated to use database transaction
+  acceptJoinRequest: async (matchId, userId, hostId) => {
     try {
-      // Update participant status to confirmed
-      const { data, error } = await supabase
-        .from('participants')
-        .update({ status: 'confirmed' })
-        .eq('match_id', matchId)
-        .eq('user_id', userId)
-        .select();
-        
-      if (error) throw error;
-      
-      // Get match data for notification
-      const { data: match, error: matchError } = await supabase
-        .from('matches')
-        .select('title')
-        .eq('id', matchId)
-        .single();
-        
-      if (!matchError) {
-        // Create notification for the user
-        try {
-          const notificationData = {
-            user_id: userId,
-            type: 'join_request_accepted',
-            title: 'Join Request Accepted',
-            content: `Your request to join "${match.title}" has been accepted`,
-            match_id: matchId,
-            is_read: false
-          };
-          
-          // Direct insertion for better error reporting
-          const { error: notifError } = await supabase
-            .from('notifications')
-            .insert([notificationData]);
-            
-          if (notifError) {
-            console.error('Notification creation error:', notifError);
-          }
-        } catch (notifError) {
-          console.error('Non-critical error creating notification:', notifError);
-          // Continue execution
-        }
+      // Call the database transaction function
+      const { data: result, error } = await supabase.rpc('accept_join_request_transaction', {
+        p_match_id: matchId,
+        p_user_id: userId,
+        p_host_id: hostId
+      });
+
+      if (error) {
+        console.error('Database transaction error:', error);
+        throw new Error(`Transaction failed: ${error.message}`);
       }
-      
-      return { success: true, data, message: 'Participant request accepted' };
+
+      // Handle the JSON response from the stored procedure
+      if (!result.success) {
+        return {
+          success: false,
+          message: result.error,
+          code: result.code
+        };
+      }
+
+      // Return success response
+      return {
+        success: true,
+        message: result.message,
+        data: result.data
+      };
     } catch (error) {
       console.error('Error accepting join request:', error);
       throw error;
     }
   },
   
-  // Add a function to decline a join request
-  declineJoinRequest: async (matchId, userId) => {
+  // Decline a join request - Updated to use database transaction
+  declineJoinRequest: async (matchId, userId, hostId) => {
     try {
-      // Update participant status to declined
-      const { data, error } = await supabase
-        .from('participants')
-        .update({ status: 'declined' })
-        .eq('match_id', matchId)
-        .eq('user_id', userId)
-        .select();
-        
-      if (error) throw error;
-      
-      // Get match data for notification
-      const { data: match, error: matchError } = await supabase
-        .from('matches')
-        .select('title')
-        .eq('id', matchId)
-        .single();
-        
-      if (!matchError) {
-        // Create notification for the user
-        try {
-          const notificationData = {
-            user_id: userId,
-            type: 'join_request_rejected',
-            title: 'Join Request Declined',
-            content: `Your request to join "${match.title}" has been declined`,
-            match_id: matchId,
-            is_read: false
-          };
-          
-          // Direct insertion for better error reporting
-          const { error: notifError } = await supabase
-            .from('notifications')
-            .insert([notificationData]);
-            
-          if (notifError) {
-            console.error('Notification creation error:', notifError);
-          }
-        } catch (notifError) {
-          console.error('Non-critical error creating notification:', notifError);
-          // Continue execution
-        }
+      // Call the database transaction function
+      const { data: result, error } = await supabase.rpc('decline_join_request_transaction', {
+        p_match_id: matchId,
+        p_user_id: userId,
+        p_host_id: hostId
+      });
+
+      if (error) {
+        console.error('Database transaction error:', error);
+        throw new Error(`Transaction failed: ${error.message}`);
       }
-      
-      return { success: true, data, message: 'Participant request declined' };
+
+      // Handle the JSON response from the stored procedure
+      if (!result.success) {
+        return {
+          success: false,
+          message: result.error,
+          code: result.code
+        };
+      }
+
+      // Return success response
+      return {
+        success: true,
+        message: result.message,
+        data: result.data
+      };
     } catch (error) {
       console.error('Error declining join request:', error);
       throw error;
     }
   },
   
-  // Leave a match
+  // Leave a match - Updated to use database transaction
   leaveMatch: async (matchId, userId) => {
     try {
-      // First check if the user is actually in the match
-      const { isParticipant } = await participantService.checkParticipationStatus(matchId, userId);
-      
-      if (!isParticipant) {
-        throw new Error('You are not a participant in this match');
+      // Call the database transaction function
+      const { data: result, error } = await supabase.rpc('leave_match_transaction', {
+        p_match_id: matchId,
+        p_user_id: userId
+      });
+
+      if (error) {
+        console.error('Database transaction error:', error);
+        throw new Error(`Transaction failed: ${error.message}`);
       }
-      
-      // Update participant status to 'left' instead of deleting
-      // This keeps participation history for potential analytics
-      const { data, error } = await supabase
-        .from('participants')
-        .update({ status: 'left' })
-        .eq('match_id', matchId)
-        .eq('user_id', userId)
-        .select();
-        
-      if (error) throw error;
-      
-      return { success: true, data, message: 'Successfully left the match' };
+
+      // Handle the JSON response from the stored procedure
+      if (!result.success) {
+        return {
+          success: false,
+          message: result.error,
+          code: result.code
+        };
+      }
+
+      // Return success response
+      return {
+        success: true,
+        message: result.message,
+        data: result.data,
+        previousStatus: result.data.previous_status
+      };
     } catch (error) {
       console.error('Error leaving match:', error);
       throw error;

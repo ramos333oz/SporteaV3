@@ -20,12 +20,13 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import FindGames from './FindGames';
 import FindPlayers from './FindPlayers';
 import { supabase, sportService, matchService } from '../../services/supabase';
-import { useRealtime } from '../../hooks/useRealtime';
+import blockingService from '../../services/blockingService';
+import { useProductionRealtime } from '../../hooks/useProductionRealtime';
 import { useAuth } from '../../hooks/useAuth';
 
 const Find = () => {
   const { user } = useAuth();
-  const { subscribeToAllMatches } = useRealtime();
+  const { connectionState } = useProductionRealtime();
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [sports, setSports] = useState([]);
@@ -146,13 +147,14 @@ const Find = () => {
   // Set up real-time subscriptions
   useEffect(() => {
     if (activeTab === 0) { // Only subscribe when on Games tab
-      const matchSub = subscribeToAllMatches(handleMatchUpdate);
-      
+      // Subscribe to production-optimized match events
+      window.addEventListener('sportea:match-update', handleMatchUpdate);
+
       return () => {
-        // Cleanup is handled by the useRealtime hook
+        window.removeEventListener('sportea:match-update', handleMatchUpdate);
       };
     }
-  }, [subscribeToAllMatches, handleMatchUpdate, activeTab]);
+  }, [handleMatchUpdate, activeTab]);
   
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -190,10 +192,17 @@ const Find = () => {
           .from('users')
           .select('*')
           .or(`username.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%`)
-          .limit(10);
-          
+          .neq('id', user.id) // Exclude current user
+          .limit(50); // Increase limit to account for filtering
+
         if (error) throw error;
-        setPlayers(data || []);
+
+        // Filter out blocked users
+        let filteredPlayers = data || [];
+        filteredPlayers = await blockingService.filterBlockedUsers(filteredPlayers, user.id);
+
+        // Limit to 10 after filtering
+        setPlayers(filteredPlayers.slice(0, 10));
       }
     } catch (err) {
       console.error('Search error:', err);
@@ -254,10 +263,6 @@ const Find = () => {
         />
         <IconButton type="submit" sx={{ p: '10px' }} aria-label="search">
           <SearchIcon />
-        </IconButton>
-        <Divider sx={{ height: 28, m: 0.5 }} orientation="vertical" />
-        <IconButton sx={{ p: '10px' }} aria-label="filters">
-          <TuneIcon />
         </IconButton>
       </Paper>
 

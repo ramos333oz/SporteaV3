@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Popover,
@@ -20,7 +20,8 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import { useRealtime } from '../hooks/useRealtime';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { useProductionRealtime } from '../hooks/useProductionRealtime';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, friendshipService } from '../services/supabase';
 import { participantService } from '../services/supabase';
@@ -38,7 +39,7 @@ const NotificationPanel = () => {
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [actionLoading, setActionLoading] = useState(null);
-  const { connectionState, subscribeToUserNotifications } = useRealtime();
+  const { connectionState } = useProductionRealtime();
   const { user } = useAuth();
   const { showInfoToast, showSuccessToast, showErrorToast } = useToast();
   const navigate = useNavigate();
@@ -50,10 +51,16 @@ const NotificationPanel = () => {
         return 'Match Update';
       case 'match_join_request':
         return 'Join Request';
+      case 'match_invitation':
+        return 'Match Invitation';
       case 'join_request_accepted':
         return 'Join Request Accepted';
       case 'join_request_rejected':
         return 'Join Request Declined';
+      case 'invitation_accepted':
+        return 'Invitation Accepted';
+      case 'invitation_declined':
+        return 'Invitation Declined';
       case 'friend_request':
         return 'Friend Request';
       case 'friend_request_accepted':
@@ -62,22 +69,88 @@ const NotificationPanel = () => {
         return 'Friend Request Declined';
       case 'friend_removed':
         return 'Friend Removed';
+      case 'participant_left':
+        return 'Participant Left';
       case 'system':
         return 'System Notification';
       default:
         return 'Notification';
     }
   };
+
+  // Helper function to format notification messages
+  const getNotificationMessage = (notification) => {
+    const contentData = parseNotificationContent(notification);
+
+    switch (notification.type) {
+      case 'match_invitation':
+        if (contentData) {
+          const inviterName = contentData.inviter_name || 'Someone';
+          const matchTitle = contentData.match_title || 'a match';
+          return `${inviterName} invited you to join "${matchTitle}". Click to view match details.`;
+        }
+        return 'You have been invited to join a match';
+
+      case 'match_join_request':
+        if (contentData) {
+          const requesterName = contentData.requester_name || 'Someone';
+          const matchTitle = contentData.match_title || 'your match';
+          return `${requesterName} wants to join "${matchTitle}"`;
+        }
+        return 'Someone wants to join your match';
+        
+      case 'invitation_accepted':
+        if (contentData) {
+          const responderName = contentData.responder_name || contentData.responder || 'Someone';
+          const matchTitle = contentData.match_title || 'your match';
+          return `${responderName} has accepted your invitation and joined "${matchTitle}"`;
+        }
+        return 'Someone has accepted your match invitation';
+        
+      case 'invitation_declined':
+        if (contentData) {
+          const responderName = contentData.responder_name || contentData.responder || 'Someone';
+          const matchTitle = contentData.match_title || 'your match';
+          return `${responderName} has declined your invitation to join "${matchTitle}"`;
+        }
+        return 'Someone has declined your match invitation';
+      
+      case 'participant_left':
+        if (contentData) {
+          const participantName = contentData.participant_name || 'Someone';
+          const matchTitle = contentData.match_title || 'your match';
+          return `${participantName} has left your match "${matchTitle}"`;
+        }
+        return 'Someone has left your match';
+        
+      case 'join_request_accepted':
+        if (contentData) {
+          const matchTitle = contentData.match_title || 'the match';
+          return `Your request to join "${matchTitle}" has been accepted`;
+        }
+        return 'Your join request has been accepted';
+        
+      case 'join_request_rejected':
+        if (contentData) {
+          const matchTitle = contentData.match_title || 'the match';
+          return `Your request to join "${matchTitle}" has been declined`;
+        }
+        return 'Your join request has been declined';
+
+      default:
+        return contentData?.message || notification.content || "New notification";
+    }
+  };
   
   const open = Boolean(anchorEl);
   
-  // Load initial notifications
+  // Load initial notifications and unread count
   useEffect(() => {
     if (!user) return;
-    
+
     const fetchNotifications = async () => {
       setLoading(true);
-      
+
       try {
         // Get notifications with more detailed data to help debugging
         const { data, error } = await supabase
@@ -89,15 +162,16 @@ const NotificationPanel = () => {
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(20);
-          
+
         if (error) throw error;
-        
+
         console.log('[NotificationPanel] Fetched notifications:', data);
-        
+
         setNotifications(data || []);
-        
+
         // Count unread notifications
         const unread = data ? data.filter(n => !n.is_read).length : 0;
+        console.log('[NotificationPanel] Setting unread count:', unread, 'from', data?.length, 'total notifications');
         setUnreadCount(unread);
       } catch (err) {
         console.error('Error fetching notifications:', err);
@@ -105,37 +179,69 @@ const NotificationPanel = () => {
         setLoading(false);
       }
     };
-    
+
     fetchNotifications();
-    
-    // Refresh notifications when the panel is opened
-    if (open) {
-      fetchNotifications();
-    }
+  }, [user]);
+
+  // Separate effect to refresh when panel is opened
+  useEffect(() => {
+    if (!user || !open) return;
+
+    const fetchNotifications = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select(`
+            *,
+            sender:users(id, full_name, username, avatar_url)
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (error) throw error;
+
+        setNotifications(data || []);
+        const unread = data ? data.filter(n => !n.is_read).length : 0;
+        setUnreadCount(unread);
+      } catch (err) {
+        console.error('Error refreshing notifications:', err);
+      }
+    };
+
+    fetchNotifications();
   }, [user, open]);
   
   // Subscribe to real-time notification updates
   useEffect(() => {
-    if (!user || !connectionState.isConnected) return;
-    
+    if (!user) return;
+
     console.log(`[NotificationPanel] Setting up notification subscription for user: ${user.id}`);
     console.log(`[NotificationPanel] Connection state:`, connectionState);
 
-    const handleNotification = (update) => {
-      console.log('[NotificationPanel] Received realtime update:', update);
-      
-      if (update.type === 'notification') {
-        const { data, eventType } = update;
-        console.log(`[NotificationPanel] Processing notification: ${eventType}`, data);
-        
-        if (eventType === 'INSERT') {
+    // Don't wait for connection - subscribe immediately and let the realtime service handle reconnection
+    if (!connectionState.isConnected) {
+      console.log('[NotificationPanel] Not connected yet, but setting up subscription anyway');
+    }
+
+    const handleNotification = (event) => {
+      console.log('[NotificationPanel] Received production realtime notification:', event.detail);
+
+      const { eventType, new: data, old: oldData } = event.detail;
+      console.log(`[NotificationPanel] Processing notification: ${eventType}`, data);
+
+      if (eventType === 'INSERT') {
           // Add new notification to the top of the list
           setNotifications(prev => [data, ...prev]);
-          setUnreadCount(prev => prev + 1);
-          
+          setUnreadCount(prev => {
+            const newCount = prev + 1;
+            console.log('[NotificationPanel] Incrementing unread count from', prev, 'to', newCount);
+            return newCount;
+          });
+
           // Show toast notification
           const title = getNotificationTitle(data);
-          const message = data.content || data.message || 'You have a new notification';
+          const message = getNotificationMessage(data);
           showInfoToast(title, message);
           console.log(`[NotificationPanel] Added new notification: ${title}`);
         } else if (eventType === 'UPDATE') {
@@ -157,12 +263,11 @@ const NotificationPanel = () => {
           updateUnreadCount();
           console.log(`[NotificationPanel] Removed notification: ${data.id}`);
         }
-      }
     };
     
-    // Subscribe to notifications
-    const subscriptionId = subscribeToUserNotifications(user.id, handleNotification);
-    console.log(`[NotificationPanel] Subscribed to notifications with ID: ${subscriptionId}`);
+    // Subscribe to production-optimized notification events
+    window.addEventListener('sportea:notification', handleNotification);
+    console.log(`[NotificationPanel] Subscribed to production notification events`);
     
     // Refresh notifications on connection change
     if (connectionState.isConnected) {
@@ -196,11 +301,49 @@ const NotificationPanel = () => {
     }
     
     return () => {
-      // No need to manually unsubscribe as the useRealtime hook handles this
       console.log(`[NotificationPanel] Cleaning up notification subscription`);
+      window.removeEventListener('sportea:notification', handleNotification);
     };
-  }, [user, connectionState.isConnected, subscribeToUserNotifications, showInfoToast]);
-  
+  }, [user, showInfoToast]);
+
+  // Periodic refresh of unread count (fallback for real-time issues)
+  useEffect(() => {
+    if (!user) return;
+
+    const refreshUnreadCount = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('id, is_read')
+          .eq('user_id', user.id)
+          .eq('is_read', false);
+
+        if (error) throw error;
+
+        const currentUnreadCount = data?.length || 0;
+        console.log('[NotificationPanel] Periodic refresh - unread count:', currentUnreadCount);
+
+        setUnreadCount(prev => {
+          if (prev !== currentUnreadCount) {
+            console.log('[NotificationPanel] Updating unread count from', prev, 'to', currentUnreadCount);
+            return currentUnreadCount;
+          }
+          return prev;
+        });
+      } catch (err) {
+        console.error('[NotificationPanel] Error in periodic refresh:', err);
+      }
+    };
+
+    // Initial refresh
+    refreshUnreadCount();
+
+    // Set up periodic refresh every 30 seconds
+    const interval = setInterval(refreshUnreadCount, 30000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
   // Handle click to open notification panel
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -216,7 +359,7 @@ const NotificationPanel = () => {
   // Parse JSON content for notification data
   const parseNotificationContent = (notification) => {
     if (!notification.content) return null;
-    
+
     try {
       // Try to parse as JSON first
       return JSON.parse(notification.content);
@@ -225,6 +368,60 @@ const NotificationPanel = () => {
       return { message: notification.content };
     }
   };
+
+  // Check if a join request notification is still actionable
+  const isJoinRequestActionable = useCallback(async (notification) => {
+    if (notification.type !== 'match_join_request' || !notification.match_id) {
+      return false;
+    }
+
+    try {
+      const content = parseNotificationContent(notification);
+      const senderId = content?.sender_id;
+
+      if (!senderId) return false;
+
+      // Check current participant status
+      const { data, error } = await supabase
+        .from('participants')
+        .select('status')
+        .eq('match_id', notification.match_id)
+        .eq('user_id', senderId)
+        .single();
+
+      if (error || !data) return false;
+
+      // Only actionable if status is still 'pending'
+      return data.status === 'pending';
+    } catch (error) {
+      console.error('Error checking join request status:', error);
+      return false;
+    }
+  }, []);
+
+  // Enhanced notification processing with actionability check
+  const [actionableNotifications, setActionableNotifications] = useState(new Set());
+
+  // Check actionability for join request notifications
+  useEffect(() => {
+    const checkActionability = async () => {
+      const joinRequestNotifications = notifications.filter(n => n.type === 'match_join_request');
+      const actionableIds = new Set();
+
+      for (const notification of joinRequestNotifications) {
+        const isActionable = await isJoinRequestActionable(notification);
+        if (isActionable) {
+          actionableIds.add(notification.id);
+        }
+      }
+
+      setActionableNotifications(actionableIds);
+    };
+
+    if (notifications.length > 0) {
+      checkActionability();
+    }
+  }, [notifications, isJoinRequestActionable]);
   
   // Handle notification click
   const handleNotificationClick = async (notification) => {
@@ -239,6 +436,10 @@ const NotificationPanel = () => {
     // Handle navigation based on notification type
     if (notification.type === 'match_update' && notification.resource_id) {
       navigate(`/match/${notification.resource_id}`);
+      handleClose();
+    } else if (notification.type === 'match_invitation' && contentData?.match_id) {
+      console.log('Navigating to match from invitation notification:', contentData);
+      navigate(`/match/${contentData.match_id}?from=notification&type=match_invitation`);
       handleClose();
     } else if (notification.type === 'match_join_request' && notification.match_id) {
       navigate(`/match/${notification.match_id}`);
@@ -332,9 +533,13 @@ const NotificationPanel = () => {
       case 'match_join_request':
         return <PersonAddIcon />;
       case 'join_request_accepted':
+      case 'invitation_accepted':
         return <CheckCircleIcon />;
       case 'join_request_rejected':
+      case 'invitation_declined':
         return <CancelIcon />;
+      case 'participant_left':
+        return <LogoutIcon />;
       case 'system':
       default:
         return <EventAvailableIcon />;
@@ -449,20 +654,28 @@ const NotificationPanel = () => {
     try {
       await participantService.acceptJoinRequest(
         notification.match_id,
-        senderId
+        senderId,
+        user.id
       );
       
       // Mark as read
       await markAsRead(notification.id);
       
       // Update local notification list
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => n.id === notification.id ? { ...n, is_read: true, processed: true } : n)
       );
-      
+
+      // Remove from actionable notifications
+      setActionableNotifications(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(notification.id);
+        return newSet;
+      });
+
       // Show success toast
       showInfoToast('Success', 'Join request accepted');
-      
+
       // Update unread count
       updateUnreadCount();
     } catch (error) {
@@ -487,20 +700,28 @@ const NotificationPanel = () => {
     try {
       await participantService.declineJoinRequest(
         notification.match_id,
-        senderId
+        senderId,
+        user.id
       );
       
       // Mark as read
       await markAsRead(notification.id);
       
       // Update local notification list
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => n.id === notification.id ? { ...n, is_read: true, processed: true } : n)
       );
-      
+
+      // Remove from actionable notifications
+      setActionableNotifications(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(notification.id);
+        return newSet;
+      });
+
       // Show success toast
       showInfoToast('Success', 'Join request declined');
-      
+
       // Update unread count
       updateUnreadCount();
     } catch (error) {
@@ -542,8 +763,25 @@ const NotificationPanel = () => {
         color="inherit"
         onClick={handleClick}
         aria-label="show notifications"
+        title={`${unreadCount} unread notifications`}
       >
-        <Badge badgeContent={unreadCount} color="error">
+        <Badge
+          badgeContent={unreadCount}
+          color="error"
+          max={99}
+          showZero={false}
+          sx={{
+            '& .MuiBadge-badge': {
+              fontSize: '0.75rem',
+              minWidth: '20px',
+              height: '20px',
+              borderRadius: '10px',
+              fontWeight: 'bold',
+              border: '2px solid white',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            }
+          }}
+        >
           <NotificationsIcon />
         </Badge>
       </IconButton>
@@ -572,11 +810,41 @@ const NotificationPanel = () => {
       >
         <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h6">Notifications</Typography>
-          {unreadCount > 0 && (
-            <Button size="small" onClick={markAllAsRead}>
-              Mark all as read
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button size="small" onClick={() => {
+              // Manual refresh
+              const fetchNotifications = async () => {
+                try {
+                  const { data, error } = await supabase
+                    .from('notifications')
+                    .select(`
+                      *,
+                      sender:users(id, full_name, username, avatar_url)
+                    `)
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                  if (error) throw error;
+
+                  setNotifications(data || []);
+                  const unread = data ? data.filter(n => !n.is_read).length : 0;
+                  setUnreadCount(unread);
+                  console.log('[NotificationPanel] Manual refresh completed, unread count:', unread);
+                } catch (err) {
+                  console.error('Error in manual refresh:', err);
+                }
+              };
+              fetchNotifications();
+            }}>
+              Refresh
             </Button>
-          )}
+            {unreadCount > 0 && (
+              <Button size="small" onClick={markAllAsRead}>
+                Mark all as read
+              </Button>
+            )}
+          </Box>
         </Box>
         
         <Divider />
@@ -612,7 +880,7 @@ const NotificationPanel = () => {
                           color="text.primary"
                           sx={{ display: 'block' }}
                         >
-                          {parseNotificationContent(notification)?.message || notification.content || "New notification"}
+                          {getNotificationMessage(notification)}
                         </Typography>
                         <Typography
                           component="span"
@@ -623,7 +891,7 @@ const NotificationPanel = () => {
                         </Typography>
                         
                         {/* Friend request action buttons */}
-                        {notification.type === 'friend_request' && !notification.is_read && !notification.processed && (
+                        {notification.type === 'friend_request' && !notification.processed && (
                           <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
                             <Button
                               size="small"
@@ -651,25 +919,27 @@ const NotificationPanel = () => {
                             </Button>
                           </Box>
                         )}
-                        
+
                         {/* Match join request action buttons */}
-                        {notification.type === 'match_join_request' && !notification.is_read && !notification.processed && (
+                        {notification.type === 'match_join_request' && actionableNotifications.has(notification.id) && (
                           <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
                             <Button
                               size="small"
                               variant="contained"
                               color="success"
                               onClick={(e) => handleAcceptJoinRequest(notification, e)}
+                              disabled={actionLoading === notification.id}
                             >
-                              Accept
+                              {actionLoading === notification.id ? <CircularProgress size={20} /> : 'Accept'}
                             </Button>
                             <Button
                               size="small"
                               variant="outlined"
                               color="error"
                               onClick={(e) => handleDeclineJoinRequest(notification, e)}
+                              disabled={actionLoading === notification.id}
                             >
-                              Decline
+                              {actionLoading === notification.id ? <CircularProgress size={20} /> : 'Decline'}
                             </Button>
                           </Box>
                         )}

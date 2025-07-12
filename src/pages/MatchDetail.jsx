@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Box, 
   Typography, 
@@ -47,10 +47,11 @@ import {
 import { format, formatDistance, formatDistanceToNow, isPast, isFuture, isAfter, differenceInMinutes, differenceInSeconds, intervalToDuration } from 'date-fns';
 
 import { useAuth } from '../hooks/useAuth';
-import { useRealtime } from '../hooks/useRealtime';
+import { useProductionRealtime } from '../hooks/useProductionRealtime';
 import { useToast } from '../contexts/ToastContext';
-import { matchService, participantService } from '../services/supabase';
+import { matchService, participantService, supabase } from '../services/supabase';
 import { notificationService } from '../services/notifications';
+import FriendInvitationModal from '../components/FriendInvitationModal';
 
 // Match Status Indicator component
 const MatchStatusIndicator = ({ match }) => {
@@ -69,10 +70,10 @@ const MatchStatusIndicator = ({ match }) => {
     const endTime = match?.end_time ? new Date(match.end_time) : null;
     
     if (!startTime || !endTime) {
-      return { 
-        text: 'Unknown', 
-        color: 'default', 
-        icon: <HourglassEmpty />,
+      return {
+        text: 'Unknown',
+        color: 'default',
+        icon: <PendingIcon />,
         progress: 0
       };
     }
@@ -162,10 +163,10 @@ const MatchStatusIndicator = ({ match }) => {
     }
     
     // Default case
-    return { 
-      text: 'Unknown Status', 
-      color: 'default', 
-      icon: <HourglassEmpty />,
+    return {
+      text: 'Unknown Status',
+      color: 'default',
+      icon: <PendingIcon />,
       progress: 0
     };
   }, [match]);
@@ -255,8 +256,9 @@ const MatchStatusIndicator = ({ match }) => {
 const MatchDetail = () => {
   const { matchId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
-  const { subscribeToMatch } = useRealtime();
+  const { connectionState } = useProductionRealtime();
   const { showInfoToast, showSuccessToast, showWarningToast } = useToast();
   
   const [match, setMatch] = useState(null);
@@ -267,12 +269,54 @@ const MatchDetail = () => {
   const [openJoinDialog, setOpenJoinDialog] = useState(false);
   const [openLeaveDialog, setOpenLeaveDialog] = useState(false);
   const [buttonLoading, setButtonLoading] = useState(false);
+  const [showFriendInvitationModal, setShowFriendInvitationModal] = useState(false);
+  const [hasDirectInvitation, setHasDirectInvitation] = useState(false);
   
-  // Calculate active participants count (excluding those who left)
-  const activeParticipantsCount = participants.filter(p => p.status !== 'left').length;
+  // Calculate active participants count (only confirmed participants)
+  const activeParticipantsCount = participants.filter(p => p.status === 'confirmed').length;
   
   // Check if match is full
   const isMatchFull = activeParticipantsCount >= match?.max_participants;
+
+  // Check if user has a Direct Join invitation for this match
+  const checkDirectInvitation = useCallback(async () => {
+    if (!user?.id || !matchId) return;
+
+    try {
+      // Check for direct invitation from URL parameters (for notification clicks)
+      const searchParams = new URLSearchParams(location.search);
+      const fromNotification = searchParams.get('from') === 'notification';
+      const invitationType = searchParams.get('type') === 'match_invitation';
+      
+      // Always check the database for a direct invitation regardless of URL params
+      const { data: invitation, error } = await supabase
+        .from('match_invitations')
+        .select('*')
+        .eq('match_id', matchId)
+        .eq('invitee_id', user.id)
+        .in('status', ['pending', 'accepted']) // Check for both pending and accepted invitations
+        .eq('invitation_type', 'direct')
+        .single();
+
+      // Set hasDirectInvitation to true if:
+      // 1. Either the user arrived from a match_invitation notification OR
+      // 2. There is an active direct invitation in the database
+      const hasDirectInvite = (fromNotification && invitationType) || (!!invitation && !error);
+      
+      console.log('Direct invitation check:', { 
+        fromNotification, 
+        invitationType, 
+        hasInvitationInDb: !!invitation && !error,
+        invitationStatus: invitation?.status,
+        hasDirectInvite 
+      });
+      
+      setHasDirectInvitation(hasDirectInvite);
+    } catch (error) {
+      console.error('Error checking direct invitation:', error);
+      setHasDirectInvitation(false);
+    }
+  }, [user?.id, matchId, location.search]);
   
   // Check if user is host
   const isHost = match?.host_id === user?.id;
@@ -294,7 +338,7 @@ const MatchDetail = () => {
     return `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`;
   };
   
-  // Modify the handleJoinMatch to open the dialog first
+  // Modify the handleJoinMatchClick to open the dialog first
   const handleJoinMatchClick = () => {
     setOpenJoinDialog(true);
   };
@@ -304,19 +348,53 @@ const MatchDetail = () => {
     try {
       setOpenJoinDialog(false);
       setButtonLoading(true);
-      
+
+      console.log('Proceeding with join process');
       const result = await participantService.joinMatch(matchId, user.id);
-      
+      console.log('Join result:', result);
+
       // Update local state immediately to reflect the change
       if (result && result.success) {
-        setUserParticipation({
-          user_id: user.id,
-          match_id: matchId,
-          status: 'pending' // Always set to pending for new joins
-        });
-        showSuccessToast('Request Sent', 'Successfully sent request to join match. Waiting for host approval.');
-      } else if (result && result.alreadyJoined) {
-        showInfoToast('Already Joined', result.message);
+        if (result.joinType === 'direct_invitation') {
+          // Direct Join invitation was accepted - user is immediately confirmed
+          setUserParticipation({
+            user_id: user.id,
+            match_id: matchId,
+            status: 'confirmed'
+          });
+          showSuccessToast('Joined Successfully!', 'You have successfully joined the match via Direct Join invitation!');
+          // Force refetch to update participant count
+          fetchParticipants();
+        } else {
+          // Regular join request - user is pending approval
+          setUserParticipation({
+            user_id: user.id,
+            match_id: matchId,
+            status: 'pending'
+          });
+          showSuccessToast('Request Sent', 'Successfully sent request to join match. Waiting for host approval.');
+        }
+      } else if (result && !result.success) {
+        // Handle cases where request failed but we need to update UI state
+        if (result.status === 'pending') {
+          // User already has a pending request
+          setUserParticipation({
+            user_id: user.id,
+            match_id: matchId,
+            status: 'pending'
+          });
+        } else if (result.status === 'confirmed') {
+          // User is already confirmed
+          setUserParticipation({
+            user_id: user.id,
+            match_id: matchId,
+            status: 'confirmed'
+          });
+        }
+        showInfoToast('Request Status', result.message);
+
+        // Force refetch to ensure UI is in sync with database
+        fetchParticipants();
       }
       // Real-time update will eventually come through subscription as well
     } catch (error) {
@@ -345,13 +423,22 @@ const MatchDetail = () => {
     try {
       setButtonLoading(true);
       const result = await participantService.leaveMatch(matchId, user.id);
-      
+
       // Update local state immediately to reflect the change
       if (result && result.success) {
-        setUserParticipation(null); // Clear user participation
+        // Set user participation to 'left' status instead of null to properly handle button state
+        setUserParticipation({
+          user_id: user.id,
+          match_id: matchId,
+          status: 'left'
+        });
+
         showSuccessToast('Success', result.message || 'You have successfully left the match');
-        // Force refetch participants to update UI correctly
+
+        // Force refetch participants to update UI correctly and trigger real-time updates
         fetchParticipants();
+
+        console.log('[LEAVE MATCH] User participation updated to left status');
       }
       setOpenLeaveDialog(false);
       setButtonLoading(false);
@@ -440,10 +527,11 @@ const MatchDetail = () => {
   
   // Share match handler
   const handleShareMatch = () => {
+    const sportName = match.sport?.name || 'Unknown Sport';
     if (navigator.share) {
       navigator.share({
-        title: `${match.sport.name} match on Sportea`,
-        text: `Join me for a ${match.sport.name} match on ${formatMatchDate(match.start_time)} at ${formatMatchTime(match.start_time)}`,
+        title: `${sportName} match on Sportea`,
+        text: `Join me for a ${sportName} match on ${formatMatchDate(match.start_time)} at ${formatMatchTime(match.start_time)}`,
         url: window.location.href
       }).catch(err => {
         console.error('Error sharing:', err);
@@ -514,48 +602,80 @@ const MatchDetail = () => {
   
   // Real-time update handler for match
   const handleMatchUpdate = useCallback((payload) => {
-    setMatch(payload.data);
-    
-    // Show appropriate toast based on update type
-    if (payload.data.status === 'cancelled') {
-      showWarningToast('Match Cancelled', 'This match has been cancelled by the host.');
-    } else if (payload.eventType === 'UPDATE') {
-      showInfoToast('Match Updated', 'Match details have been updated.');
+    const oldMatch = match;
+    const newMatchData = payload.data;
+
+    console.log('[MatchDetail] Real-time match update received:', {
+      matchId: matchId,
+      eventType: payload.eventType,
+      hasExistingMatch: !!oldMatch,
+      hasRelationalData: !!(oldMatch?.sport || oldMatch?.location),
+      newData: newMatchData
+    });
+
+    // Preserve relational data from existing match while updating changed fields
+    // This prevents "Unknown Sport Match" issue by maintaining sport, location, and host data
+    if (oldMatch && (oldMatch.sport || oldMatch.location || oldMatch.host)) {
+      const mergedMatch = {
+        ...oldMatch,           // Keep existing data including relationships
+        ...newMatchData,       // Apply updates from real-time payload
+        // Explicitly preserve critical relational data that might be missing from real-time updates
+        sport: oldMatch.sport || newMatchData.sport,
+        location: oldMatch.location || newMatchData.location,
+        host: oldMatch.host || newMatchData.host,
+        participants: oldMatch.participants || newMatchData.participants
+      };
+
+      console.log('[MatchDetail] Merged match data:', {
+        sportName: mergedMatch.sport?.name,
+        locationName: mergedMatch.location?.name,
+        hostName: mergedMatch.host?.full_name
+      });
+
+      setMatch(mergedMatch);
+    } else {
+      // If no existing match data, use new data directly (initial load case)
+      console.log('[MatchDetail] No existing match data, using new data directly');
+      setMatch(newMatchData);
     }
-  }, [showInfoToast, showWarningToast]);
+
+    // Only show notifications for significant changes, not automatic updates
+    if (newMatchData.status === 'cancelled' && oldMatch?.status !== 'cancelled') {
+      showWarningToast('Match Cancelled', 'This match has been cancelled by the host.');
+    } else if (newMatchData.status === 'completed' && oldMatch?.status !== 'completed') {
+      showInfoToast('Match Completed', 'This match has been marked as completed.');
+    }
+    // Don't show generic "match updated" notifications for minor changes like participant counts
+  }, [match, matchId, showInfoToast, showWarningToast]);
   
   // Fetch data on mount
   useEffect(() => {
     if (matchId && user) {
       fetchMatch();
       fetchParticipants();
+      checkDirectInvitation();
     }
-  }, [matchId, user]);
+  }, [matchId, user, checkDirectInvitation]);
   
-  // Set up real-time subscriptions
+  // Set up real-time subscriptions using production-optimized system
   useEffect(() => {
     if (matchId) {
-      // Subscribe to match updates
-      const matchSubscription = subscribeToMatch(matchId, handleMatchUpdate);
-      
-      // Subscribe to participants updates for this match
-      const participantsSubscription = subscribeToMatch(
-        matchId, 
-        handleParticipantsUpdate,
-        'participants'
-      );
-      
+      // Subscribe to production-optimized events
+      window.addEventListener('sportea:match-update', handleMatchUpdate);
+      window.addEventListener('sportea:participation', handleParticipantsUpdate);
+
       // Cleanup subscriptions on unmount
       return () => {
-        // Cleanup is handled by the useRealtime hook internally
+        window.removeEventListener('sportea:match-update', handleMatchUpdate);
+        window.removeEventListener('sportea:participation', handleParticipantsUpdate);
       };
     }
-  }, [matchId, subscribeToMatch, handleMatchUpdate, handleParticipantsUpdate]);
+  }, [matchId, handleMatchUpdate, handleParticipantsUpdate]);
   
   // Handle accepting a join request
   const handleAcceptRequest = async (participantId, userId) => {
     try {
-      await participantService.acceptJoinRequest(matchId, userId);
+      await participantService.acceptJoinRequest(matchId, userId, user.id);
       showSuccessToast('Request Accepted', 'The participant has been accepted to join the match');
       // Fetch participants again to update the UI
       fetchParticipants();
@@ -568,7 +688,7 @@ const MatchDetail = () => {
   // Handle declining a join request
   const handleDeclineRequest = async (participantId, userId) => {
     try {
-      await participantService.declineJoinRequest(matchId, userId);
+      await participantService.declineJoinRequest(matchId, userId, user.id);
       showSuccessToast('Request Declined', 'The join request has been declined');
       // Fetch participants again to update the UI
       fetchParticipants();
@@ -642,7 +762,7 @@ const MatchDetail = () => {
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Paper sx={{ p: 3, mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h2">{match.sport.name} Match</Typography>
+          <Typography variant="h2">{match.sport?.name || 'Unknown Sport'} Match</Typography>
           {getStatusChip()}
         </Box>
         
@@ -666,7 +786,7 @@ const MatchDetail = () => {
               
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <LocationIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography>{match.location.name}</Typography>
+                <Typography>{match.location?.name || 'Unknown Location'}</Typography>
               </Box>
               
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -881,6 +1001,17 @@ const MatchDetail = () => {
                         >
                           Edit Match
                         </Button>
+                        
+                        <Button 
+                          variant="contained"
+                          color="primary"
+                          startIcon={<InviteIcon />}
+                          onClick={() => setShowFriendInvitationModal(true)}
+                          fullWidth
+                        >
+                          Invite Friends
+                        </Button>
+                        
                         <Button 
                           variant="outlined" 
                           color="error"
@@ -891,10 +1022,10 @@ const MatchDetail = () => {
                           Cancel Match
                         </Button>
                       </>
-                    ) : userParticipation ? (
+                    ) : userParticipation && userParticipation.status !== 'left' && userParticipation.status !== 'declined' ? (
                       userParticipation.status === 'pending' ? (
-                        <Button 
-                          variant="outlined" 
+                        <Button
+                          variant="outlined"
                           color="warning"
                           onClick={handleLeaveMatch}
                           fullWidth
@@ -903,8 +1034,8 @@ const MatchDetail = () => {
                           {buttonLoading ? <CircularProgress size={24} /> : 'Cancel Request'}
                         </Button>
                       ) : (
-                        <Button 
-                          variant="outlined" 
+                        <Button
+                          variant="outlined"
                           color="error"
                           onClick={handleLeaveMatch}
                           fullWidth
@@ -920,7 +1051,7 @@ const MatchDetail = () => {
                         disabled={isMatchFull || buttonLoading}
                         fullWidth
                       >
-                        {buttonLoading ? <CircularProgress size={24} /> : isMatchFull ? 'Match is Full' : 'Request to Join'}
+                        {buttonLoading ? <CircularProgress size={24} /> : isMatchFull ? 'Match is Full' : hasDirectInvitation ? 'Accept Invitation' : 'Request to Join'}
                       </Button>
                     )}
                   </>
@@ -1028,17 +1159,27 @@ const MatchDetail = () => {
         onClose={() => setOpenJoinDialog(false)}
         aria-labelledby="join-match-dialog-title"
       >
-        <DialogTitle id="join-match-dialog-title">Request to Join Match</DialogTitle>
+        <DialogTitle id="join-match-dialog-title">
+          {hasDirectInvitation ? 'Join Match' : 'Request to Join Match'}
+        </DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to send a request to join "{match?.title}"? The host will need to approve your request.
-            {match?.is_private && " This is a private match and will require an access code."}
+            {hasDirectInvitation ? (
+              <>
+                Are you sure you want to join "{match?.title}"? You have a Direct Join invitation, so you will be added to the match immediately.
+              </>
+            ) : (
+              <>
+                Are you sure you want to send a request to join "{match?.title}"? The host will need to approve your request.
+                {match?.is_private && " This is a private match and will require an access code."}
+              </>
+            )}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenJoinDialog(false)}>Cancel</Button>
           <Button onClick={handleJoinMatch} color="primary" variant="contained" disabled={buttonLoading}>
-            {buttonLoading ? <CircularProgress size={24} /> : 'Send Request'}
+            {buttonLoading ? <CircularProgress size={24} /> : (hasDirectInvitation ? 'Accept Invitation' : 'Send Request')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1065,6 +1206,16 @@ const MatchDetail = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      
+      {/* Friend Invitation Modal */}
+      <FriendInvitationModal
+        open={showFriendInvitationModal}
+        onClose={() => setShowFriendInvitationModal(false)}
+        match={match}
+        onInvitationsSent={(count) => {
+          showSuccessToast('Invitations Sent', `Successfully sent invitations to ${count} friend${count !== 1 ? 's' : ''}`);
+        }}
+      />
     </Box>
   );
 };

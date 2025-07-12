@@ -26,13 +26,16 @@ import {
   RadioGroup,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  InputAdornment
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import ResendConfirmation from '../components/ResendConfirmation';
-import { ExpandMore, SportsBasketball, AccessTime, LocationOn } from '@mui/icons-material';
-import { sportService, locationService } from '../services/supabase';
+import { ExpandMore, SportsBasketball, AccessTime, LocationOn, Cake } from '@mui/icons-material';
+import { sportService, locationService, supabase } from '../services/supabase';
+import { subYears } from 'date-fns';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -49,7 +52,8 @@ const Register = () => {
     faculty: '',
     play_style: 'casual',
     gender: '',
-    age_range_preference: '',
+    age: '',
+    birth_date: null,
     duration_preference: '',
     sports: [],
     skillLevels: {},
@@ -72,7 +76,24 @@ const Register = () => {
   
   const { signUp } = useAuth();
   const navigate = useNavigate();
-  
+
+  // Age calculation function
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return '';
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  // Birth date validation
+  const getMinBirthDate = () => subYears(new Date(), 65); // Maximum age 65
+  const getMaxBirthDate = () => subYears(new Date(), 18); // Minimum age 18
+
   // Load sports and locations data
   useEffect(() => {
     const loadOptions = async () => {
@@ -109,6 +130,16 @@ const Register = () => {
     setFormData({
       ...formData,
       [fieldName]: typeof value === 'string' ? value.split(',') : value
+    });
+  };
+
+  // Handle birth date change
+  const handleBirthDateChange = (newDate) => {
+    const calculatedAge = calculateAge(newDate);
+    setFormData({
+      ...formData,
+      birth_date: newDate,
+      age: calculatedAge
     });
   };
   
@@ -258,6 +289,7 @@ const Register = () => {
         level: sport.level
       }));
       
+      // Separate user data (goes to users table) from preferences (goes to user_preferences table)
       const userData = {
         full_name: formData.fullName,
         username: formData.username,
@@ -265,21 +297,31 @@ const Register = () => {
         faculty: formData.faculty,
         campus: formData.state, // Use state field for campus value
         gender: formData.gender,
-        age_range_preference: formData.age_range_preference,
-        duration_preference: formData.duration_preference,
-        sport_preferences: sport_preferences,
-        available_days: formData.available_days,
-        preferred_facilities: formData.preferred_facilities,
         play_style: formData.play_style,
         avatar: formData.avatar,
         avatarUrl: formData.avatarUrl
+      };
+
+      // Preferences data (will be stored in user_preferences table after successful registration)
+      const preferencesData = {
+        sport_preferences: sport_preferences,
+        available_days: formData.available_days,
+        preferred_facilities: formData.preferred_facilities,
+        duration_preference: formData.duration_preference,
+        age: formData.age,
+        birth_date: formData.birth_date ? formData.birth_date.toISOString().split('T')[0] : null,
+        time_preferences: {
+          days: formData.available_days,
+          hours: []
+        },
+        location_preferences: formData.preferred_facilities
       };
       
       const { data, error } = await signUp(formData.email, formData.password, userData);
       
       if (error) {
         // Check if this is a case of unverified existing account
-        if (error.includes('User already registered') || 
+        if (error.includes('User already registered') ||
             error.toLowerCase().includes('already exists')) {
           setNeedsVerification(true);
           setExistingEmail(formData.email);
@@ -287,7 +329,27 @@ const Register = () => {
         }
         throw new Error(error);
       }
-      
+
+      // Store user preferences if registration was successful
+      if (data?.user) {
+        try {
+          const { error: prefError } = await supabase
+            .from('user_preferences')
+            .insert({
+              user_id: data.user.id,
+              ...preferencesData
+            });
+
+          if (prefError) {
+            console.error('Error storing user preferences:', prefError);
+            // Don't throw error here as the main registration was successful
+          }
+        } catch (prefErr) {
+          console.error('Exception storing user preferences:', prefErr);
+          // Don't throw error here as the main registration was successful
+        }
+      }
+
       // Set verification sent flag to show verification pending screen
       setVerificationSent(true);
     } catch (err) {
@@ -366,13 +428,7 @@ const Register = () => {
     );
   }
   
-  // Age range options
-  const ageRangeOptions = [
-    "18-21",
-    "21-25",
-    "25-30",
-    "30+"
-  ];
+
   
   // Duration preferences
   const durationOptions = [
@@ -564,24 +620,33 @@ const Register = () => {
             </Select>
           </FormControl>
           
-          <FormControl fullWidth margin="normal" sx={{ mb: 2 }}>
-            <InputLabel id="age-range-label">Age Range Preference</InputLabel>
-            <Select
-              labelId="age-range-label"
-              id="age_range_preference"
-              name="age_range_preference"
-              value={formData.age_range_preference}
-              onChange={handleChange}
-              label="Age Range Preference"
-            >
-              <MenuItem value="">Select Age Range</MenuItem>
-              {ageRangeOptions.map((range) => (
-                <MenuItem key={range} value={range}>
-                  {range}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Box sx={{ mb: 2 }}>
+            <DatePicker
+              label="Birth Date"
+              value={formData.birth_date}
+              onChange={handleBirthDateChange}
+              minDate={getMinBirthDate()}
+              maxDate={getMaxBirthDate()}
+              slots={{
+                textField: TextField
+              }}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  margin: "normal",
+                  variant: "outlined",
+                  helperText: formData.age ? `Age: ${formData.age} years` : "Select your birth date (must be 18-65 years old)",
+                  InputProps: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Cake />
+                      </InputAdornment>
+                    )
+                  }
+                }
+              }}
+            />
+          </Box>
           
           <FormControl fullWidth margin="normal" sx={{ mb: 2 }}>
             <InputLabel id="duration-label">Preferred Duration</InputLabel>

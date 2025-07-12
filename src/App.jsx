@@ -5,6 +5,12 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { Box, Typography, CircularProgress, Button } from '@mui/material';
 import { supabase } from './services/supabase';
 
+// Performance optimizations
+import {
+  initializePerformanceOptimizations,
+  cleanupPerformanceOptimizations
+} from './utils/performanceOptimizations';
+
 // Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -15,7 +21,8 @@ import Find from './pages/Find';
 import Host from './pages/Host';
 import MatchDetail from './pages/MatchDetail';
 import EditMatch from './pages/EditMatch';
-import Admin from './pages/Admin';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import AuthCallback from './pages/Auth/AuthCallback';
 import ErrorDebug from './pages/ErrorDebug';
@@ -23,6 +30,7 @@ import AuthDebug from './pages/AuthDebug';
 import DirectHome from './pages/DirectHome';
 import Friends from './pages/Friends';
 import FindPlayers from './pages/Find/FindPlayers';
+import Leaderboard from './pages/Leaderboard';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -31,6 +39,8 @@ import MainLayout from './components/layout/MainLayout';
 // Auth provider
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ToastProvider } from './contexts/ToastContext';
+import { AchievementProvider } from './contexts/AchievementContext';
+import { LevelUpProvider } from './contexts/LevelUpContext';
 
 // Create a theme instance based on the Sportea style guide
 const theme = createTheme({
@@ -309,14 +319,26 @@ const RootRedirect = () => {
 
 function App() {
   console.log('App component rendering');
-  
+
+  // Initialize performance optimizations on app startup
+  useEffect(() => {
+    initializePerformanceOptimizations();
+
+    // Cleanup on app unmount
+    return () => {
+      cleanupPerformanceOptimizations();
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <AuthProvider>
           <ToastProvider>
-          <ErrorBoundary>
+            <AchievementProvider>
+              <LevelUpProvider>
+                <ErrorBoundary>
             <Router>
               <Routes>
                 {/* Auth routes (not requiring authentication) */}
@@ -328,6 +350,11 @@ function App() {
                 <Route path="/debug" element={<ErrorDebug />} />
                 <Route path="/auth-debug" element={<AuthDebug />} />
                 <Route path="/direct-home" element={<DirectHome />} />
+
+                {/* Admin routes (separate authentication) */}
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
                 
                 {/* Root route with conditional redirect */}
                 <Route path="/" element={
@@ -347,15 +374,17 @@ function App() {
                   <Route path="/host" element={<Host />} />
                   <Route path="/match/:matchId" element={<MatchDetail />} />
                   <Route path="/edit-match/:matchId" element={<EditMatch />} />
-                  <Route path="/admin" element={<Admin />} />
                   <Route path="/friends" element={<Friends />} />
+                  <Route path="/leaderboard" element={<Leaderboard />} />
                 </Route>
                 
                 {/* Fallback for undefined routes */}
                 <Route path="*" element={<Navigate to="/not-found" replace />} />
               </Routes>
             </Router>
-          </ErrorBoundary>
+                </ErrorBoundary>
+              </LevelUpProvider>
+            </AchievementProvider>
           </ToastProvider>
         </AuthProvider>
       </ThemeProvider>

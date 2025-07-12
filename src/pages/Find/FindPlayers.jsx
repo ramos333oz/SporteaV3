@@ -37,6 +37,7 @@ import BlockIcon from '@mui/icons-material/Block';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, friendshipService } from '../../services/supabase';
+import blockingService from '../../services/blockingService';
 import { useToast } from '../../contexts/ToastContext';
 
 // Sport icon mapping function
@@ -76,15 +77,29 @@ const FindPlayers = ({ players: propPlayers }) => {
         fetchPlayers();
       } else {
         // Set players and initial filtered players
-        const initialPlayers = propPlayers.filter(player => player.id !== user.id);
-        setPlayers(initialPlayers);  // Use filtered players here instead of raw propPlayers
-        setFilteredPlayers(initialPlayers);
-        setLoading(false);
-        
-        // Re-fetch friendship statuses for all players in props
-        if (initialPlayers.length > 0) {
-          refreshFriendshipStatuses(initialPlayers.map(player => player.id));
-        }
+        const handlePropPlayers = async () => {
+          setLoading(true);
+          try {
+            let initialPlayers = propPlayers.filter(player => player.id !== user.id);
+
+            // Filter out blocked users
+            initialPlayers = await blockingService.filterBlockedUsers(initialPlayers, user.id);
+
+            setPlayers(initialPlayers);
+            setFilteredPlayers(initialPlayers);
+
+            // Re-fetch friendship statuses for all players in props
+            if (initialPlayers.length > 0) {
+              refreshFriendshipStatuses(initialPlayers.map(player => player.id));
+            }
+          } catch (error) {
+            console.error('Error filtering prop players:', error);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        handlePropPlayers();
       }
       fetchSports();
     }
@@ -144,18 +159,21 @@ const FindPlayers = ({ players: propPlayers }) => {
           skill_levels
         `)
         .neq('id', user.id); // Exclude current user
-        
+
       if (error) throw error;
-      
+
       // Double check to ensure current user is not in the results
-      const filteredData = data ? data.filter(player => player.id !== user.id) : [];
-      
+      let filteredData = data ? data.filter(player => player.id !== user.id) : [];
+
+      // Filter out blocked users (both users blocked by current user and users who blocked current user)
+      filteredData = await blockingService.filterBlockedUsers(filteredData, user.id);
+
       // Fetch friendship statuses for all users
       if (filteredData && filteredData.length > 0) {
         const userIds = filteredData.map(player => player.id);
         await refreshFriendshipStatuses(userIds);
       }
-      
+
       setPlayers(filteredData);
       setFilteredPlayers(filteredData);
     } catch (error) {

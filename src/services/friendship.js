@@ -301,16 +301,17 @@ export const friendshipService = {
 
       // Determine who the other user is in this friendship
       const otherUserId = friendship.user_id === user.id ? friendship.friend_id : friendship.user_id;
-      
-      // Only notify if this was an accepted friendship (not a pending request being canceled)
+
+      // Handle notifications based on friendship status
       if (friendship.status === 'accepted') {
+        // For accepted friendships, notify the other user about removal
         // Get user details for notification
         const { data: userData } = await supabase
           .from('users')
           .select('username, full_name')
           .eq('id', user.id)
           .single();
-          
+
         const removerName = userData?.full_name || userData?.username || user.email;
 
         // Create notification for the other user
@@ -324,6 +325,21 @@ export const friendshipService = {
             remover_name: removerName
           })
         });
+      } else if (friendship.status === 'pending') {
+        // For pending requests being cancelled, clean up the friend request notification
+        // Find and delete the friend request notification for the recipient
+        // We need to find notifications where the content contains the sender_id
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .delete()
+          .eq('user_id', otherUserId)
+          .eq('type', 'friend_request')
+          .like('content', `%"sender_id":"${user.id}"%`);
+
+        if (notificationError) {
+          console.error('Error cleaning up friend request notification:', notificationError);
+          // Don't throw here - we still want to delete the friendship record
+        }
       }
 
       // Delete the friendship record
@@ -367,43 +383,52 @@ export const friendshipService = {
       const targetUserId = userId || currentUser.user.id;
       
       // Get all accepted friendships where the user is either sender or receiver
-      const { data, error } = await supabase
+      const { data: friendships, error } = await supabase
         .from('friendships')
         .select(`
           id,
           status,
           created_at,
           user_id,
-          friend_id,
-          users:user_id(id, username, full_name, avatar_url),
-          friends:friend_id(id, username, full_name, avatar_url)
+          friend_id
         `)
         .eq('status', 'accepted')
         .or(`user_id.eq.${targetUserId},friend_id.eq.${targetUserId}`);
 
       if (error) throw error;
 
+      // Get user details for all friends
+      const friendIds = friendships.map(friendship =>
+        friendship.user_id === targetUserId ? friendship.friend_id : friendship.user_id
+      );
+
+      if (friendIds.length === 0) {
+        return {
+          success: true,
+          data: []
+        };
+      }
+
+      const { data: friendUsers, error: userError } = await supabase
+        .from('users')
+        .select('id, username, full_name, avatar_url')
+        .in('id', friendIds);
+
+      if (userError) throw userError;
+
       // Process the results to always return the friend details (not the user)
-      const processedFriends = data.map(friendship => {
-        if (friendship.user_id === targetUserId) {
-          return {
-            id: friendship.id,
-            friendId: friendship.friend_id,
-            username: friendship.friends.username,
-            fullName: friendship.friends.full_name,
-            avatarUrl: friendship.friends.avatar_url,
-            createdAt: friendship.created_at
-          };
-        } else {
-          return {
-            id: friendship.id,
-            friendId: friendship.user_id,
-            username: friendship.users.username,
-            fullName: friendship.users.full_name,
-            avatarUrl: friendship.users.avatar_url,
-            createdAt: friendship.created_at
-          };
-        }
+      const processedFriends = friendships.map(friendship => {
+        const friendId = friendship.user_id === targetUserId ? friendship.friend_id : friendship.user_id;
+        const friendUser = friendUsers.find(user => user.id === friendId);
+
+        return {
+          id: friendship.id,
+          friendId: friendId,
+          username: friendUser?.username,
+          fullName: friendUser?.full_name,
+          avatarUrl: friendUser?.avatar_url,
+          createdAt: friendship.created_at
+        };
       });
 
       return {
@@ -436,24 +461,56 @@ export const friendshipService = {
       
       const user = currentUser.user;
       
-      const { data, error } = await supabase
+      const { data: friendships, error } = await supabase
         .from('friendships')
         .select(`
           id,
           status,
           created_at,
           user_id,
-          friend_id,
-          users:user_id(id, username, full_name, avatar_url)
+          friend_id
         `)
         .eq('status', 'pending')
         .eq('friend_id', user.id);
 
       if (error) throw error;
 
+      if (friendships.length === 0) {
+        return {
+          success: true,
+          data: []
+        };
+      }
+
+      // Get user details for all requesters
+      const requesterIds = friendships.map(friendship => friendship.user_id);
+
+      const { data: requesterUsers, error: userError } = await supabase
+        .from('users')
+        .select('id, username, full_name, avatar_url')
+        .in('id', requesterIds);
+
+      if (userError) throw userError;
+
+      // Combine friendship data with user details
+      const processedRequests = friendships.map(friendship => {
+        const requesterUser = requesterUsers.find(user => user.id === friendship.user_id);
+
+        return {
+          id: friendship.id,
+          status: friendship.status,
+          created_at: friendship.created_at,
+          user_id: friendship.user_id,
+          friend_id: friendship.friend_id,
+          username: requesterUser?.username,
+          full_name: requesterUser?.full_name,
+          avatar_url: requesterUser?.avatar_url
+        };
+      });
+
       return {
         success: true,
-        data
+        data: processedRequests
       };
     } catch (error) {
       console.error('Error getting pending friend requests:', error);
@@ -481,24 +538,56 @@ export const friendshipService = {
       
       const user = currentUser.user;
       
-      const { data, error } = await supabase
+      const { data: friendships, error } = await supabase
         .from('friendships')
         .select(`
           id,
           status,
           created_at,
           user_id,
-          friend_id,
-          friends:friend_id(id, username, full_name, avatar_url)
+          friend_id
         `)
         .eq('status', 'pending')
         .eq('user_id', user.id);
 
       if (error) throw error;
 
+      if (friendships.length === 0) {
+        return {
+          success: true,
+          data: []
+        };
+      }
+
+      // Get user details for all recipients
+      const recipientIds = friendships.map(friendship => friendship.friend_id);
+
+      const { data: recipientUsers, error: userError } = await supabase
+        .from('users')
+        .select('id, username, full_name, avatar_url')
+        .in('id', recipientIds);
+
+      if (userError) throw userError;
+
+      // Combine friendship data with user details
+      const processedRequests = friendships.map(friendship => {
+        const recipientUser = recipientUsers.find(user => user.id === friendship.friend_id);
+
+        return {
+          id: friendship.id,
+          status: friendship.status,
+          created_at: friendship.created_at,
+          user_id: friendship.user_id,
+          friend_id: friendship.friend_id,
+          username: recipientUser?.username,
+          full_name: recipientUser?.full_name,
+          avatar_url: recipientUser?.avatar_url
+        };
+      });
+
       return {
         success: true,
-        data
+        data: processedRequests
       };
     } catch (error) {
       console.error('Error getting sent friend requests:', error);
@@ -828,6 +917,83 @@ export const friendshipService = {
       return {
         success: false,
         message: 'Failed to unblock user',
+        error
+      };
+    }
+  },
+  
+  // Get blocked users
+  getBlockedUsers: async () => {
+    try {
+      const { data: currentUser } = await supabase.auth.getUser();
+      
+      if (!currentUser || !currentUser.user) {
+        return {
+          success: false,
+          message: 'You must be logged in to view blocked users',
+          data: []
+        };
+      }
+      
+      const user = currentUser.user;
+      
+      const { data: friendships, error } = await supabase
+        .from('friendships')
+        .select(`
+          id,
+          status,
+          created_at,
+          user_id,
+          friend_id
+        `)
+        .eq('status', 'blocked')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      if (friendships.length === 0) {
+        return {
+          success: true,
+          data: []
+        };
+      }
+
+      // Get user details for all blocked users
+      const blockedUserIds = friendships.map(friendship => friendship.friend_id);
+
+      const { data: blockedUsers, error: userError } = await supabase
+        .from('users')
+        .select('id, username, full_name, avatar_url')
+        .in('id', blockedUserIds);
+
+      if (userError) throw userError;
+
+      // Combine friendship data with user details
+      const processedBlockedUsers = friendships.map(friendship => {
+        const blockedUser = blockedUsers.find(user => user.id === friendship.friend_id);
+
+        return {
+          id: friendship.id,
+          status: friendship.status,
+          created_at: friendship.created_at,
+          user_id: friendship.user_id,
+          friend_id: friendship.friend_id,
+          username: blockedUser?.username,
+          full_name: blockedUser?.full_name,
+          avatar_url: blockedUser?.avatar_url
+        };
+      });
+
+      return {
+        success: true,
+        data: processedBlockedUsers
+      };
+    } catch (error) {
+      console.error('Error getting blocked users:', error);
+      return {
+        success: false,
+        message: 'Failed to get blocked users',
+        data: [],
         error
       };
     }

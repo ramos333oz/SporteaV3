@@ -96,9 +96,10 @@ import SearchIcon from "@mui/icons-material/Search";
 import EventIcon from "@mui/icons-material/Event";
 import { useAuth } from "../../hooks/useAuth";
 import { participantService } from "../../services/supabase";
-import recommendationService from "../../services/recommendationService";
+import recommendationServiceV3 from "../../services/recommendationServiceV3";
 import interactionService from "../../services/interactionService";
 import { useNavigate } from "react-router-dom";
+import RecommendationsList from "../../components/RecommendationsList";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import { Calendar, momentLocalizer } from "react-big-calendar";
@@ -160,6 +161,8 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
   // State management
   const { user, supabase } = useAuth();
   const [matches, setMatches] = useState(propMatches || []);
+  const [userCreatedMatches, setUserCreatedMatches] = useState([]);
+  const [userParticipations, setUserParticipations] = useState({});
   const [loading, setLoading] = useState(!propMatches);
   const [joinLoading, setJoinLoading] = useState({});
   const [viewMode, setViewMode] = useState(0); // 0: List, 1: Map, 2: Calendar
@@ -183,8 +186,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
   
   // For backward compatibility with existing code
   const selectedSportFilter = getActiveSportFilter();
-  
-  const [recommendedMatches, setRecommendedMatches] = useState([]);
+
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState(null);
   const navigate = useNavigate();
@@ -224,87 +226,55 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       }),
   ];
 
-  // Load personalized recommendations when component mounts or user changes
-  useEffect(() => {
-    const loadRecommendations = async () => {
-      if (!user) {
-        // For non-logged in users, just show the newest matches
-        if (propMatches) {
-          const sortedByDate = [...propMatches].sort(
-            (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0),
-          );
-          setRecommendedMatches(sortedByDate.slice(0, 3));
-        }
-        return;
-      }
 
-      try {
-        // Fetch personalized recommendations - we added error handling in the service itself
-        // so this should no longer throw errors
-        const { recommendations, type, message } =
-          await recommendationService.getRecommendations(user.id, 5);
-
-        if (recommendations && recommendations.length > 0) {
-          // Filter out matches where the user is the host
-          const filteredRecommendations = recommendations.filter(
-            (match) => match.host_id !== user.id,
-          );
-
-          // Set the recommended matches with their explanation and metadata
-          setRecommendedMatches(filteredRecommendations);
-
-          // If we got a message from the recommendation service, show it as a notification
-          if (message) {
-            setNotification({
-              severity: "info",
-              message: message,
-            });
-          }
-        } else {
-          // Fall back to sorting by date if recommendations are empty
-          console.log(
-            "No recommendations returned, falling back to default sorting",
-          );
-          if (propMatches) {
-            const sortedByDate = [...propMatches]
-              .filter((match) => match.host_id !== user.id) // Filter out user's own matches
-              .sort(
-                (a, b) =>
-                  new Date(b.created_at || 0) - new Date(a.created_at || 0),
-              );
-
-            setRecommendedMatches(sortedByDate.slice(0, 3));
-          }
-        }
-      } catch (error) {
-        console.error("Error in recommendation handling:", error);
-        // Fall back to sorting by date if recommendations fail
-        if (propMatches) {
-          const sortedByDate = [...propMatches]
-            .filter((match) => match.host_id !== user.id) // Filter out user's own matches
-            .sort(
-              (a, b) =>
-                new Date(b.created_at || 0) - new Date(a.created_at || 0),
-            );
-
-          setRecommendedMatches(sortedByDate.slice(0, 3));
-        }
-      }
-    };
-
-    loadRecommendations();
-  }, [user, propMatches]);
 
   // Apply all filters to matches
   const applyFilters = useCallback(
     (sourceMatches) => {
       if (!sourceMatches || sourceMatches.length === 0) return [];
 
-      // Get the appropriate sport filter based on the current view
-      const activeSportFilter = selectedSportFilter;
-
-      return sourceMatches
+      console.log('Starting applyFilters with sourceMatches:', sourceMatches.length);
+      console.log('Sample match from source:', sourceMatches[0]?.title, sourceMatches[0]?.id);
+      
+      // Log any user created matches in source
+      if (user) {
+        const userMatches = sourceMatches.filter(m => m.host_id === user.id || m.isUserCreated);
+        console.log('User matches in source data:', userMatches.length);
+        if (userMatches.length > 0) {
+          userMatches.forEach(m => console.log(`User match in source: ${m.id} - ${m.title || 'no title'}`));
+        } else {
+          console.log('No user matches found in source data - this is the problem');
+        }
+      }
+      
+      const filtered = sourceMatches
         .filter((match) => {
+          // Always include user created matches in Available Matches tab
+          if (user && match.host_id === user.id) {
+            console.log('Including user match by host_id:', match.id, match.title);
+            return true;
+          }
+          
+          if (match.isUserCreated) {
+            console.log('Including user match by isUserCreated flag:', match.id, match.title);
+            return true;
+          }
+          
+          // Filter out matches that have already ended
+          const now = new Date();
+          if (match.start_time) {
+            const startTime = new Date(match.start_time);
+            const endTime = match.end_time 
+              ? new Date(match.end_time) 
+              : new Date(startTime.getTime() + (match.duration_minutes || 60) * 60000);
+            
+            // If the match has ended, don't include it unless it's the user's match
+            if (endTime < now) {
+              console.log(`Filtering out ended match: ${match.id}, ${match.title}, ended at: ${endTime.toLocaleString()}`);
+              return false;
+            }
+          }
+          
           // Apply sport filter
           if (viewMode === 0) {
             // List view - handle array of sport filters
@@ -320,9 +290,9 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
               return false;
             }
           } else if (
-            activeSportFilter !== "all" &&
-            match.sport_id?.toString() !== activeSportFilter &&
-            match.sport?.id?.toString() !== activeSportFilter
+            selectedSportFilter !== "all" &&
+            match.sport_id?.toString() !== selectedSportFilter &&
+            match.sport?.id?.toString() !== selectedSportFilter
           ) {
             return false;
           }
@@ -340,9 +310,6 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                     match.location.name !== locationFilter.name) {
               return false;
             }
-            
-            // Could also filter by coordinates if needed using distance calculation
-            // This would be useful for showing matches within X km of the selected location
           }
 
           // Apply skill level filter
@@ -412,25 +379,172 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
             match.created_at &&
             new Date(match.created_at) > new Date(Date.now() - 10 * 60 * 1000), // Created in last 10 minutes
         }));
+
+      console.log('Filtered matches count:', filtered.length);
+      if (filtered.length > 0) {
+        console.log('First filtered match:', filtered[0].id, filtered[0].title);
+      }
+      
+      return filtered;
     },
-    [selectedSportFilter, filters],
+    [selectedSportFilter, filters, user, viewMode, locationFilter, listViewSportFilter],
   );
 
-  // Update matches when props or filter changes
+  // Fetch user created matches
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchUserMatches = async () => {
+      try {
+        console.log('Fetching matches for user ID:', user.id);
+        
+        // Get the current date
+        const now = new Date();
+        
+        // Fetch all matches hosted by the user with full relationship data
+        const { data: userData, error: userError } = await supabase
+          .from('matches')
+          .select(`
+            *,
+            location (*),
+            sport (*)
+          `)
+          .eq('host_id', user.id);
+          
+        if (userError) {
+          console.error('Error fetching user matches:', userError);
+          throw userError;
+        }
+        
+        console.log('Raw user matches data fetched:', userData?.length || 0, 'matches');
+        if (userData?.length > 0) {
+          console.log('First user match:', userData[0].id, userData[0].title);
+        } else {
+          console.log('No user matches found in the database');
+        }
+        
+        // Filter out past matches (where end_time is in the past)
+        const activeMatches = userData?.filter(match => {
+          if (!match.start_time) {
+            console.log('Match missing start_time, excluding:', match.id);
+            return false;
+          }
+          
+          // Calculate end time based on start_time + duration
+          const startTime = new Date(match.start_time);
+          const endTime = match.end_time 
+            ? new Date(match.end_time) 
+            : new Date(startTime.getTime() + (match.duration_minutes || 60) * 60000);
+            
+          // Only include matches that haven't ended yet
+          const isActive = endTime > now;
+          
+          if (!isActive) {
+            console.log('Filtering out past match:', match.id, match.title);
+          } else {
+            console.log('Including active match:', match.id, match.title);
+          }
+          
+          return isActive;
+        }) || [];
+        
+        console.log('Active user matches after filtering past matches:', activeMatches.length);
+        
+        // Mark these matches as user created for easier filtering
+        const enhancedMatches = activeMatches.map(match => {
+          // Make sure we have all required fields set
+          return {
+            ...match,
+            isUserCreated: true,
+            // Make sure these values are set to avoid undefined errors
+            title: match.title || `Match on ${new Date(match.start_time).toLocaleDateString()}`,
+            current_participants: match.current_participants || 1,
+            max_participants: match.max_participants || 10
+          };
+        });
+        
+        console.log('Enhanced user matches ready for state:', enhancedMatches.length);
+        enhancedMatches.forEach(m => console.log(`Enhanced user match: ${m.id} - ${m.title}`));
+        
+        // Set to state
+        setUserCreatedMatches(enhancedMatches);
+      } catch (error) {
+        console.error('Error in fetchUserMatches:', error);
+      }
+    };
+    
+    fetchUserMatches();
+  }, [user, supabase]);
+
+  // Fetch user participations when user and matches are available
+  useEffect(() => {
+    if (user && matches.length > 0) {
+      fetchUserParticipations();
+    }
+  }, [user, matches.length]);
+
+  // Update matches when props, user matches, or filter changes
   useEffect(() => {
     if (propMatches) {
+      console.log("Running match update effect with propMatches:", propMatches.length);
       setLoading(false);
 
-      // Apply all filters
-      const filteredMatches = applyFilters(propMatches);
-      setMatches(filteredMatches);
+      // Make a fresh copy of prop matches
+      const allMatches = propMatches.slice();
+      console.log('Initial propMatches count:', allMatches.length);
+
+      // Mark any matches the user has created in the prop matches
+      if (user) {
+        allMatches.forEach(match => {
+          if (match.host_id === user.id) {
+            match.isUserCreated = true;
+            console.log("Marking existing match as user created by host_id:", match.id, match.title || 'untitled');
+          }
+        });
+      }
+      
+      // Add any user created matches that aren't already in propMatches
+      if (userCreatedMatches && userCreatedMatches.length > 0) {
+        console.log('User created matches count:', userCreatedMatches.length);
+        console.log('User matches IDs:', userCreatedMatches.map(m => m.id).join(', '));
+        
+        userCreatedMatches.forEach(userMatch => {
+          // Ensure the match has required properties
+          userMatch.isUserCreated = true;
+          if (!userMatch.title) userMatch.title = `Match on ${new Date(userMatch.start_time).toLocaleDateString()}`;
+          
+          // Check if this match already exists in allMatches
+          const existingIndex = allMatches.findIndex(match => match.id === userMatch.id);
+          
+          if (existingIndex === -1) {
+            // If not found, add it to allMatches
+            console.log("Adding user match to allMatches:", userMatch.id, userMatch.title);
+            allMatches.push(userMatch);
+          } else {
+            // If found, make sure it's marked properly
+            console.log("User match already in propMatches, ensuring it's marked:", userMatch.id);
+            allMatches[existingIndex].isUserCreated = true;
+          }
+        });
+      } else {
+        console.log('No user created matches found');
+      }
+      
+      console.log('Combined matches count:', allMatches.length);
+      if (allMatches.length > 0) {
+        console.log('Sample match from allMatches:', allMatches[0].id, allMatches[0].title);
+      }
+      
+      // Set this unfiltered list directly to state
+      // This is a key change - no more filtering at this point!
+      setMatches(allMatches);
 
       // Register impressions for visible matches to improve recommendations
       if (user) {
         const matchesToTrack =
           selectedSportFilter === "all"
-            ? propMatches
-            : propMatches.filter(
+            ? allMatches
+            : allMatches.filter(
                 (match) =>
                   match.sport_id?.toString() === selectedSportFilter ||
                   match.sport?.id?.toString() === selectedSportFilter,
@@ -444,9 +558,10 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         });
       }
     } else {
+      console.log("No propMatches available, setting loading to true");
       setLoading(true);
     }
-  }, [propMatches, selectedSportFilter, user]);
+  }, [propMatches, userCreatedMatches, selectedSportFilter, user, applyFilters]);
 
   // View mode tab change handler
   const handleViewModeChange = (event, newValue) => {
@@ -460,17 +575,26 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       case 0:
         // For List View, handle multi-select
         if (sportId === "all") {
-          // If "All Sports" is selected, clear the filter
+          // If "All Sports" is selected, clear all other filters
           setListViewSportFilter([]);
+          console.log('Set list view filter to empty array (all sports)');
         } else {
           setListViewSportFilter(prev => {
+            // Create a new array without the "all" option
+            let newFilters = prev.filter(id => id !== "all");
+            
             if (prev.includes(sportId)) {
               // If already selected, remove it
-              return prev.filter(id => id !== sportId);
+              newFilters = newFilters.filter(id => id !== sportId);
+              console.log(`Removing sport ${sportId} from filters`);
             } else {
               // If not selected, add it
-              return [...prev, sportId];
+              newFilters = [...newFilters, sportId];
+              console.log(`Adding sport ${sportId} to filters`);
             }
+            
+            // If all filters are removed, treat as "all sports"
+            return newFilters.length > 0 ? newFilters : [];
           });
         }
         break;
@@ -501,54 +625,19 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
 
   // Render view based on selected view mode
   const renderViewContent = () => {
+    console.log("Current viewMode:", viewMode);
+    console.log("Available matches:", filteredMatches.length);
+    console.log("First match example:", filteredMatches[0]);
+    
     switch (viewMode) {
       case 0: // List View
         return (
           <>
-            {/* Recommended Matches Section - Only shown in List View */}
-            {recommendedMatches.length > 0 && (
-              <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                  <Typography variant="h5" component="h2" fontWeight="600">
-                    Recommended for You
-                  </Typography>
-                  <Tooltip title="These matches are selected based on your preferences and past activity">
-                    <Chip
-                      label="For You"
-                      size="small"
-                      color="secondary"
-                      sx={{ ml: 2 }}
-                    />
-                  </Tooltip>
-                </Box>
-
-                <Grid container spacing={2}>
-                  {loading
-                    ? Array(3)
-                        .fill()
-                        .map((_, index) => (
-                          <Grid
-                            item
-                            xs={12}
-                            sm={6}
-                            md={4}
-                            key={`skeleton-rec-${index}`}
-                          >
-                            <Skeleton
-                              variant="rectangular"
-                              height={320}
-                              sx={{ borderRadius: 3 }}
-                            />
-                          </Grid>
-                        ))
-                    : recommendedMatches.map((match) => (
-                        <Grid item xs={12} sm={6} md={4} key={match.id}>
-                          {renderMatchCard(match)}
-                        </Grid>
-                      ))}
-                </Grid>
-              </Paper>
-            )}
+            {/* Personalized Recommendations Section - Only shown in List View */}
+            <RecommendationsList
+              limit={3}
+              onError={(err) => console.error('Recommendation error:', err)}
+            />
 
             {/* Available Matches Section */}
             <Paper sx={{ p: 3, borderRadius: 2 }}>
@@ -563,6 +652,18 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                   variant="outlined"
                   sx={{ ml: 2 }}
                 />
+                {viewMode === 0 && listViewSportFilter.length > 0 && (
+                  <Tooltip title="Filter is active">
+                    <Chip
+                      icon={<FilterListIcon />}
+                      label={`${listViewSportFilter.length} filter${listViewSportFilter.length > 1 ? 's' : ''} active`}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      sx={{ ml: 1 }}
+                    />
+                  </Tooltip>
+                )}
               </Box>
 
               {loading ? (
@@ -591,20 +692,45 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                   <Typography variant="h3" gutterBottom>
                     No matches found
                   </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    Try adjusting your filters or create your own match!
-                  </Typography>
-                  <Button variant="contained" sx={{ mt: 2 }}>
-                    Host a Match
-                  </Button>
+                                        <Typography variant="body1" color="text.secondary">
+                        Try adjusting your filters or create your own match!
+                      </Typography>
+                      {user && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 1 }}>
+                          Note: Your created matches are also subject to filters. 
+                          If you can't see your match, try resetting the filters.
+                        </Typography>
+                      )}
+                      <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center' }}>
+                        <Button 
+                          variant="contained" 
+                          onClick={() => navigate('/host')}
+                        >
+                          Host a Match
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<RefreshIcon />}
+                          onClick={handleResetFilters}
+                        >
+                          Reset All Filters
+                        </Button>
+                      </Box>
                 </Paper>
               ) : (
                 <Grid container spacing={2}>
-                  {filteredMatches.map((match) => (
-                    <Grid item xs={12} sm={6} md={4} key={match.id}>
-                      {renderMatchCard(match)}
-                    </Grid>
-                  ))}
+                  {console.log("Preparing to render filtered matches:", filteredMatches.length)}
+                  {/* Use the filteredMatches directly since it already includes user matches */}
+                  {filteredMatches.map((match) => {
+                    const isUserMatch = user && (match.host_id === user.id || match.isUserCreated === true);
+                    console.log("Rendering match:", match.id, match.title, isUserMatch ? "(User Match)" : "");
+                    return (
+                      <Grid item xs={12} sm={6} md={4} key={match.id}>
+                        {renderMatchCard(match)}
+                      </Grid>
+                    );
+                  })}
                 </Grid>
               )}
             </Paper>
@@ -679,6 +805,42 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
     return <SportsIcon />;
   };
 
+  // Fetch user participations for all matches
+  const fetchUserParticipations = async () => {
+    if (!user || matches.length === 0) {
+      return;
+    }
+
+    try {
+      const matchIds = matches.map(m => m.id);
+
+      const { data, error } = await supabase
+        .from('participants')
+        .select('match_id, status, user_id, joined_at')
+        .eq('user_id', user.id)
+        .in('match_id', matchIds);
+
+      if (error) {
+        console.error('[fetchUserParticipations] Database error:', error);
+        throw error;
+      }
+
+      const participationMap = {};
+      if (data && data.length > 0) {
+        data.forEach(p => {
+          participationMap[p.match_id] = p;
+        });
+      }
+
+      setUserParticipations(participationMap);
+    } catch (error) {
+      console.error('[fetchUserParticipations] Error fetching user participations:', error);
+      // Don't clear existing participations on error
+    }
+  };
+
+
+
   // Handle join match
   const handleJoinMatch = async (match) => {
     if (!user) return;
@@ -699,35 +861,26 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
 
       const result = await participantService.joinMatch(match.id, user.id);
 
-      // Update the match in state
-      const updatedMatches = matches.map((m) => {
-        if (m.id === match.id) {
-          return {
-            ...m,
-            is_joined: true,
-            join_status: "pending", // Always set to pending for new joins
-            current_participants: m.current_participants, // Don't increment here as pending requests don't count
-          };
-        }
-        return m;
-      });
+      if (result && result.success) {
+        // Update user participation state immediately
+        setUserParticipations(prev => ({
+          ...prev,
+          [match.id]: { status: 'pending', match_id: match.id, user_id: user.id }
+        }));
 
-      // If this is a recommended match, update it in the recommended matches list too
-      if (match.recommendation_type) {
-        const updatedRecommendations = recommendedMatches.map((m) => {
-          if (m.id === match.id) {
-            return {
-              ...m,
-              is_joined: true,
-              join_status: "pending", // Always set to pending for new joins
-              current_participants: m.current_participants, // Don't increment here as pending requests don't count
-            };
-          }
-          return m;
+        // Refresh user participations to ensure consistency
+        setTimeout(() => fetchUserParticipations(), 500);
+      } else {
+        setNotification({
+          severity: "error",
+          message: result?.message || "Failed to join match",
+          duration: 5000,
         });
-        setRecommendedMatches(updatedRecommendations);
+        return; // Exit early if join failed
+      }
 
-        // Track recommendation interaction (non-blocking)
+      // Track recommendation interaction if this is a recommended match (non-blocking)
+      if (match.recommendation_type) {
         try {
           recommendationService
             .trackRecommendationAction(
@@ -751,9 +904,6 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         }
       }
 
-      setMatches(updatedMatches);
-
-      // Show more prominent notification
       setNotification({
         severity: "success",
         message: "Request sent! Waiting for host approval.",
@@ -851,22 +1001,8 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         return m;
       });
 
-      // If this is a recommended match, update it in the recommended matches list too
+      // Track recommendation interaction if this is a recommended match (non-blocking)
       if (match.recommendation_type) {
-        const updatedRecommendations = recommendedMatches.map((m) => {
-          if (m.id === match.id) {
-            return {
-              ...m,
-              is_joined: false,
-              join_status: null,
-              current_participants: Math.max(0, m.current_participants - 1),
-            };
-          }
-          return m;
-        });
-        setRecommendedMatches(updatedRecommendations);
-
-        // Track recommendation interaction in a try-catch to ensure it doesn't break main flow
         try {
           recommendationService
             .trackRecommendationAction(
@@ -890,11 +1026,21 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         }
       }
 
+      // Update user participation state to 'left'
+      setUserParticipations(prev => ({
+        ...prev,
+        [match.id]: { status: 'left', match_id: match.id, user_id: user.id }
+      }));
+
       setMatches(updatedMatches);
       setNotification({
-        severity: "info",
-        message: result?.message || "Successfully left the match",
+        severity: "success",
+        message: "You have successfully left the match",
+        duration: 5000,
       });
+
+      // Refresh user participations to ensure consistency
+      setTimeout(() => fetchUserParticipations(), 500);
 
       // Track the leave interaction with improved error handling
       try {
@@ -944,45 +1090,102 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
     navigate(`/match/${match.id}`);
   };
 
-  // Refresh recommendations
-  const handleRefreshRecommendations = async () => {
-    if (!user) return;
 
-    try {
-      setLoading(true);
-      const { recommendations, type, message } =
-        await recommendationService.getRecommendations(user.id, 5);
-      setRecommendedMatches(recommendations);
-
-      if (message) {
-        setNotification({
-          severity: "info",
-          message: message,
-        });
-      }
-    } catch (error) {
-      console.error("Error refreshing recommendations:", error);
-      setNotification({
-        severity: "error",
-        message: "Failed to refresh recommendations",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Apply filters to matches
   const filteredMatches = React.useMemo(() => {
-    if (!matches || matches.length === 0) return [];
-
+    if (!matches || matches.length === 0) {
+      console.log('No matches to filter');
+      return [];
+    }
+    
+    console.log('Filtering', matches.length, 'matches');
+    console.log('Current filter settings:', {
+      viewMode,
+      listViewSportFilter: listViewSportFilter.length > 0 ? listViewSportFilter : 'all (empty array)',
+      selectedSportFilter,
+      locationFilter: locationFilter ? `${locationFilter.name} (id: ${locationFilter.id})` : 'none',
+      otherFilters: filters
+    });
+    
+    // Log user created matches before filtering
+    if (user) {
+      const userMatches = matches.filter(m => m.host_id === user.id || m.isUserCreated === true);
+      console.log('User matches before filtering:', userMatches.length);
+      if (userMatches.length > 0) {
+        console.log('User matches found:');
+        userMatches.forEach(m => {
+          console.log(`User match before filtering: ${m.id} - ${m.title || 'untitled'}`);
+          console.log(`  Details: host_id: ${m.host_id}, user.id: ${user.id}, isUserCreated: ${m.isUserCreated}`);
+          console.log(`  Sport: ${m.sport?.name || m.sport_id} (ID: ${m.sport?.id || m.sport_id})`);
+          console.log(`  Location: ${m.location?.name || 'unknown'} (ID: ${m.location?.id || 'unknown'})`);
+          console.log(`  Skill level: ${m.skill_level || 'not set'}`);
+          console.log(`  Spots: ${m.current_participants || 0}/${m.max_participants || 0}`);
+          console.log(`  Private: ${m.is_private ? 'Yes' : 'No'}`);
+          console.log(`  Date/Time: ${m.start_time ? new Date(m.start_time).toLocaleString() : 'not set'}`);
+        });
+      } else {
+        console.log('No user matches found before filtering - this could be the problem');
+      }
+    }
+    
     return matches.filter((match) => {
-      // Apply sport filter
-      if (
-        selectedSportFilter !== "all" &&
-        match.sport_id?.toString() !== selectedSportFilter &&
-        match.sport?.id?.toString() !== selectedSportFilter
-      ) {
-        return false;
+      // Check if this is a user-created match (for debugging only)
+      const isUserCreatedMatch = user && (match.host_id === user.id || match.isUserCreated === true);
+      if (isUserCreatedMatch) {
+        console.log(`Processing user-created match: ${match.id} - ${match.title || 'untitled'}`);
+      }
+      
+      // Apply sport filter based on the current view mode
+      if (viewMode === 0) {
+        // LIST VIEW: Handle multi-select sport filters
+        if (listViewSportFilter.length > 0) {
+          // If the user has selected specific sports (and not "all")
+          const matchSportId = match.sport_id?.toString() || match.sport?.id?.toString();
+          
+          // Check if match sport is in the selected list, or if "all" is selected
+          const sportMatches = listViewSportFilter.includes(matchSportId) || listViewSportFilter.includes("all");
+          
+          if (!sportMatches) {
+            if (isUserCreatedMatch) {
+              console.log(`User match ${match.id} filtered out - sport ${matchSportId} not in selected filters:`, listViewSportFilter);
+            }
+            return false;
+          }
+        }
+      } else {
+        // MAP/CALENDAR VIEW: Handle single sport filter
+        if (
+          selectedSportFilter !== "all" &&
+          match.sport_id?.toString() !== selectedSportFilter &&
+          match.sport?.id?.toString() !== selectedSportFilter
+        ) {
+          if (isUserCreatedMatch) {
+            console.log(`User match ${match.id} filtered out - sport doesn't match selected filter: ${selectedSportFilter}`);
+          }
+          return false;
+        }
+      }
+
+      // Apply location filter (only for list view)
+      if (viewMode === 0 && locationFilter) {
+        // Filter by venue/location ID if available
+        if (match.location?.id && locationFilter.id && 
+            match.location.id.toString() !== locationFilter.id.toString()) {
+          if (isUserCreatedMatch) {
+            console.log(`User match ${match.id} filtered out - location ID doesn't match: ${match.location?.id} vs ${locationFilter.id}`);
+          }
+          return false;
+        }
+        
+        // Filter by venue/location name as fallback
+        else if (match.location?.name && locationFilter.name && 
+                match.location.name !== locationFilter.name) {
+          if (isUserCreatedMatch) {
+            console.log(`User match ${match.id} filtered out - location name doesn't match: ${match.location?.name} vs ${locationFilter.name}`);
+          }
+          return false;
+        }
       }
 
       // Apply skill level filter
@@ -990,6 +1193,9 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         filters.skillLevel !== "all" &&
         match.skill_level?.toLowerCase() !== filters.skillLevel.toLowerCase()
       ) {
+        if (isUserCreatedMatch) {
+          console.log(`User match ${match.id} filtered out - skill level doesn't match: ${match.skill_level} vs ${filters.skillLevel}`);
+        }
         return false;
       }
 
@@ -997,17 +1203,41 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       const spotsLeft =
         (match.max_participants || 0) - (match.current_participants || 0);
       if (spotsLeft < filters.minSpots) {
+        if (isUserCreatedMatch) {
+          console.log(`User match ${match.id} filtered out - not enough spots left: ${spotsLeft} vs ${filters.minSpots}`);
+        }
         return false;
       }
 
       // Apply full matches filter
       if (!filters.showFull && spotsLeft <= 0) {
+        if (isUserCreatedMatch) {
+          console.log(`User match ${match.id} filtered out - match is full and showFull is false`);
+        }
         return false;
       }
 
       // Apply private matches filter
       if (!filters.showPrivate && match.is_private) {
+        if (isUserCreatedMatch) {
+          console.log(`User match ${match.id} filtered out - match is private and showPrivate is false`);
+        }
         return false;
+      }
+
+      // Filter out matches that have already ended
+      const now = new Date();
+      if (match.start_time) {
+        const startTime = new Date(match.start_time);
+        const endTime = match.end_time 
+          ? new Date(match.end_time) 
+          : new Date(startTime.getTime() + (match.duration_minutes || 60) * 60000);
+        
+        // If the match has ended, don't include it
+        if (endTime < now) {
+          console.log(`Filtering out ended match: ${match.id}, ${match.title}, ended at: ${endTime.toLocaleString()}`);
+          return false;
+        }
       }
 
       // Apply date range filter
@@ -1026,25 +1256,43 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           filters.dateRange === "today" &&
           (matchDate < today || matchDate >= tomorrow)
         ) {
+          if (isUserCreatedMatch) {
+            console.log(`User match ${match.id} filtered out - date not today: ${matchDate.toLocaleDateString()}`);
+          }
           return false;
         } else if (
           filters.dateRange === "tomorrow" &&
           (matchDate < tomorrow ||
             matchDate >= new Date(tomorrow.getTime() + 86400000))
         ) {
+          if (isUserCreatedMatch) {
+            console.log(`User match ${match.id} filtered out - date not tomorrow: ${matchDate.toLocaleDateString()}`);
+          }
           return false;
         } else if (
           filters.dateRange === "week" &&
           (matchDate < today || matchDate >= nextWeek)
         ) {
+          if (isUserCreatedMatch) {
+            console.log(`User match ${match.id} filtered out - date not within week: ${matchDate.toLocaleDateString()}`);
+          }
           return false;
         }
       }
 
       // Match passed all filters
+      if (isUserCreatedMatch) {
+        console.log(`User-created match ${match.id} passed all filters`);
+      }
       return true;
-    });
-  }, [matches, selectedSportFilter, filters]);
+    }).map((match) => ({
+      ...match,
+      // Mark as updated if it's new or recently modified
+      isUpdated:
+        match.created_at &&
+        new Date(match.created_at) > new Date(Date.now() - 10 * 60 * 1000) // Created in last 10 minutes
+    }));
+  }, [matches, selectedSportFilter, filters, viewMode, listViewSportFilter, locationFilter, user, userCreatedMatches]);
 
   // Handle filter change
   const handleFilterChange = (event) => {
@@ -1067,6 +1315,9 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
 
   // Reset filters to default
   const handleResetFilters = () => {
+    console.log("Resetting all filters to default values");
+    
+    // Reset all filters
     setFilters({
       skillLevel: "all",
       minSpots: 1,
@@ -1075,6 +1326,19 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       showFull: false,
       dateRange: "all",
     });
+    
+    // Reset sport filters
+    setListViewSportFilter([]);
+    
+    // Reset location filter
+    setLocationFilter(null);
+    
+    console.log("All filters have been reset to default values");
+    
+    // Close filter panel if it's open
+    if (showFilters) {
+      setShowFilters(false);
+    }
   };
 
   // Render recommendation card (similar to match card but with recommendation details)
@@ -1094,8 +1358,9 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
     // Determine match status
     const isFull = spotsAvailable <= 0;
     const isAboutToFill = spotsAvailable <= 2 && !isFull;
-    const isJoined = match.is_joined;
-    const joinStatus = match.join_status || null;
+    const userParticipation = userParticipations[match.id];
+    const isJoined = userParticipation?.status === 'confirmed' || userParticipation?.status === 'pending';
+    const joinStatus = userParticipation?.status || null;
     const isLoading = joinLoading[match.id] || false;
     const skillLevel = match.skill_level || match.skillLevel || "Intermediate";
     // Check if the current user is the host of this match
@@ -1315,7 +1580,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                 color={joinStatus === "pending" ? "warning" : "error"}
                 size="small"
                 fullWidth
-                disabled={isLoading}
+                disabled={joinStatus === "pending" || isLoading}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleLeaveMatch(match);
@@ -1326,7 +1591,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                 {isLoading
                   ? "Processing..."
                   : joinStatus === "pending"
-                    ? "Cancel Request"
+                    ? "Requested"
                     : "Leave Match"}
               </Button>
             ) : (
@@ -1376,8 +1641,9 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
     // Determine match status
     const isFull = spotsAvailable <= 0;
     const isAboutToFill = spotsAvailable <= 2 && !isFull;
-    const isJoined = match.is_joined;
-    const joinStatus = match.join_status || null;
+    const userParticipation = userParticipations[match.id];
+    const isJoined = userParticipation?.status === 'confirmed' || userParticipation?.status === 'pending';
+    const joinStatus = userParticipation?.status || null;
     const isLoading = joinLoading[match.id] || false;
     const skillLevel = match.skill_level || match.skillLevel || "Intermediate";
     // Check if the current user is the host of this match
@@ -1409,12 +1675,26 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           display: "flex",
           flexDirection: "column",
           borderRadius: 3,
-          transition: "all 0.3s ease-in-out",
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           position: "relative",
           overflow: "visible",
+          cursor: "pointer",
+          border: "1px solid",
+          borderColor: "divider",
+          background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
           "&:hover": {
-            transform: "translateY(-8px)",
-            boxShadow: 6,
+            transform: "translateY(-12px) scale(1.02)",
+            boxShadow: "0 20px 40px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.08)",
+            borderColor: "primary.main",
+            "& .card-sport-chip": {
+              transform: "scale(1.05)",
+            },
+            "& .card-title": {
+              color: "primary.main",
+            },
+          },
+          "&:active": {
+            transform: "translateY(-8px) scale(1.01)",
           },
           ...(match.isUpdated && {
             animation: "pulse 2s",
@@ -1425,6 +1705,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
             },
           }),
         }}
+        onClick={() => navigate(`/match/${match.id}`)}
       >
         {/* New indicator badge */}
         {isNew && (
@@ -1466,11 +1747,19 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
             }}
           >
             <Chip
+              className="card-sport-chip"
               icon={getSportIcon(match.sport?.name || "")}
               label={match.sport?.name || "Sport"}
               size="small"
               color="primary"
               variant="filled"
+              sx={{
+                transition: "all 0.2s ease-in-out",
+                fontWeight: 600,
+                "& .MuiChip-icon": {
+                  fontSize: "1.1rem",
+                },
+              }}
             />
 
             {/* Private/Public indicator */}
@@ -1492,7 +1781,19 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           </Box>
 
           {/* Match title */}
-          <Typography variant="h6" component="h2" gutterBottom>
+          <Typography
+            className="card-title"
+            variant="h6"
+            component="h2"
+            gutterBottom
+            sx={{
+              fontWeight: 700,
+              fontSize: "1.2rem",
+              lineHeight: 1.3,
+              transition: "color 0.2s ease-in-out",
+              mb: 2,
+            }}
+          >
             {match.title || "Untitled Match"}
           </Typography>
 
@@ -1564,15 +1865,18 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                 variant="determinate"
                 value={fillPercentage}
                 sx={{
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: "rgba(0,0,0,0.05)",
+                  height: 10,
+                  borderRadius: 5,
+                  backgroundColor: "rgba(0,0,0,0.08)",
+                  boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)",
                   "& .MuiLinearProgress-bar": {
                     backgroundColor: isFull
                       ? "error.main"
                       : isAboutToFill
                         ? "warning.main"
                         : "success.main",
+                    borderRadius: 5,
+                    transition: "all 0.3s ease-in-out",
                   },
                 }}
               />
@@ -1597,18 +1901,30 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           )}
         </CardContent>
 
-        <CardActions sx={{ flexDirection: "column", gap: 1, p: 2 }}>
+        <CardActions sx={{
+          flexDirection: "column",
+          gap: 1.5,
+          p: 2,
+          borderTop: "1px solid",
+          borderColor: "divider",
+          backgroundColor: "rgba(0,0,0,0.02)",
+        }}>
           {/* Join/Leave match button */}
           {user &&
             (isUserHost ? (
               <Button
                 variant="contained"
                 color="secondary"
-                size="small"
+                size="medium"
                 fullWidth
                 startIcon={<PersonIcon />}
                 disabled
-                sx={{ mb: 1 }}
+                sx={{
+                  mb: 1,
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  textTransform: "none",
+                }}
               >
                 You're Hosting
               </Button>
@@ -1616,28 +1932,56 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
               <Button
                 variant="outlined"
                 color={joinStatus === "pending" ? "warning" : "error"}
-                size="small"
+                size="medium"
                 fullWidth
-                disabled={isLoading}
-                onClick={() => handleLeaveMatch(match)}
+                disabled={joinStatus === "pending" || isLoading}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLeaveMatch(match);
+                }}
                 startIcon={isLoading ? <CircularProgress size={20} /> : null}
-                sx={{ mb: 1 }}
+                sx={{
+                  mb: 1,
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  textTransform: "none",
+                  transition: "all 0.2s ease-in-out",
+                  "&:hover": {
+                    transform: joinStatus === "pending" ? "none" : "scale(1.02)",
+                  },
+                }}
               >
                 {isLoading
                   ? "Processing..."
                   : joinStatus === "pending"
-                    ? "Cancel Request"
+                    ? "Requested"
                     : "Leave Match"}
               </Button>
             ) : (
               <Button
                 variant="contained"
-                size="small"
+                size="medium"
                 color={isFull ? "inherit" : "primary"}
                 fullWidth
                 disabled={isFull || isLoading}
-                onClick={() => handleJoinMatch(match)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleJoinMatch(match);
+                }}
                 startIcon={isLoading ? <CircularProgress size={20} /> : null}
+                sx={{
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  textTransform: "none",
+                  transition: "all 0.2s ease-in-out",
+                  "&:hover": {
+                    transform: "scale(1.02)",
+                    boxShadow: 3,
+                  },
+                  "&:disabled": {
+                    backgroundColor: "grey.300",
+                  },
+                }}
               >
                 {isLoading
                   ? "Processing..."
@@ -1649,10 +1993,24 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
 
           <Button
             variant="outlined"
-            size="small"
+            size="medium"
             fullWidth
             startIcon={<AccessTimeIcon />}
-            onClick={() => navigate(`/match/${match.id}`)}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/match/${match.id}`);
+            }}
+            sx={{
+              fontWeight: 500,
+              borderRadius: 2,
+              textTransform: "none",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                backgroundColor: "primary.main",
+                color: "white",
+                transform: "scale(1.02)",
+              },
+            }}
           >
             View Details
           </Button>
@@ -1698,16 +2056,20 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         <>
                       {/* Sports filter chips */}
             <Box sx={{ mb: 3, display: "flex", flexWrap: "wrap", gap: 1 }}>
-              {sportFilters.map((sport) => (
+              <Chip
+                key="all"
+                icon={<SportsIcon />}
+                label="All Sports"
+                color={listViewSportFilter.length === 0 ? "primary" : "default"}
+                onClick={() => handleSportFilterChange("all")}
+                sx={{ mb: { xs: 1, md: 0 } }}
+              />
+              {sportFilters.slice(1).map((sport) => (
                 <Chip
                   key={sport.id}
                   icon={sport.icon}
                   label={sport.name}
-                  color={
-                    sport.id === "all" 
-                      ? listViewSportFilter.length === 0 ? "primary" : "default"
-                      : listViewSportFilter.includes(sport.id) ? "primary" : "default"
-                  }
+                  color={listViewSportFilter.includes(sport.id) ? "primary" : "default"}
                   onClick={() => handleSportFilterChange(sport.id)}
                   sx={{ mb: { xs: 1, md: 0 } }}
                 />
@@ -1814,22 +2176,28 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                 </Grid>
               </Grid>
 
-              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-                <Button
-                  size="small"
-                  onClick={handleResetFilters}
-                  sx={{ mr: 1 }}
-                >
-                  Reset Filters
-                </Button>
-                <Button
-                  size="small"
-                  variant="contained"
-                  onClick={() => setShowFilters(false)}
-                >
-                  Apply Filters
-                </Button>
-              </Box>
+                              <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Filters apply to all matches, including your own
+                  </Typography>
+                  <Box>
+                    <Button
+                      size="small"
+                      onClick={handleResetFilters}
+                      sx={{ mr: 1 }}
+                      startIcon={<RefreshIcon />}
+                    >
+                      Reset All Filters
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => setShowFilters(false)}
+                    >
+                      Apply Filters
+                    </Button>
+                  </Box>
+                </Box>
             </Paper>
           </Collapse>
         </>
@@ -2415,7 +2783,7 @@ const MapView = ({
     
     // Don't propagate filter changes to parent component anymore
     // This keeps map view filters isolated from other views
-    console.log('Map view filter changed to:', sportId);
+      console.log('Map view filter changed to:', sportId);
   };
   
   // Map style options with direct URLs
@@ -3049,51 +3417,6 @@ const MapView = ({
           />
           <ZoomControl position="bottomright" />
           
-          {/* Map Tile Selector */}
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 10,
-              right: 10,
-              zIndex: 1000,
-              backgroundColor: 'rgba(255, 255, 255, 0.8)',
-              borderRadius: 1,
-              p: 0.5,
-              boxShadow: 1,
-            }}
-          >
-            <ButtonGroup size="small" variant="outlined">
-              <Button 
-                onClick={() => setSelectedTileProvider('default')}
-                variant={selectedTileProvider === 'default' ? 'contained' : 'outlined'}
-                size="small"
-              >
-                Standard
-              </Button>
-              <Button 
-                onClick={() => setSelectedTileProvider('terrain')}
-                variant={selectedTileProvider === 'terrain' ? 'contained' : 'outlined'}
-                size="small"
-              >
-                Terrain
-              </Button>
-              <Button 
-                onClick={() => setSelectedTileProvider('topo')}
-                variant={selectedTileProvider === 'topo' ? 'contained' : 'outlined'}
-                size="small"
-              >
-                Topo
-              </Button>
-              <Button 
-                onClick={() => setSelectedTileProvider('satellite')}
-                variant={selectedTileProvider === 'satellite' ? 'contained' : 'outlined'}
-                size="small"
-              >
-                Satellite
-              </Button>
-            </ButtonGroup>
-          </Box>
-          
           <SetViewOnLocation 
             center={mapCenter} 
             bounds={mapBounds} 
@@ -3387,13 +3710,13 @@ const SetViewOnLocation = ({ center, bounds, selectedSportId, venueCoordinates, 
           lastAnimationRef.current = now;
           
           // Use smoother animation with slightly longer duration
-          map.flyTo([lat, lng], 17, {
-            animate: true,
+        map.flyTo([lat, lng], 17, {
+          animate: true,
             duration: 2.0,
             easeLinearity: 0.25
-          });
-          
-          console.log(`Navigated to sport facility for ${selectedSportId} at ${lat},${lng}`);
+        });
+        
+        console.log(`Navigated to sport facility for ${selectedSportId} at ${lat},${lng}`);
         }
       }
     }
@@ -3684,39 +4007,8 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
     sport.id === selectedSport
   ) || sportFilters?.[0] || { id: 'all', name: 'All Sports' };
 
-  // Add effect to open popup for active venue when it changes
-  useEffect(() => {
-    if (activePopupVenue && activeMarkerRef.current) {
-      // Open the popup for the active marker
-      activeMarkerRef.current.openPopup();
-      console.log(`Opened popup for venue: ${activePopupVenue.name}`);
-    }
-  }, [activePopupVenue]);
-
-  // Add effect to sync activePopupVenue with currentVenueIndex
-  useEffect(() => {
-    if (sportVenues.length > 0 && currentVenueIndex >= 0 && currentVenueIndex < sportVenues.length) {
-      // When currentVenueIndex changes, update activePopupVenue to match
-      const currentVenue = sportVenues[currentVenueIndex];
-      
-      // Only update if different to prevent loops
-      if (!activePopupVenue || activePopupVenue.id !== currentVenue.id) {
-        console.log(`Updating active popup venue to match currentVenueIndex: ${currentVenue.name}`);
-        setActivePopupVenue(currentVenue);
-      }
-    }
-  }, [currentVenueIndex, sportVenues]);
-
-  // Create a function to expose activePopupVenue to child components
-  useEffect(() => {
-    // Make activePopupVenue available to the SetViewOnLocation component
-    window.activePopupVenue = activePopupVenue;
-    
-    // Cleanup function
-    return () => {
-      delete window.activePopupVenue;
-    };
-  }, [activePopupVenue]);
+  // These effects were removed as they referenced map-related variables
+  // that aren't available in the CalendarView component
 
   return (
     <Paper 
