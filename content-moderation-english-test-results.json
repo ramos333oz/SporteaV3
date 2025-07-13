@@ -1,0 +1,425 @@
+{
+  "timestamp": "2025-07-13T18:27:54.235Z",
+  "testSummary": {
+    "totalTests": 15,
+    "passedTests": 15,
+    "failedTests": 0,
+    "passRate": "100.0"
+  },
+  "testResults": [
+    {
+      "id": 1,
+      "description": "Basic English profanity - 'shit'",
+      "title": "Basketball Game",
+      "content": "This game is going to be shit if we don't practice",
+      "expectedRisk": "high",
+      "actualRisk": "high",
+      "overallScore": 0.6,
+      "category": "english_profanity",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.6,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "shit"
+          ],
+          "details": "Fallback detection: 0.60"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 2,
+      "description": "Strong English profanity - 'fuck'",
+      "title": "Football Match",
+      "content": "Fuck this, I'm not playing with these losers",
+      "expectedRisk": "high",
+      "actualRisk": "high",
+      "overallScore": 0.8999999999999999,
+      "category": "english_strong_profanity",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.8999999999999999,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "fuck",
+            "loser"
+          ],
+          "details": "Fallback detection: 0.90"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 3,
+      "description": "Threatening language - 'kill'",
+      "title": "Tennis Tournament",
+      "content": "I'm going to kill you in this match",
+      "expectedRisk": "high",
+      "actualRisk": "high",
+      "overallScore": 1,
+      "category": "english_threats",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 1,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "kill",
+            "kill"
+          ],
+          "details": "Fallback detection: 1.00"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 4,
+      "description": "Sexual inappropriate content",
+      "title": "Gym Session",
+      "content": "Check out her tits during the workout, so hot",
+      "expectedRisk": "high",
+      "actualRisk": "high",
+      "overallScore": 0.6,
+      "category": "english_sexual",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.6,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "tits"
+          ],
+          "details": "Fallback detection: 0.60"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 5,
+      "description": "Sports competitive terms - should be whitelisted",
+      "title": "Basketball Championship",
+      "content": "We will crush and dominate the opponent team",
+      "expectedRisk": "minimal",
+      "actualRisk": "low",
+      "overallScore": 0.2,
+      "category": "sports_competitive",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.2,
+          "confidence": "medium",
+          "flaggedKeywords": [
+            "crush_sports_context",
+            "dominate_sports_context"
+          ],
+          "details": "Fallback detection: 0.20"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 6,
+      "description": "Clean English sports content",
+      "title": "Basketball Training",
+      "content": "Join us for basketball training every Tuesday at 7 PM",
+      "expectedRisk": "minimal",
+      "actualRisk": "minimal",
+      "overallScore": 0,
+      "category": "clean_english",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0,
+          "confidence": "medium",
+          "flaggedKeywords": [],
+          "details": "Fallback detection: 0.00"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 7,
+      "description": "Discriminatory content",
+      "title": "Volleyball Game",
+      "content": "Don't want to play with those retards and freaks",
+      "expectedRisk": "high",
+      "actualRisk": "high",
+      "overallScore": 0.7,
+      "category": "english_discrimination",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.7,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "retard",
+            "freak"
+          ],
+          "details": "Fallback detection: 0.70"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 8,
+      "description": "Hate speech content",
+      "title": "Swimming Practice",
+      "content": "You guys are so stupid and pathetic at swimming",
+      "expectedRisk": "medium",
+      "actualRisk": "high",
+      "overallScore": 0.7,
+      "category": "english_hate_speech",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.7,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "stupid",
+            "pathetic"
+          ],
+          "details": "Fallback detection: 0.70"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 9,
+      "description": "Drug-related content",
+      "title": "Football Match",
+      "content": "After the game let's smoke some weed together",
+      "expectedRisk": "high",
+      "actualRisk": "high",
+      "overallScore": 0.6,
+      "category": "english_drugs",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.6,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "weed"
+          ],
+          "details": "Fallback detection: 0.60"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 10,
+      "description": "Excessive capitalization spam",
+      "title": "TENNIS GAME",
+      "content": "COME PLAY TENNIS WITH US NOW!!!!! BEST GAME EVER!!!!",
+      "expectedRisk": "low",
+      "actualRisk": "low",
+      "overallScore": 0.2,
+      "category": "english_caps",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.2,
+          "confidence": "medium",
+          "flaggedKeywords": [
+            "repeated_chars"
+          ],
+          "details": "Fallback detection: 0.20"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 11,
+      "description": "URL spam content",
+      "title": "Basketball Game",
+      "content": "Visit www.example.com for the best basketball gear",
+      "expectedRisk": "medium",
+      "actualRisk": "medium",
+      "overallScore": 0.4,
+      "category": "english_spam",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.4,
+          "confidence": "medium",
+          "flaggedKeywords": [
+            "external_links"
+          ],
+          "details": "Fallback detection: 0.40"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 12,
+      "description": "Multiple English profanity words",
+      "title": "Volleyball Tournament",
+      "content": "This fucking shit game is so damn stupid",
+      "expectedRisk": "high",
+      "actualRisk": "high",
+      "overallScore": 1,
+      "category": "english_multiple_profanity",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 1,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "fuck",
+            "shit",
+            "damn",
+            "stupid"
+          ],
+          "details": "Fallback detection: 1.00"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 13,
+      "description": "Borderline English content - competitive but acceptable",
+      "title": "Rugby Match",
+      "content": "We will beat the competition in this rugby match",
+      "expectedRisk": "minimal",
+      "actualRisk": "minimal",
+      "overallScore": 0.1,
+      "category": "english_borderline",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.1,
+          "confidence": "medium",
+          "flaggedKeywords": [
+            "beat_sports_context"
+          ],
+          "details": "Fallback detection: 0.10"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 14,
+      "description": "Subtle inappropriate English content",
+      "title": "Tennis Game",
+      "content": "You guys really suck at tennis, so awful",
+      "expectedRisk": "medium",
+      "actualRisk": "high",
+      "overallScore": 0.6,
+      "category": "english_mild_inappropriate",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.6,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "suck",
+            "awful"
+          ],
+          "details": "Fallback detection: 0.60"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 15,
+      "description": "Extreme English profanity",
+      "title": "Football Game",
+      "content": "Motherfucker, this is the worst fucking game ever",
+      "expectedRisk": "high",
+      "actualRisk": "high",
+      "overallScore": 1,
+      "category": "english_extreme_profanity",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 1,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "fuck",
+            "motherfucker",
+            "worst"
+          ],
+          "details": "Fallback detection: 1.00"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    }
+  ]
+}

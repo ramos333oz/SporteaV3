@@ -1999,9 +1999,6 @@ const ContentModerationTab = ({ adminUser }) => {
                             <Typography variant="caption">
                               Toxic: {(item.inappropriate_score * 100).toFixed(1)}%
                             </Typography>
-                            <Typography variant="caption">
-                              Consistency: {(item.consistency_score * 100).toFixed(1)}%
-                            </Typography>
                           </Box>
                         </Grid>
                         <Grid item xs={12} md={3}>

@@ -176,43 +176,93 @@ async function moderateContentFallback(title, description, matchData = {}) {
   let toxicScore = 0;
   const flaggedKeywords = [];
 
-  // Basic inappropriate keywords
+  // Enhanced inappropriate keywords with comprehensive Malay support
   const inappropriateKeywords = [
+    // English basic
     'spam', 'promotion', 'advertisement', 'buy', 'sell', 'money',
-    'inappropriate', 'offensive', 'hate', 'discrimination', 'fuck', 'shit'
+    'inappropriate', 'offensive', 'hate', 'discrimination', 'fuck', 'shit',
+
+    // Malay profanity (High severity)
+    'bodoh', 'tolol', 'gila', 'sial', 'celaka', 'bangsat', 'babi', 'anjing',
+    'pukimak', 'kimak', 'lancau', 'pantat', 'tetek', 'pepek', 'puki',
+
+    // Threatening language - Malay (High severity)
+    'bunuh', 'mati', 'hancur', 'sakiti', 'serang', 'mampus',
+
+    // Drug references - Malay (High severity)
+    'dadah', 'ganja', 'syabu', 'pil', 'ekstasi',
+
+    // Discriminatory - Malay (High severity)
+    'bangsa', 'kaum', 'racist', 'perkauman', 'diskriminasi',
+
+    // Religious inappropriate - Malay (Medium severity)
+    'setan', 'syaitan', 'kafir', 'munafik', 'dosa', 'neraka', 'terkutuk'
+  ];
+
+  // Define high-severity keywords for weighted scoring
+  const highSeverityKeywords = [
+    'pukimak', 'kimak', 'bunuh', 'mati', 'dadah', 'ganja', 'tetek', 'pepek', 'puki',
+    'fuck', 'shit', 'bangsa', 'racist', 'perkauman', 'diskriminasi'
+  ];
+
+  const mediumSeverityKeywords = [
+    'bodoh', 'sial', 'celaka', 'hancur', 'sakiti', 'serang', 'pantat',
+    'setan', 'syaitan', 'kafir', 'hate', 'discrimination'
   ];
 
   for (const keyword of inappropriateKeywords) {
     if (content.includes(keyword)) {
-      toxicScore += 0.3;
+      // Apply weighted scoring based on severity
+      if (highSeverityKeywords.includes(keyword)) {
+        toxicScore += 0.6; // High severity
+      } else if (mediumSeverityKeywords.includes(keyword)) {
+        toxicScore += 0.4; // Medium severity
+      } else {
+        toxicScore += 0.3; // Standard severity
+      }
       flaggedKeywords.push(keyword);
     }
   }
 
-  // Check for excessive capitalization
-  const capsRatio = (content.match(/[A-Z]/g) || []).length / content.length;
-  if (capsRatio > 0.5) {
-    toxicScore += 0.2;
+  // Check for excessive capitalization (improved detection)
+  const nonSpaceContent = content.replace(/\s/g, '');
+  const capsRatio = (content.match(/[A-Z]/g) || []).length / nonSpaceContent.length;
+  if (capsRatio > 0.3 && nonSpaceContent.length > 10) {
+    toxicScore += 0.3;
     flaggedKeywords.push('excessive_caps');
+  }
+
+  // Check for repeated characters (spam pattern)
+  if (/(.)\1{3,}/.test(content)) {
+    toxicScore += 0.2;
+    flaggedKeywords.push('repeated_chars');
+  }
+
+  // Check for mixed language violations (English + Malay profanity)
+  const hasEnglishProfanity = ['fuck', 'shit', 'damn'].some(word => content.includes(word));
+  const hasMalayProfanity = ['bodoh', 'sial', 'gila', 'pukimak'].some(word => content.includes(word));
+  if (hasEnglishProfanity && hasMalayProfanity) {
+    toxicScore += 0.2;
+    flaggedKeywords.push('mixed_language_violation');
   }
 
   // Normalize score
   toxicScore = Math.min(toxicScore, 1.0);
 
-  // Determine risk level
+  // Determine risk level with improved thresholds
   let riskLevel, action, requiresReview, autoApproved;
 
-  if (toxicScore >= 0.8) {
+  if (toxicScore >= 0.6) { // Lowered from 0.8
     riskLevel = 'high';
     action = 'auto_reject';
     requiresReview = true;
     autoApproved = false;
-  } else if (toxicScore >= 0.5) {
+  } else if (toxicScore >= 0.3) { // Lowered from 0.5
     riskLevel = 'medium';
     action = 'manual_review';
     requiresReview = true;
     autoApproved = false;
-  } else if (toxicScore >= 0.2) {
+  } else if (toxicScore >= 0.15) { // Lowered from 0.2
     riskLevel = 'low';
     action = 'auto_approve_monitor';
     requiresReview = false;

@@ -274,29 +274,48 @@ const SPORTS_KEYWORDS = {
 /**
  * Enhanced toxic content detection with Malay language support
  * Includes sports context awareness to prevent false positives
+ * EDUCATIONAL ENVIRONMENT: Stricter scoring for university setting
  */
 async function detectToxicContent(text: string): Promise<{ score: number, flagged: string[] }> {
   const toxicPatterns = [
-    // English explicit profanity (High severity)
-    /\b(fuck|shit|damn|hell|bitch|asshole|bastard|cunt)\b/gi,
+    // English explicit profanity (VERY HIGH severity - educational environment)
+    /\b(fuck|fucking|shit|damn|hell|bitch|asshole|bastard|cunt)\b/gi,
 
-    // Malay explicit profanity (High severity)
-    /\b(puki|pantat|bodoh|bangsat|sial|celaka|keparat)\b/gi,
+    // Malay explicit profanity (VERY HIGH severity - educational environment)
+    /\b(puki|pukimak|pantat|bodoh|bangsat|sial|celaka|keparat|babi|kontol|anjing)\b/gi,
 
-    // English hate speech (Medium severity)
+    // English hate speech (HIGH severity - educational environment)
     /\b(hate|stupid|idiot|loser|suck|terrible|awful|worst|pathetic)\b/gi,
 
-    // Malay hate speech (Medium severity)
-    /\b(benci|tolol|gila|teruk|busuk|sampah|hina)\b/gi,
+    // Malay hate speech (HIGH severity - educational environment)
+    /\b(benci|tolol|gila|teruk|busuk|sampah|hina|jir|anak)\b/gi,
 
-    // Threatening language - English (High severity)
+    // Threatening language - English (VERY HIGH severity)
     /\b(kill|murder|destroy|hurt|harm|attack|die|death)\b/gi,
 
-    // Threatening language - Malay (High severity)
+    // Threatening language - Malay (VERY HIGH severity)
     /\b(bunuh|mati|hancur|sakiti|serang|mampus)\b/gi,
 
-    // Discriminatory language (Medium severity)
-    /\b(retard|disabled|handicapped|freak|weirdo)\b/gi
+    // Discriminatory language (HIGH severity - educational environment)
+    /\b(retard|disabled|handicapped|freak|weirdo)\b/gi,
+
+    // Sexual content - English (VERY HIGH severity - educational environment)
+    /\b(sex|porn|nude|naked|breast|penis|vagina|dick|pussy|cock|tits|ass|boobs)\b/gi,
+
+    // Sexual content - Malay (VERY HIGH severity - educational environment)
+    /\b(tetek|pepek|memek|telanjang|bogel|seks)\b/gi,
+
+    // Drug references - English (VERY HIGH severity - educational environment)
+    /\b(drug|cocaine|heroin|marijuana|weed|ganja|ecstasy|meth|cannabis|dope|pot|hash)\b/gi,
+
+    // Drug references - Malay (VERY HIGH severity - educational environment)
+    /\b(dadah|ganja|syabu|pil|ekstasi|ubat|hisap|isap|rokok)\b/gi,
+
+    // Discriminatory language - Malay (VERY HIGH severity - educational environment)
+    /\b(bangsa|kaum|racist|perkauman|diskriminasi|benci|rasis)\b/gi,
+
+    // Religious inappropriate - Malay (HIGH severity - educational environment)
+    /\b(setan|syaitan|kafir|munafik|dosa|neraka|terkutuk)\b/gi
   ]
 
   // Sports context whitelist - competitive terms that are acceptable in sports
@@ -334,9 +353,21 @@ async function detectToxicContent(text: string): Promise<{ score: number, flagge
       }
 
       if (validMatches.length > 0) {
-        // Severity scoring
-        const severity = pattern.source.includes('kill|murder|bunuh|mati') ? 0.4 :
-                        pattern.source.includes('fuck|puki|pantat') ? 0.3 : 0.2
+        // EDUCATIONAL ENVIRONMENT: Stricter severity scoring
+        let severity = 0.2 // Default severity
+
+        // VERY HIGH severity (0.5 each) - explicit profanity, sexual, drugs, threats
+        if (pattern.source.includes('fuck|fucking|shit|puki|pukimak|babi|kontol|anjing|sex|porn|drug|kill|murder|bunuh|mati')) {
+          severity = 0.5
+        }
+        // HIGH severity (0.35 each) - hate speech, discrimination
+        else if (pattern.source.includes('hate|stupid|idiot|benci|tolol|racist|perkauman|retard|jir|anak')) {
+          severity = 0.35
+        }
+        // MEDIUM severity (0.25 each) - mild inappropriate language
+        else if (pattern.source.includes('terrible|awful|worst|pathetic|teruk|busuk')) {
+          severity = 0.25
+        }
 
         score += validMatches.length * severity
         flagged.push(...validMatches.map(m => m.toLowerCase()))
@@ -344,9 +375,21 @@ async function detectToxicContent(text: string): Promise<{ score: number, flagge
     }
   }
 
+  // EDUCATIONAL ENVIRONMENT: Multiple profanity escalation
+  const explicitWords = flagged.filter(word =>
+    ['fuck', 'fucking', 'shit', 'puki', 'pukimak', 'babi', 'kontol', 'anjing', 'jir', 'anak', 'bitch', 'asshole', 'bastard', 'cunt'].includes(word)
+  )
+
+  // Escalate score for multiple explicit profanity (educational environment)
+  if (explicitWords.length >= 2) {
+    score += 0.3 // Significant boost for multiple explicit words
+    console.log(`[Toxicity] Multiple explicit profanity detected (${explicitWords.length} words), boosting score by 0.3`)
+  }
+
   // Normalize score to 0-1 range
   score = Math.min(score, 1.0)
 
+  console.log(`[Toxicity] Final toxic score: ${score.toFixed(4)}, flagged words: [${flagged.join(', ')}]`)
   return { score, flagged: [...new Set(flagged)] }
 }
 
@@ -613,18 +656,18 @@ serve(async (req) => {
       // Use default settings if database fetch fails
       console.log('[Settings] Using default ML-enabled settings as fallback')
       const defaultSettings: ModerationSettings = {
-        high_risk_threshold: 0.8,
-        medium_risk_threshold: 0.5,
-        low_risk_threshold: 0.2,
+        high_risk_threshold: 0.4,  // Lowered for educational environment
+        medium_risk_threshold: 0.25, // Lowered for educational environment
+        low_risk_threshold: 0.1,   // Lowered for educational environment
         auto_reject_high_risk: true,
         auto_approve_minimal_risk: true,
         toxic_model_weight: 1.0,
         consistency_model_weight: 0.0,
         sports_validation_weight: 0.0,
         moderation_enabled: true,
-        strict_mode: false,
+        strict_mode: true,  // Enable strict mode for educational environment
         ml_enabled: true,
-        ml_confidence_threshold: 0.7,
+        ml_confidence_threshold: 0.5, // Lowered for more sensitive detection
         ml_timeout_ms: 5000,
         ml_primary_model: 'unitary/toxic-bert',
         ml_fallback_model: 'martin-ha/toxic-comment-model',

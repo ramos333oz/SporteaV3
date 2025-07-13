@@ -1,0 +1,422 @@
+{
+  "timestamp": "2025-07-13T18:20:54.437Z",
+  "testSummary": {
+    "totalTests": 15,
+    "passedTests": 15,
+    "failedTests": 0,
+    "passRate": "100.0"
+  },
+  "testResults": [
+    {
+      "id": 1,
+      "description": "Basic Malay profanity - 'bodoh'",
+      "title": "Basketball Game",
+      "content": "Jom main basketball, jangan jadi bodoh sangat",
+      "expectedRisk": "medium",
+      "actualRisk": "medium",
+      "overallScore": 0.4,
+      "category": "malay_profanity",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.4,
+          "confidence": "medium",
+          "flaggedKeywords": [
+            "bodoh"
+          ],
+          "details": "Fallback detection: 0.40"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 2,
+      "description": "Strong Malay profanity - 'pukimak'",
+      "title": "Football Match",
+      "content": "Pukimak la korang ni, main football tak reti",
+      "expectedRisk": "high",
+      "actualRisk": "high",
+      "overallScore": 1,
+      "category": "malay_profanity",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 1,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "pukimak",
+            "kimak",
+            "puki"
+          ],
+          "details": "Fallback detection: 1.00"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 3,
+      "description": "Threatening language - 'bunuh'",
+      "title": "Tennis Tournament",
+      "content": "Aku nak bunuh korang dalam game ni",
+      "expectedRisk": "high",
+      "actualRisk": "high",
+      "overallScore": 0.6,
+      "category": "malay_threats",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.6,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "bunuh"
+          ],
+          "details": "Fallback detection: 0.60"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 4,
+      "description": "Mixed English-Malay profanity",
+      "title": "Badminton Game",
+      "content": "This game is fucking bodoh la",
+      "expectedRisk": "high",
+      "actualRisk": "high",
+      "overallScore": 1,
+      "category": "mixed_language",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 1,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "fuck",
+            "bodoh",
+            "mixed_language_violation"
+          ],
+          "details": "Fallback detection: 1.00"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 5,
+      "description": "Sports competitive terms - should be whitelisted",
+      "title": "Basketball Championship",
+      "content": "We will crush the opponent team in basketball",
+      "expectedRisk": "minimal",
+      "actualRisk": "minimal",
+      "overallScore": 0.1,
+      "category": "sports_competitive",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.1,
+          "confidence": "medium",
+          "flaggedKeywords": [
+            "crush_sports_context"
+          ],
+          "details": "Fallback detection: 0.10"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 6,
+      "description": "Clean Malay sports content",
+      "title": "Permainan Bola Sepak",
+      "content": "Jom main bola sepak di padang UiTM. Semua boleh join!",
+      "expectedRisk": "minimal",
+      "actualRisk": "minimal",
+      "overallScore": 0,
+      "category": "clean_malay",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0,
+          "confidence": "medium",
+          "flaggedKeywords": [],
+          "details": "Fallback detection: 0.00"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 7,
+      "description": "Malay discriminatory content",
+      "title": "Volleyball Game",
+      "content": "Tak nak main dengan bangsa lain, gila betul",
+      "expectedRisk": "high",
+      "actualRisk": "high",
+      "overallScore": 0.8999999999999999,
+      "category": "malay_discrimination",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.8999999999999999,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "gila",
+            "bangsa"
+          ],
+          "details": "Fallback detection: 0.90"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 8,
+      "description": "Subtle inappropriate Malay content",
+      "title": "Swimming Practice",
+      "content": "Korang ni memang sial la, tak reti berenang",
+      "expectedRisk": "medium",
+      "actualRisk": "medium",
+      "overallScore": 0.4,
+      "category": "malay_mild_profanity",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.4,
+          "confidence": "medium",
+          "flaggedKeywords": [
+            "sial"
+          ],
+          "details": "Fallback detection: 0.40"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 9,
+      "description": "Malay sexual inappropriate content",
+      "title": "Gym Session",
+      "content": "Tengok tetek dia masa exercise, best gila",
+      "expectedRisk": "high",
+      "actualRisk": "high",
+      "overallScore": 0.8999999999999999,
+      "category": "malay_sexual",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.8999999999999999,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "gila",
+            "tetek"
+          ],
+          "details": "Fallback detection: 0.90"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 10,
+      "description": "Clean English sports content (control test)",
+      "title": "Basketball Training",
+      "content": "Join us for basketball training every Tuesday at 7 PM",
+      "expectedRisk": "minimal",
+      "actualRisk": "minimal",
+      "overallScore": 0,
+      "category": "clean_english",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0,
+          "confidence": "medium",
+          "flaggedKeywords": [],
+          "details": "Fallback detection: 0.00"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 11,
+      "description": "Malay content with excessive capitalization",
+      "title": "FUTSAL GAME",
+      "content": "JOMMMMM MAIN FUTSAL RAMAI RAMAI!!!",
+      "expectedRisk": "low",
+      "actualRisk": "low",
+      "overallScore": 0.2,
+      "category": "malay_caps",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.2,
+          "confidence": "medium",
+          "flaggedKeywords": [
+            "repeated_chars"
+          ],
+          "details": "Fallback detection: 0.20"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 12,
+      "description": "Malay drug-related content",
+      "title": "Football Match",
+      "content": "Lepas main bola jom hisap ganja sekali",
+      "expectedRisk": "high",
+      "actualRisk": "high",
+      "overallScore": 0.6,
+      "category": "malay_drugs",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.6,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "ganja"
+          ],
+          "details": "Fallback detection: 0.60"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 13,
+      "description": "Borderline Malay content - competitive but aggressive",
+      "title": "Rugby Match",
+      "content": "Kita akan hancurkan pasukan lawan dalam rugby ni",
+      "expectedRisk": "low",
+      "actualRisk": "low",
+      "overallScore": 0.2,
+      "category": "malay_borderline",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.2,
+          "confidence": "medium",
+          "flaggedKeywords": [
+            "hancur_sports_context",
+            "hancur_sports_context"
+          ],
+          "details": "Fallback detection: 0.20"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 14,
+      "description": "Malay religious inappropriate content",
+      "title": "Tennis Game",
+      "content": "Celaka betul korang ni, main tennis macam setan",
+      "expectedRisk": "medium",
+      "actualRisk": "high",
+      "overallScore": 0.8,
+      "category": "malay_religious",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 0.8,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "celaka",
+            "setan"
+          ],
+          "details": "Fallback detection: 0.80"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    },
+    {
+      "id": 15,
+      "description": "Multiple Malay profanity words",
+      "title": "Volleyball Tournament",
+      "content": "Bodoh gila babi korang ni main volleyball",
+      "expectedRisk": "high",
+      "actualRisk": "high",
+      "overallScore": 1,
+      "category": "malay_multiple_profanity",
+      "status": "Pass",
+      "details": {
+        "inappropriate": {
+          "score": 1,
+          "confidence": "high",
+          "flaggedKeywords": [
+            "bodoh",
+            "gila",
+            "babi"
+          ],
+          "details": "Fallback detection: 1.00"
+        }
+      },
+      "mlMetadata": {
+        "modelUsed": "rule-based-fallback",
+        "processingTime": 0,
+        "fallbackUsed": true,
+        "systemVersion": "test-v1.0"
+      }
+    }
+  ]
+}
