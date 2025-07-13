@@ -27,7 +27,15 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField
+  TextField,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  IconButton,
+  Paper
 } from '@mui/material';
 import {
   Dashboard,
@@ -43,7 +51,8 @@ import {
   Refresh,
   TrendingDown,
   Assessment,
-  Security
+  Security,
+  Menu as MenuIcon
 } from '@mui/icons-material';
 import {
   BarChart,
@@ -73,13 +82,26 @@ import {
 } from '../services/contentModerationService';
 import EnhancedReviewModal from '../components/admin/EnhancedReviewModal';
 
+// Sidebar width constants
+const DRAWER_WIDTH = 280;
+
 const AdminDashboard = () => {
-  const [currentTab, setCurrentTab] = useState(0);
+  const [currentSection, setCurrentSection] = useState('overview');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [adminUser, setAdminUser] = useState(null);
   const [analytics, setAnalytics] = useState({});
   const navigate = useNavigate();
+
+  // Navigation sections
+  const navigationSections = [
+    { id: 'overview', label: 'Overview', icon: <Dashboard /> },
+    { id: 'users', label: 'Users', icon: <People /> },
+    { id: 'matches', label: 'Matches', icon: <SportsScore /> },
+    { id: 'feedback', label: 'Feedback', icon: <Feedback /> },
+    { id: 'content-moderation', label: 'Content Moderation', icon: <Security /> }
+  ];
 
   useEffect(() => {
     checkAdminAuth();
@@ -89,7 +111,7 @@ const AdminDashboard = () => {
     if (adminUser) {
       loadAnalytics();
     }
-  }, [currentTab, adminUser]);
+  }, [currentSection, adminUser]);
 
   const checkAdminAuth = async () => {
     const user = localStorage.getItem('adminUser');
@@ -132,10 +154,18 @@ const AdminDashboard = () => {
 
   const loadAnalytics = async () => {
     try {
-      const endpoints = ['overview', 'recommendations', 'users', 'matches', 'feedback', 'moderation'];
-      const endpoint = endpoints[currentTab] || 'overview';
+      // Map section names to endpoints
+      const sectionToEndpoint = {
+        'overview': 'overview',
+        'users': 'users',
+        'matches': 'matches',
+        'feedback': 'feedback',
+        'content-moderation': 'moderation'
+      };
 
-      // Skip analytics loading for content moderation tab (it handles its own data)
+      const endpoint = sectionToEndpoint[currentSection] || 'overview';
+
+      // Skip analytics loading for content moderation section (it handles its own data)
       if (endpoint === 'moderation') {
         return;
       }
@@ -157,8 +187,6 @@ const AdminDashboard = () => {
     switch (endpoint) {
       case 'overview':
         return await loadOverviewData();
-      case 'recommendations':
-        return await loadRecommendationData();
       case 'feedback':
         return await loadFeedbackData();
       default:
@@ -193,32 +221,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const loadRecommendationData = async () => {
-    try {
-      const { data: feedbackData } = await supabase
-        .from('recommendation_feedback')
-        .select('feedback_type, final_score, algorithm_scores');
 
-      const totalFeedback = feedbackData?.length || 0;
-      const positiveFeedback = feedbackData?.filter(f => f.feedback_type === 'liked').length || 0;
-
-      return {
-        recommendations: {
-          totalFeedback,
-          overallSatisfaction: totalFeedback > 0 ? positiveFeedback / totalFeedback : 0,
-          averageScore: feedbackData?.reduce((sum, f) => sum + (f.final_score || 0), 0) / totalFeedback || 0,
-          algorithmPerformance: {
-            direct_preference: { likes: positiveFeedback, dislikes: totalFeedback - positiveFeedback },
-            collaborative_filtering: { likes: Math.floor(positiveFeedback * 0.8), dislikes: Math.floor((totalFeedback - positiveFeedback) * 0.8) },
-            activity_based: { likes: Math.floor(positiveFeedback * 0.6), dislikes: Math.floor((totalFeedback - positiveFeedback) * 0.6) }
-          }
-        }
-      };
-    } catch (error) {
-      console.error('Error loading recommendation data:', error);
-      return { recommendations: { message: 'Error loading data' } };
-    }
-  };
 
   const loadFeedbackData = async () => {
     try {
@@ -356,8 +359,12 @@ const AdminDashboard = () => {
     navigate('/admin/login');
   };
 
-  const handleTabChange = (event, newValue) => {
-    setCurrentTab(newValue);
+  const handleSectionChange = (sectionId) => {
+    setCurrentSection(sectionId);
+  };
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
   };
 
   if (loading) {
@@ -369,45 +376,165 @@ const AdminDashboard = () => {
   }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
-        <Toolbar>
-          <Dashboard sx={{ mr: 2 }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            SportEA Admin Dashboard
-          </Typography>
-          <Typography variant="body2" sx={{ mr: 2 }}>
-            Welcome, {adminUser?.fullName}
-          </Typography>
-          <Button color="inherit" onClick={handleLogout} startIcon={<Logout />}>
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Sidebar */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          width: sidebarOpen ? DRAWER_WIDTH : 80,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: sidebarOpen ? DRAWER_WIDTH : 80,
+            boxSizing: 'border-box',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            transition: 'width 0.3s ease',
+            overflowX: 'hidden'
+          },
+        }}
+      >
+        {/* Sidebar Header */}
+        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {sidebarOpen && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box
+                component="img"
+                src="/Sportea_logo/Sportea.png"
+                alt="Sportea Logo"
+                sx={{
+                  height: 40,
+                  width: 'auto',
+                  filter: 'brightness(0) invert(1)'
+                }}
+              />
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Admin Portal
+              </Typography>
+            </Box>
+          )}
+          <IconButton onClick={toggleSidebar} sx={{ color: 'white' }}>
+            <MenuIcon />
+          </IconButton>
+        </Box>
 
-      <Container maxWidth="xl" sx={{ mt: 3 }}>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+        <Divider sx={{ borderColor: 'rgba(255,255,255,0.2)' }} />
 
-        <Tabs value={currentTab} onChange={handleTabChange} sx={{ mb: 3 }}>
-          <Tab icon={<Dashboard />} label="Overview" />
-          <Tab icon={<TrendingUp />} label="Recommendations" />
-          <Tab icon={<People />} label="Users" />
-          <Tab icon={<SportsScore />} label="Matches" />
-          <Tab icon={<Feedback />} label="Feedback" />
-          <Tab icon={<Security />} label="Content Moderation" />
-        </Tabs>
+        {/* Navigation Items */}
+        <List sx={{ px: 1, py: 2 }}>
+          {navigationSections.map((section) => (
+            <ListItem key={section.id} disablePadding sx={{ mb: 1 }}>
+              <ListItemButton
+                onClick={() => handleSectionChange(section.id)}
+                sx={{
+                  borderRadius: 2,
+                  mx: 1,
+                  backgroundColor: currentSection === section.id ? 'rgba(255,255,255,0.2)' : 'transparent',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.1)',
+                  },
+                  minHeight: 48,
+                  justifyContent: sidebarOpen ? 'initial' : 'center',
+                  px: 2.5,
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: 0,
+                    mr: sidebarOpen ? 3 : 'auto',
+                    justifyContent: 'center',
+                    color: 'white'
+                  }}
+                >
+                  {section.icon}
+                </ListItemIcon>
+                {sidebarOpen && (
+                  <ListItemText
+                    primary={section.label}
+                    sx={{
+                      '& .MuiListItemText-primary': {
+                        fontWeight: currentSection === section.id ? 600 : 400
+                      }
+                    }}
+                  />
+                )}
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
 
-        {currentTab === 0 && <OverviewTab data={analytics.overview} />}
-        {currentTab === 1 && <RecommendationsTab data={analytics.recommendations} />}
-        {currentTab === 2 && <UsersTab data={analytics.users} adminUser={adminUser} />}
-        {currentTab === 3 && <MatchesTab data={analytics.matches} />}
-        {currentTab === 4 && <FeedbackTab data={analytics.feedback} />}
-        {currentTab === 5 && <ContentModerationTab adminUser={adminUser} />}
-      </Container>
+        {/* Logout Button */}
+        <Box sx={{ mt: 'auto', p: 2 }}>
+          <ListItemButton
+            onClick={handleLogout}
+            sx={{
+              borderRadius: 2,
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              '&:hover': {
+                backgroundColor: 'rgba(255,255,255,0.2)',
+              },
+              minHeight: 48,
+              justifyContent: sidebarOpen ? 'initial' : 'center',
+              px: 2.5,
+            }}
+          >
+            <ListItemIcon
+              sx={{
+                minWidth: 0,
+                mr: sidebarOpen ? 3 : 'auto',
+                justifyContent: 'center',
+                color: 'white'
+              }}
+            >
+              <Logout />
+            </ListItemIcon>
+            {sidebarOpen && (
+              <ListItemText primary="Logout" />
+            )}
+          </ListItemButton>
+        </Box>
+      </Drawer>
+
+      {/* Main Content */}
+      <Box component="main" sx={{ flexGrow: 1, bgcolor: '#f5f7f9' }}>
+        {/* Top Bar */}
+        <AppBar
+          position="static"
+          elevation={0}
+          sx={{
+            bgcolor: 'white',
+            color: 'text.primary',
+            borderBottom: '1px solid rgba(0,0,0,0.08)'
+          }}
+        >
+          <Toolbar>
+            <Typography variant="h5" component="div" sx={{ flexGrow: 1, fontWeight: 600, color: '#333' }}>
+              {navigationSections.find(s => s.id === currentSection)?.label || 'Dashboard'}
+            </Typography>
+            <Typography variant="body2" sx={{ mr: 2, color: 'text.secondary' }}>
+              Welcome, {adminUser?.fullName}
+            </Typography>
+            <Avatar sx={{ bgcolor: 'primary.main' }}>
+              {adminUser?.fullName?.charAt(0) || 'A'}
+            </Avatar>
+          </Toolbar>
+        </AppBar>
+
+        {/* Content Area */}
+        <Container maxWidth="xl" sx={{ py: 4 }}>
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          )}
+
+          {/* Render Current Section */}
+          {currentSection === 'overview' && <OverviewTab data={analytics.overview} />}
+          {currentSection === 'users' && <UsersTab data={analytics.users} adminUser={adminUser} />}
+          {currentSection === 'matches' && <MatchesTab data={analytics.matches} />}
+          {currentSection === 'feedback' && <FeedbackTab data={analytics.feedback} />}
+          {currentSection === 'content-moderation' && <ContentModerationTab adminUser={adminUser} />}
+        </Container>
+      </Box>
     </Box>
   );
 };
@@ -488,79 +615,7 @@ const OverviewTab = ({ data }) => {
   );
 };
 
-const RecommendationsTab = ({ data }) => {
-  if (!data) return <CircularProgress />;
 
-  const recommendations = data.recommendations;
-  if (!recommendations) return <Typography>No recommendation data available</Typography>;
-
-  return (
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={6}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Algorithm Performance
-            </Typography>
-            {Object.entries(recommendations.algorithmPerformance || {}).map(([algorithm, perf]) => (
-              <Box key={algorithm} sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ textTransform: 'capitalize' }}>
-                  {algorithm.replace('_', ' ')}
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={(perf.likes / (perf.likes + perf.dislikes)) * 100 || 0}
-                    sx={{ flexGrow: 1 }}
-                  />
-                  <Typography variant="body2">
-                    {Math.round((perf.likes / (perf.likes + perf.dislikes)) * 100 || 0)}%
-                  </Typography>
-                </Box>
-              </Box>
-            ))}
-          </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12} md={6}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Overall Metrics
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box>
-                <Typography variant="body2" color="textSecondary">
-                  Total Feedback
-                </Typography>
-                <Typography variant="h4">
-                  {recommendations.totalFeedback || 0}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="textSecondary">
-                  Satisfaction Rate
-                </Typography>
-                <Typography variant="h4" color="success.main">
-                  {Math.round((recommendations.overallSatisfaction || 0) * 100)}%
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="textSecondary">
-                  Average Score
-                </Typography>
-                <Typography variant="h4">
-                  {(recommendations.averageScore || 0).toFixed(2)}
-                </Typography>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
-  );
-};
 
 const UsersTab = ({ data, adminUser }) => {
   const [reports, setReports] = useState([]);

@@ -99,18 +99,49 @@ const AdminLogin = () => {
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
         }}
       >
-        <Paper elevation={10} sx={{ width: '100%', maxWidth: 400 }}>
-          <Card>
-            <CardContent sx={{ p: 4 }}>
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <AdminPanelSettings 
-                  sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} 
+        <Paper
+          elevation={0}
+          sx={{
+            width: '100%',
+            maxWidth: 420,
+            borderRadius: 3,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            backdropFilter: 'blur(10px)',
+            background: 'rgba(255,255,255,0.95)'
+          }}
+        >
+          <Card elevation={0} sx={{ background: 'transparent' }}>
+            <CardContent sx={{ p: 5 }}>
+              <Box sx={{ textAlign: 'center', mb: 4 }}>
+                <Box
+                  component="img"
+                  src="/Sportea_logo/Sportea.png"
+                  alt="Sportea Logo"
+                  sx={{
+                    height: 80,
+                    width: 'auto',
+                    mb: 3,
+                    filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+                  }}
                 />
-                <Typography variant="h4" component="h1" gutterBottom>
-                  Admin Login
+                <Typography
+                  variant="h4"
+                  component="h1"
+                  gutterBottom
+                  sx={{
+                    fontWeight: 600,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    mb: 1
+                  }}
+                >
+                  Admin Portal
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  SportEA Analytics Dashboard
+                <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
+                  Sportea Analytics Dashboard
                 </Typography>
               </Box>
 
@@ -131,8 +162,21 @@ const AdminLogin = () => {
                   required
                   autoFocus
                   disabled={loading}
+                  sx={{
+                    mb: 3,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      backgroundColor: 'rgba(255,255,255,0.8)',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,0.9)',
+                      },
+                      '&.Mui-focused': {
+                        backgroundColor: 'white',
+                      }
+                    }
+                  }}
                 />
-                
+
                 <TextField
                   fullWidth
                   label="Password"
@@ -143,6 +187,19 @@ const AdminLogin = () => {
                   margin="normal"
                   required
                   disabled={loading}
+                  sx={{
+                    mb: 4,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      backgroundColor: 'rgba(255,255,255,0.8)',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,0.9)',
+                      },
+                      '&.Mui-focused': {
+                        backgroundColor: 'white',
+                      }
+                    }
+                  }}
                 />
 
                 <Button
@@ -152,20 +209,52 @@ const AdminLogin = () => {
                   size="large"
                   disabled={loading}
                   startIcon={<Security />}
-                  sx={{ mt: 3, mb: 2, py: 1.5 }}
+                  sx={{
+                    mt: 2,
+                    mb: 3,
+                    py: 1.8,
+                    borderRadius: 2,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    boxShadow: '0 8px 20px rgba(102, 126, 234, 0.3)',
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
+                      boxShadow: '0 12px 24px rgba(102, 126, 234, 0.4)',
+                      transform: 'translateY(-1px)'
+                    },
+                    '&:disabled': {
+                      background: 'linear-gradient(135deg, #ccc 0%, #999 100%)',
+                      boxShadow: 'none'
+                    }
+                  }}
                 >
                   {loading ? 'Signing In...' : 'Sign In'}
                 </Button>
               </Box>
 
-              <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                <Typography variant="caption" color="text.secondary" display="block">
-                  <strong>Demo Credentials:</strong>
+              <Box
+                sx={{
+                  mt: 3,
+                  p: 3,
+                  bgcolor: 'rgba(102, 126, 234, 0.05)',
+                  borderRadius: 2,
+                  border: '1px solid rgba(102, 126, 234, 0.1)'
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  color="primary.main"
+                  display="block"
+                  sx={{ fontWeight: 600, mb: 1 }}
+                >
+                  Demo Credentials
                 </Typography>
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="body2" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
                   Email: 2022812796@student.uitm.edu.my
                 </Typography>
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="body2" color="text.secondary" display="block">
                   Password: (use your regular password)
                 </Typography>
               </Box>
