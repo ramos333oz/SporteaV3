@@ -89,16 +89,23 @@ const AdminLogin = () => {
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-        }}
-      >
+    <Box
+      sx={{
+        minHeight: '100vh',
+        minWidth: '100vw',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        overflow: 'auto'
+      }}
+    >
+      <Container maxWidth="sm" sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
         <Paper
           elevation={0}
           sx={{
@@ -119,7 +126,7 @@ const AdminLogin = () => {
                   src="/Sportea_logo/Sportea.png"
                   alt="Sportea Logo"
                   sx={{
-                    height: 80,
+                    height: 120,
                     width: 'auto',
                     mb: 3,
                     filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
@@ -261,8 +268,8 @@ const AdminLogin = () => {
             </CardContent>
           </Card>
         </Paper>
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   );
 };
 

@@ -1,0 +1,72 @@
+<svg width="800" height="520" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="520" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Moderate Content Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Moderate Content</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">System (ML-powered with Toxic-Bert)</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Automated ML-powered content screening system using Toxic-Bert with 87% auto-approval</text>
+  <text x="175" y="152" class="cell">rate, providing real-time content analysis and manual review queue management.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. Content must be submitted for moderation (match creation, profile updates)</text>
+  <text x="175" y="202" class="cell">2. ML moderation system must be operational and accessible</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="210" width="150" height="200" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="227" class="label">Main Flow:</text>
+  <rect x="170" y="210" width="610" height="200" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="227" class="cell">1. System receives content for moderation (match titles, descriptions, profiles)</text>
+  <text x="175" y="242" class="cell">2. System preprocesses content for ML analysis (text cleaning, formatting)</text>
+  <text x="175" y="257" class="cell">3. System applies Toxic-Bert model for toxicity and appropriateness analysis</text>
+  <text x="175" y="272" class="cell">4. System calculates confidence scores for content safety assessment</text>
+  <text x="175" y="287" class="cell">5. High confidence safe content (87% of cases) receives automatic approval</text>
+  <text x="175" y="302" class="cell">6. Auto-approved content is immediately published and visible to users</text>
+  <text x="175" y="317" class="cell">7. Medium/low confidence content is queued for manual admin review</text>
+  <text x="175" y="332" class="cell">8. System flags specific concerns: toxicity, inappropriate language, spam patterns</text>
+  <text x="175" y="347" class="cell">9. System logs moderation decisions for performance tracking and improvement</text>
+  <text x="175" y="362" class="cell">10. System maintains moderation statistics and accuracy metrics</text>
+  <text x="175" y="377" class="cell">11. System provides feedback loop for model improvement and calibration</text>
+  <text x="175" y="392" class="cell">12. System handles edge cases and escalates complex content appropriately</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="410" width="150" height="90" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="427" class="label">Alternative Flows:</text>
+  <rect x="170" y="410" width="610" height="90" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="427" class="cell">A1. High-risk content: System immediately flags for urgent admin review</text>
+  <text x="175" y="442" class="cell">A2. ML system unavailable: System defaults to manual review queue</text>
+  <text x="175" y="457" class="cell">A3. False positive: Admin feedback improves model accuracy over time</text>
+  <text x="175" y="472" class="cell">A4. Batch processing: System handles multiple content items efficiently</text>
+  <text x="175" y="487" class="cell">A5. Appeal process: Users can request review of moderation decisions</text>
+</svg>

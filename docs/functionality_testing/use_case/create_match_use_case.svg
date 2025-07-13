@@ -1,0 +1,75 @@
+<svg width="800" height="560" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="560" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Create Match Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Create Match</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Regular User</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Four-step wizard process for creating sports matches with content moderation,</text>
+  <text x="175" y="152" class="cell">venue selection, participant management, and automatic ML-powered content screening.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. User must be logged in with complete profile</text>
+  <text x="175" y="202" class="cell">2. User must have sufficient XP or meet hosting requirements</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="210" width="150" height="240" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="227" class="label">Main Flow:</text>
+  <rect x="170" y="210" width="610" height="240" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="227" class="cell">1. User clicks "Host a Game" from main navigation or dashboard</text>
+  <text x="175" y="242" class="cell">2. Step 1 - Sport Selection: User selects sport type from available options</text>
+  <text x="175" y="257" class="cell">3. Step 2 - Match Details: User enters title, description, skill level, duration</text>
+  <text x="175" y="272" class="cell">4. User sets participant limits (min/max players) and match requirements</text>
+  <text x="175" y="287" class="cell">5. User specifies date, time, and scheduling preferences</text>
+  <text x="175" y="302" class="cell">6. Step 3 - Location: User selects venue from available courts/facilities</text>
+  <text x="175" y="317" class="cell">7. System displays venue details, amenities, and booking information</text>
+  <text x="175" y="332" class="cell">8. Step 4 - Review: User reviews all match information for accuracy</text>
+  <text x="175" y="347" class="cell">9. System runs ML content moderation on title and description</text>
+  <text x="175" y="362" class="cell">10. Content passes auto-approval (87% rate) or queued for manual review</text>
+  <text x="175" y="377" class="cell">11. System creates match and assigns unique match ID</text>
+  <text x="175" y="392" class="cell">12. User receives hosting confirmation and match details</text>
+  <text x="175" y="407" class="cell">13. System awards XP for hosting and updates user statistics</text>
+  <text x="175" y="422" class="cell">14. Match becomes visible in Find Games with recommendation algorithm</text>
+  <text x="175" y="437" class="cell">15. System sends notifications to potentially interested users</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="450" width="150" height="90" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="467" class="label">Alternative Flows:</text>
+  <rect x="170" y="450" width="610" height="90" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="467" class="cell">A1. Content flagged: Match queued for manual admin review before publication</text>
+  <text x="175" y="482" class="cell">A2. Venue unavailable: System suggests alternative venues or time slots</text>
+  <text x="175" y="497" class="cell">A3. Validation errors: System highlights incomplete or invalid fields</text>
+  <text x="175" y="512" class="cell">A4. Save draft: User can save incomplete match as draft for later completion</text>
+  <text x="175" y="527" class="cell">A5. Cancel creation: User exits wizard with confirmation dialog</text>
+</svg>

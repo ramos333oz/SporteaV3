@@ -1,0 +1,71 @@
+<svg width="800" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="500" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Report Issue Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Report Issue</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Regular User</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">User reporting system allowing community members to report inappropriate content,</text>
+  <text x="175" y="152" class="cell">user behavior, or technical issues with category selection and admin alert generation.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. User must be logged in with active account</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="195" width="150" height="180" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="212" class="label">Main Flow:</text>
+  <rect x="170" y="195" width="610" height="180" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="212" class="cell">1. User encounters inappropriate content, behavior, or technical issue</text>
+  <text x="175" y="227" class="cell">2. User clicks "Report" button on match, profile, or content item</text>
+  <text x="175" y="242" class="cell">3. System displays report form with category selection options</text>
+  <text x="175" y="257" class="cell">4. Categories include: Inappropriate Content, Harassment, Spam, Technical Issue</text>
+  <text x="175" y="272" class="cell">5. User selects appropriate category and subcategory if applicable</text>
+  <text x="175" y="287" class="cell">6. User provides detailed description of the issue or violation</text>
+  <text x="175" y="302" class="cell">7. System captures relevant context: reported item, timestamp, reporter ID</text>
+  <text x="175" y="317" class="cell">8. User submits report with confirmation of accuracy</text>
+  <text x="175" y="332" class="cell">9. System creates report record with unique ID and priority assignment</text>
+  <text x="175" y="347" class="cell">10. System sends immediate alert to admin moderation queue</text>
+  <text x="175" y="362" class="cell">11. System provides confirmation to user with report tracking number</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="375" width="150" height="105" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="392" class="label">Alternative Flows:</text>
+  <rect x="170" y="375" width="610" height="105" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="392" class="cell">A1. Anonymous reporting: System allows reporting without revealing reporter identity</text>
+  <text x="175" y="407" class="cell">A2. Duplicate report: System detects and consolidates similar reports</text>
+  <text x="175" y="422" class="cell">A3. False reporting: System tracks report accuracy and flags malicious reporters</text>
+  <text x="175" y="437" class="cell">A4. Urgent report: High-priority reports trigger immediate admin notifications</text>
+  <text x="175" y="452" class="cell">A5. Report status: User can check report status and admin responses</text>
+  <text x="175" y="467" class="cell">A6. Cancel report: User can cancel report submission before final confirmation</text>
+</svg>

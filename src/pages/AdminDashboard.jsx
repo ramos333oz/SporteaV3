@@ -402,7 +402,7 @@ const AdminDashboard = () => {
                 src="/Sportea_logo/Sportea.png"
                 alt="Sportea Logo"
                 sx={{
-                  height: 40,
+                  height: 60,
                   width: 'auto',
                   filter: 'brightness(0) invert(1)'
                 }}

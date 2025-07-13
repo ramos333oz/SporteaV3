@@ -1,0 +1,70 @@
+<svg width="800" height="480" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="480" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Send Notifications Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Send Notifications</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">System</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Automated system process for generating and delivering notifications to users</text>
+  <text x="175" y="152" class="cell">based on user activities, achievements, match events, and social interactions.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. System must detect notification-triggering events</text>
+  <text x="175" y="202" class="cell">2. Target users must have active accounts with notification preferences</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="210" width="150" height="160" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="227" class="label">Main Flow:</text>
+  <rect x="170" y="210" width="610" height="160" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="227" class="cell">1. System detects notification-triggering event (XP gain, achievement, match update)</text>
+  <text x="175" y="242" class="cell">2. System identifies target users based on event type and relationships</text>
+  <text x="175" y="257" class="cell">3. System generates notification content with appropriate messaging</text>
+  <text x="175" y="272" class="cell">4. System checks user notification preferences and settings</text>
+  <text x="175" y="287" class="cell">5. System creates notification record in database with timestamp</text>
+  <text x="175" y="302" class="cell">6. System delivers notification to user's notification panel</text>
+  <text x="175" y="317" class="cell">7. System updates notification count badge for target users</text>
+  <text x="175" y="332" class="cell">8. System logs notification delivery for tracking and analytics</text>
+  <text x="175" y="347" class="cell">9. System handles notification batching for multiple simultaneous events</text>
+  <text x="175" y="362" class="cell">10. System manages notification retention and cleanup policies</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="370" width="150" height="90" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="387" class="label">Alternative Flows:</text>
+  <rect x="170" y="370" width="610" height="90" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="387" class="cell">A1. User preferences disabled: System respects opt-out settings for notification types</text>
+  <text x="175" y="402" class="cell">A2. Batch notifications: System groups similar notifications to prevent spam</text>
+  <text x="175" y="417" class="cell">A3. Priority notifications: System handles urgent notifications with higher priority</text>
+  <text x="175" y="432" class="cell">A4. Delivery failure: System retries notification delivery with fallback methods</text>
+  <text x="175" y="447" class="cell">A5. Rate limiting: System prevents excessive notifications to single users</text>
+</svg>

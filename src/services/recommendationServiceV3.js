@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { logRecommendation, logError, logDebug } from '../utils/productionLogger';
 
 /**
  * V3 Recommendation Service - Simplified and Explainable
@@ -23,16 +24,12 @@ let recommendationsCache = {
   userId: null
 };
 
-// Helper logging functions
+// Helper logging functions - now using optimized production logger
 function log(...args) {
-  if (DEBUG_MODE) {
-    console.log(LOG_PREFIX, ...args);
-  }
+  logRecommendation(args.join(' '));
 }
 
-function logError(...args) {
-  console.error(LOG_PREFIX, ...args);
-}
+// logError is now imported from productionLogger
 
 /**
  * Main recommendation function using V3 128-dimension vectors

@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<activity_diagram>
+  <metadata>
+    <title>Admin User Activity Diagram - Simplified Core Features</title>
+    <description>Comprehensive admin workflow in Sportea platform with three-tier activity flow</description>
+    <canvas width="1400" height="2200"/>
+    <created_date>2025-01-13</created_date>
+  </metadata>
+
+  <styles>
+    <style name="activity-label" font-family="Arial" font-size="18" text-anchor="middle" fill="#000"/>
+    <style name="decision-label" font-family="Arial" font-size="16" text-anchor="middle" fill="#000"/>
+    <style name="flow-label" font-family="Arial" font-size="14" text-anchor="middle" fill="#000"/>
+    <style name="boundary" fill="none" stroke="#000" stroke-width="2"/>
+    <style name="activity" fill="#fff" stroke="#000" stroke-width="1.5"/>
+    <style name="decision" fill="#fff" stroke="#000" stroke-width="1.5"/>
+    <style name="start-end" fill="#000" stroke="#000" stroke-width="2"/>
+    <style name="flow-line" stroke="#000" stroke-width="1.5" fill="none"/>
+    <style name="sync-bar" fill="#000" stroke="#000" stroke-width="2"/>
+  </styles>
+
+  <elements>
+    <!-- System Boundary -->
+    <boundary x="70" y="70" width="1260" height="2060"/>
+
+    <!-- Start Node -->
+    <start_node id="start" x="700" y="130" radius="18"/>
+
+    <!-- Authentication Activities -->
+    <activity id="admin_login" x="550" y="180" width="300" height="70" rx="35">
+      <label line1="Admin" line2="Login"/>
+      <description>Secure authentication portal for administrative access to the Sportea platform</description>
+    </activity>
+
+    <decision id="login_success" x="700" y="330" size="40">
+      <label line1="Login" line2="Success?"/>
+      <description>Validates admin credentials and determines access permission</description>
+    </decision>
+
+    <activity id="admin_dashboard" x="550" y="420" width="300" height="70" rx="35">
+      <label line1="Admin" line2="Dashboard"/>
+      <description>Central command center displaying key platform metrics and navigation</description>
+    </activity>
+
+    <!-- Synchronization Bar -->
+    <sync_bar id="sync1" x="140" y="540" width="1120" height="20"/>
+
+    <!-- First Level Activities -->
+    <activity id="view_overview" x="170" y="620" width="200" height="80" rx="40">
+      <label line1="View" line2="Overview"/>
+      <description>System monitoring dashboard showing platform performance and key statistics</description>
+    </activity>
+
+    <activity id="manage_users" x="400" y="620" width="200" height="80" rx="40">
+      <label line1="Manage" line2="Users"/>
+      <description>User report management system for handling user-submitted issues and complaints</description>
+    </activity>
+
+    <activity id="view_analytics" x="630" y="620" width="200" height="80" rx="40">
+      <label line1="View" line2="Analytics"/>
+      <description>Comprehensive match analytics dashboard with detailed performance metrics</description>
+    </activity>
+
+    <activity id="manage_feedback" x="860" y="620" width="200" height="80" rx="40">
+      <label line1="Manage" line2="Feedback"/>
+      <description>Feedback analytics system for monitoring user satisfaction and algorithm performance</description>
+    </activity>
+
+    <activity id="moderate_content" x="600" y="750" width="200" height="60" rx="30">
+      <label line1="Moderate" line2="Content"/>
+      <description>ML-powered content moderation system with human oversight capabilities</description>
+    </activity>
+
+    <!-- Second Level Activities -->
+    <activity id="monitor_metrics" x="170" y="870" width="200" height="80" rx="40">
+      <label line1="Monitor" line2="Metrics"/>
+      <description>Real-time system performance monitoring and health assessment tools</description>
+    </activity>
+
+    <activity id="review_reports" x="400" y="870" width="200" height="80" rx="40">
+      <label line1="Review" line2="Reports"/>
+      <description>Detailed investigation system for user-submitted reports and issues</description>
+    </activity>
+
+    <activity id="analyze_data" x="630" y="870" width="200" height="80" rx="40">
+      <label line1="Analyze" line2="Data"/>
+      <description>Deep statistical analysis tools for platform data and performance metrics</description>
+    </activity>
+
+    <activity id="review_feedback" x="860" y="870" width="200" height="80" rx="40">
+      <label line1="Review" line2="Feedback"/>
+      <description>Systematic assessment tools for user feedback and satisfaction analysis</description>
+    </activity>
+
+    <activity id="review_queue" x="600" y="1000" width="200" height="60" rx="30">
+      <label line1="Review" line2="Queue"/>
+      <description>Manual content review system for items flagged by automated moderation</description>
+    </activity>
+
+    <!-- Third Level Activities -->
+    <activity id="check_system_health" x="170" y="1120" width="200" height="80" rx="40">
+      <label line1="Check System" line2="Health"/>
+      <description>Comprehensive infrastructure health assessment and monitoring tools</description>
+    </activity>
+
+    <activity id="resolve_issues" x="400" y="1120" width="200" height="80" rx="40">
+      <label line1="Resolve" line2="Issues"/>
+      <description>Systematic problem resolution tools for platform issues and user concerns</description>
+    </activity>
+
+    <activity id="generate_reports" x="630" y="1120" width="200" height="80" rx="40">
+      <label line1="Generate" line2="Reports"/>
+      <description>Comprehensive reporting system for platform performance and analytics</description>
+    </activity>
+
+    <activity id="optimize_system" x="860" y="1120" width="200" height="80" rx="40">
+      <label line1="Optimize" line2="System"/>
+      <description>System improvement tools based on data analysis and user feedback</description>
+    </activity>
+
+    <activity id="approve_reject_content" x="600" y="1250" width="200" height="60" rx="30">
+      <label line1="Approve/Reject" line2="Content"/>
+      <description>Final content moderation decision tools for flagged items</description>
+    </activity>
+
+    <!-- Synchronization Bar -->
+    <sync_bar id="sync2" x="170" y="1370" width="1060" height="20"/>
+
+    <!-- Continue Decision -->
+    <decision id="continue_decision" x="700" y="1480" size="40">
+      <label line1="Continue?"/>
+      <description>Determines whether admin wants to continue platform management</description>
+    </decision>
+
+    <!-- Admin Logout Activity -->
+    <activity id="admin_logout" x="550" y="1570" width="300" height="70" rx="35">
+      <label line1="Admin" line2="Logout"/>
+      <description>Secure session termination with comprehensive audit trail logging</description>
+    </activity>
+
+    <!-- End Node -->
+    <end_node id="end" x="700" y="1690" radius="18"/>
+  </elements>
+
+  <flows>
+    <!-- Start to Admin Login -->
+    <flow id="flow1" from="start" to="admin_login" type="direct">
+      <path>M 700 148 L 700 180</path>
+    </flow>
+
+    <!-- Admin Login to Decision -->
+    <flow id="flow2" from="admin_login" to="login_success" type="direct">
+      <path>M 700 250 L 700 290</path>
+    </flow>
+
+    <!-- Login Decision No Loop -->
+    <flow id="flow3" from="login_success" to="admin_login" type="conditional" condition="No">
+      <path>M 660 330 L 380 330 L 380 215 L 550 215</path>
+      <label x="375" y="325">No</label>
+    </flow>
+
+    <!-- Login Decision Yes to Dashboard -->
+    <flow id="flow4" from="login_success" to="admin_dashboard" type="conditional" condition="Yes">
+      <path>M 700 370 L 700 420</path>
+      <label x="750" y="395">Yes</label>
+    </flow>
+
+    <!-- Dashboard to Sync Bar -->
+    <flow id="flow5" from="admin_dashboard" to="sync1" type="direct">
+      <path>M 700 490 L 700 540</path>
+    </flow>
+
+    <!-- Sync Bar to First Level Activities -->
+    <flow id="flow6" from="sync1" to="view_overview" type="parallel">
+      <path>M 270 560 L 270 620</path>
+    </flow>
+    <flow id="flow7" from="sync1" to="manage_users" type="parallel">
+      <path>M 500 560 L 500 620</path>
+    </flow>
+    <flow id="flow8" from="sync1" to="view_analytics" type="parallel">
+      <path>M 730 560 L 730 620</path>
+    </flow>
+    <flow id="flow9" from="sync1" to="manage_feedback" type="parallel">
+      <path>M 960 560 L 960 620</path>
+    </flow>
+    <flow id="flow10" from="sync1" to="moderate_content" type="parallel">
+      <path>M 700 560 L 700 750</path>
+    </flow>
+
+    <!-- First to Second Level -->
+    <flow id="flow11" from="view_overview" to="monitor_metrics" type="direct">
+      <path>M 270 700 L 270 870</path>
+    </flow>
+    <flow id="flow12" from="manage_users" to="review_reports" type="direct">
+      <path>M 500 700 L 500 870</path>
+    </flow>
+    <flow id="flow13" from="view_analytics" to="analyze_data" type="direct">
+      <path>M 730 700 L 730 870</path>
+    </flow>
+    <flow id="flow14" from="manage_feedback" to="review_feedback" type="direct">
+      <path>M 960 700 L 960 870</path>
+    </flow>
+    <flow id="flow15" from="moderate_content" to="review_queue" type="direct">
+      <path>M 700 810 L 700 1000</path>
+    </flow>
+
+    <!-- Second to Third Level -->
+    <flow id="flow16" from="monitor_metrics" to="check_system_health" type="direct">
+      <path>M 270 950 L 270 1120</path>
+    </flow>
+    <flow id="flow17" from="review_reports" to="resolve_issues" type="direct">
+      <path>M 500 950 L 500 1120</path>
+    </flow>
+    <flow id="flow18" from="analyze_data" to="generate_reports" type="direct">
+      <path>M 730 950 L 730 1120</path>
+    </flow>
+    <flow id="flow19" from="review_feedback" to="optimize_system" type="direct">
+      <path>M 960 950 L 960 1120</path>
+    </flow>
+    <flow id="flow20" from="review_queue" to="approve_reject_content" type="direct">
+      <path>M 700 1060 L 700 1250</path>
+    </flow>
+
+    <!-- Third Level to Sync Bar -->
+    <flow id="flow21" from="check_system_health" to="sync2" type="convergence">
+      <path>M 270 1200 L 270 1370</path>
+    </flow>
+    <flow id="flow22" from="resolve_issues" to="sync2" type="convergence">
+      <path>M 500 1200 L 500 1370</path>
+    </flow>
+    <flow id="flow23" from="generate_reports" to="sync2" type="convergence">
+      <path>M 730 1200 L 730 1370</path>
+    </flow>
+    <flow id="flow24" from="optimize_system" to="sync2" type="convergence">
+      <path>M 960 1200 L 960 1370</path>
+    </flow>
+    <flow id="flow25" from="approve_reject_content" to="sync2" type="convergence">
+      <path>M 700 1310 L 700 1370</path>
+    </flow>
+
+    <!-- Sync Bar to Continue Decision -->
+    <flow id="flow26" from="sync2" to="continue_decision" type="direct">
+      <path>M 700 1390 L 700 1440</path>
+    </flow>
+
+    <!-- Continue Decision Yes Loop -->
+    <flow id="flow27" from="continue_decision" to="admin_dashboard" type="conditional" condition="Yes">
+      <path>M 660 1480 L 100 1480 L 100 455 L 550 455</path>
+      <label x="95" y="1475">Yes</label>
+    </flow>
+
+    <!-- Continue Decision No to Logout -->
+    <flow id="flow28" from="continue_decision" to="admin_logout" type="conditional" condition="No">
+      <path>M 700 1520 L 700 1570</path>
+      <label x="750" y="1545">No</label>
+    </flow>
+
+    <!-- Logout to End -->
+    <flow id="flow29" from="admin_logout" to="end" type="direct">
+      <path>M 700 1640 L 700 1672</path>
+    </flow>
+  </flows>
+
+  <statistics>
+    <total_activities>17</total_activities>
+    <total_decisions>2</total_decisions>
+    <total_flows>29</total_flows>
+    <parallel_branches>5</parallel_branches>
+    <convergence_points>2</convergence_points>
+  </statistics>
+</activity_diagram>

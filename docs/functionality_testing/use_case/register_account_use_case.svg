@@ -1,0 +1,69 @@
+<svg width="800" height="480" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="480" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Register Account Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Register Account</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Regular User (UiTM Shah Alam Student)</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Allows new UiTM Shah Alam students to create an account in the Sportea</text>
+  <text x="175" y="152" class="cell">platform by providing personal information, sports preferences, and authentication credentials.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. User must be a UiTM Shah Alam student with valid student email</text>
+  <text x="175" y="202" class="cell">2. Application must be accessible and registration must be enabled</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="210" width="150" height="160" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="227" class="label">Main Flow:</text>
+  <rect x="170" y="210" width="610" height="160" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="227" class="cell">1. User navigates to registration page from login page</text>
+  <text x="175" y="242" class="cell">2. User enters personal information (name, student ID, email)</text>
+  <text x="175" y="257" class="cell">3. User creates secure password and confirms password match</text>
+  <text x="175" y="272" class="cell">4. User selects sports preferences and skill levels</text>
+  <text x="175" y="287" class="cell">5. User provides additional profile details (faculty, location, bio)</text>
+  <text x="175" y="302" class="cell">6. User agrees to terms of service and privacy policy</text>
+  <text x="175" y="317" class="cell">7. System validates information and creates account</text>
+  <text x="175" y="332" class="cell">8. User receives welcome notification and is redirected to home page</text>
+  <text x="175" y="347" class="cell">9. System awards "Getting Started" achievement with initial XP</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="370" width="150" height="90" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="387" class="label">Alternative Flows:</text>
+  <rect x="170" y="370" width="610" height="90" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="387" class="cell">A1. Email already exists: System displays error and suggests login</text>
+  <text x="175" y="402" class="cell">A2. Invalid student email: System validates UiTM email format requirement</text>
+  <text x="175" y="417" class="cell">A3. Password mismatch: System highlights password confirmation error</text>
+  <text x="175" y="432" class="cell">A4. Incomplete required fields: System displays validation errors</text>
+  <text x="175" y="447" class="cell">A5. Network error: System provides retry option with form data preservation</text>
+</svg>

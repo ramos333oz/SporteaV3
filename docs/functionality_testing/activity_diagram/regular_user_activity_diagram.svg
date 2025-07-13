@@ -1,0 +1,190 @@
+<svg width="400" height="800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .activity-label { font-family: Arial, sans-serif; font-size: 11px; text-anchor: middle; fill: #000; }
+      .decision-label { font-family: Arial, sans-serif; font-size: 10px; text-anchor: middle; fill: #000; }
+      .flow-label { font-family: Arial, sans-serif; font-size: 9px; text-anchor: middle; fill: #000; }
+      .boundary { fill: none; stroke: #000; stroke-width: 2; }
+      .activity { fill: #fff; stroke: #000; stroke-width: 1.5; }
+      .decision { fill: #fff; stroke: #000; stroke-width: 1.5; }
+      .start-end { fill: #000; stroke: #000; stroke-width: 2; }
+      .flow-line { stroke: #000; stroke-width: 1.5; fill: none; }
+      .sync-bar { fill: #000; stroke: #000; stroke-width: 2; }
+    </style>
+  </defs>
+  
+  <!-- System Boundary -->
+  <rect x="20" y="20" width="360" height="760" class="boundary"/>
+  
+  <!-- Start Node -->
+  <circle cx="200" cy="50" r="8" class="start-end"/>
+  
+  <!-- Register Activity -->
+  <rect x="150" y="80" width="100" height="30" rx="15" class="activity"/>
+  <text x="200" y="98" class="activity-label">Register</text>
+  
+  <!-- Register Success Decision -->
+  <polygon points="200,130 220,150 200,170 180,150" class="decision"/>
+  <text x="200" y="153" class="decision-label">Register</text>
+  <text x="200" y="163" class="decision-label">Success?</text>
+  
+  <!-- Login Activity -->
+  <rect x="150" y="200" width="100" height="30" rx="15" class="activity"/>
+  <text x="200" y="218" class="activity-label">Login</text>
+  
+  <!-- Login Success Decision -->
+  <polygon points="200,250 220,270 200,290 180,270" class="decision"/>
+  <text x="200" y="273" class="decision-label">Login</text>
+  <text x="200" y="283" class="decision-label">Success?</text>
+  
+  <!-- Dashboard Activity -->
+  <rect x="150" y="320" width="100" height="30" rx="15" class="activity"/>
+  <text x="200" y="338" class="activity-label">Dashboard</text>
+  
+  <!-- Synchronization Bar -->
+  <rect x="50" y="380" width="300" height="8" class="sync-bar"/>
+  
+  <!-- Core Feature Activities -->
+  <!-- Find Matches -->
+  <rect x="30" y="420" width="80" height="30" rx="15" class="activity"/>
+  <text x="70" y="435" class="activity-label">Find</text>
+  <text x="70" y="445" class="activity-label">Matches</text>
+  
+  <!-- Host Match -->
+  <rect x="120" y="420" width="80" height="30" rx="15" class="activity"/>
+  <text x="160" y="435" class="activity-label">Host</text>
+  <text x="160" y="445" class="activity-label">Match</text>
+  
+  <!-- Manage Profile -->
+  <rect x="210" y="420" width="80" height="30" rx="15" class="activity"/>
+  <text x="250" y="435" class="activity-label">Manage</text>
+  <text x="250" y="445" class="activity-label">Profile</text>
+  
+  <!-- Manage Friends -->
+  <rect x="300" y="420" width="80" height="30" rx="15" class="activity"/>
+  <text x="340" y="435" class="activity-label">Manage</text>
+  <text x="340" y="445" class="activity-label">Friends</text>
+  
+  <!-- Second Level Activities -->
+  <!-- View Match Details -->
+  <rect x="30" y="480" width="80" height="30" rx="15" class="activity"/>
+  <text x="70" y="495" class="activity-label">View Match</text>
+  <text x="70" y="505" class="activity-label">Details</text>
+  
+  <!-- Create Match -->
+  <rect x="120" y="480" width="80" height="30" rx="15" class="activity"/>
+  <text x="160" y="495" class="activity-label">Create</text>
+  <text x="160" y="505" class="activity-label">Match</text>
+  
+  <!-- Update Profile -->
+  <rect x="210" y="480" width="80" height="30" rx="15" class="activity"/>
+  <text x="250" y="495" class="activity-label">Update</text>
+  <text x="250" y="505" class="activity-label">Profile</text>
+  
+  <!-- Add Friends -->
+  <rect x="300" y="480" width="80" height="30" rx="15" class="activity"/>
+  <text x="340" y="495" class="activity-label">Add</text>
+  <text x="340" y="505" class="activity-label">Friends</text>
+  
+  <!-- Third Level Activities -->
+  <!-- Join Match -->
+  <rect x="30" y="540" width="80" height="30" rx="15" class="activity"/>
+  <text x="70" y="555" class="activity-label">Join</text>
+  <text x="70" y="565" class="activity-label">Match</text>
+  
+  <!-- Content Moderation -->
+  <rect x="120" y="540" width="80" height="30" rx="15" class="activity"/>
+  <text x="160" y="555" class="activity-label">Content</text>
+  <text x="160" y="565" class="activity-label">Moderation</text>
+  
+  <!-- View Achievements -->
+  <rect x="210" y="540" width="80" height="30" rx="15" class="activity"/>
+  <text x="250" y="555" class="activity-label">View</text>
+  <text x="250" y="565" class="activity-label">Achievements</text>
+  
+  <!-- Social Interaction -->
+  <rect x="300" y="540" width="80" height="30" rx="15" class="activity"/>
+  <text x="340" y="555" class="activity-label">Social</text>
+  <text x="340" y="565" class="activity-label">Interaction</text>
+  
+  <!-- Synchronization Bar -->
+  <rect x="50" y="600" width="300" height="8" class="sync-bar"/>
+  
+  <!-- Continue Decision -->
+  <polygon points="200,640 220,660 200,680 180,660" class="decision"/>
+  <text x="200" y="663" class="decision-label">Continue?</text>
+  
+  <!-- Logout Activity -->
+  <rect x="150" y="710" width="100" height="30" rx="15" class="activity"/>
+  <text x="200" y="728" class="activity-label">Logout</text>
+  
+  <!-- End Node -->
+  <circle cx="200" cy="770" r="8" class="start-end"/>
+  
+  <!-- Flow Lines -->
+  <!-- Start to Register -->
+  <line x1="200" y1="58" x2="200" y2="80" class="flow-line"/>
+  
+  <!-- Register to Decision -->
+  <line x1="200" y1="110" x2="200" y2="130" class="flow-line"/>
+  
+  <!-- Register Decision No Loop -->
+  <path d="M 180 150 L 130 150 L 130 95 L 150 95" class="flow-line"/>
+  <text x="125" y="145" class="flow-label">No</text>
+  
+  <!-- Register Decision Yes to Login -->
+  <line x1="200" y1="170" x2="200" y2="200" class="flow-line"/>
+  <text x="210" y="185" class="flow-label">Yes</text>
+  
+  <!-- Login to Decision -->
+  <line x1="200" y1="230" x2="200" y2="250" class="flow-line"/>
+  
+  <!-- Login Decision No Loop -->
+  <path d="M 180 270 L 120 270 L 120 215 L 150 215" class="flow-line"/>
+  <text x="115" y="265" class="flow-label">No</text>
+  
+  <!-- Login Decision Yes to Dashboard -->
+  <line x1="200" y1="290" x2="200" y2="320" class="flow-line"/>
+  <text x="210" y="305" class="flow-label">Yes</text>
+  
+  <!-- Dashboard to Sync Bar -->
+  <line x1="200" y1="350" x2="200" y2="380" class="flow-line"/>
+  
+  <!-- Sync Bar to Activities -->
+  <line x1="70" y1="388" x2="70" y2="420" class="flow-line"/>
+  <line x1="160" y1="388" x2="160" y2="420" class="flow-line"/>
+  <line x1="250" y1="388" x2="250" y2="420" class="flow-line"/>
+  <line x1="340" y1="388" x2="340" y2="420" class="flow-line"/>
+  
+  <!-- First to Second Level -->
+  <line x1="70" y1="450" x2="70" y2="480" class="flow-line"/>
+  <line x1="160" y1="450" x2="160" y2="480" class="flow-line"/>
+  <line x1="250" y1="450" x2="250" y2="480" class="flow-line"/>
+  <line x1="340" y1="450" x2="340" y2="480" class="flow-line"/>
+  
+  <!-- Second to Third Level -->
+  <line x1="70" y1="510" x2="70" y2="540" class="flow-line"/>
+  <line x1="160" y1="510" x2="160" y2="540" class="flow-line"/>
+  <line x1="250" y1="510" x2="250" y2="540" class="flow-line"/>
+  <line x1="340" y1="510" x2="340" y2="540" class="flow-line"/>
+  
+  <!-- Third Level to Sync Bar -->
+  <line x1="70" y1="570" x2="70" y2="600" class="flow-line"/>
+  <line x1="160" y1="570" x2="160" y2="600" class="flow-line"/>
+  <line x1="250" y1="570" x2="250" y2="600" class="flow-line"/>
+  <line x1="340" y1="570" x2="340" y2="600" class="flow-line"/>
+  
+  <!-- Sync Bar to Continue Decision -->
+  <line x1="200" y1="608" x2="200" y2="640" class="flow-line"/>
+  
+  <!-- Continue Decision Yes Loop -->
+  <path d="M 180 660 L 50 660 L 50 335 L 150 335" class="flow-line"/>
+  <text x="45" y="655" class="flow-label">Yes</text>
+  
+  <!-- Continue Decision No to Logout -->
+  <line x1="200" y1="680" x2="200" y2="710" class="flow-line"/>
+  <text x="210" y="695" class="flow-label">No</text>
+  
+  <!-- Logout to End -->
+  <line x1="200" y1="740" x2="200" y2="762" class="flow-line"/>
+</svg>

@@ -375,34 +375,52 @@ const Register = () => {
             backgroundColor: 'background.light'
           }}
         >
-          <Box 
-            sx={{ 
-              width: 64, 
-              height: 64, 
-              borderRadius: '50%', 
-              backgroundColor: 'primary.main',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mb: 3
-            }}
-          >
-            <Box 
-              component="span" 
-              sx={{ 
-                color: 'white',
-                fontSize: 36
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Box
+              component="img"
+              src="/Sportea_logo/Sportea.png"
+              alt="Sportea Logo"
+              sx={{
+                height: 160,
+                width: 'auto',
+                mb: 2,
+                filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+              }}
+            />
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                backgroundColor: '#8A1538',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mb: 3,
+                mx: 'auto'
               }}
             >
-              ✉️
+              <Box
+                component="span"
+                sx={{
+                  color: 'white',
+                  fontSize: 36
+                }}
+              >
+                ✉️
+              </Box>
             </Box>
           </Box>
-          
-          <Typography 
-            variant="h2" 
-            component="h1" 
-            color="primary" 
-            sx={{ mb: 2, textAlign: 'center' }}
+
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              mb: 2,
+              textAlign: 'center',
+              fontWeight: 600,
+              color: '#8A1538'
+            }}
           >
             Check Your Email
           </Typography>
@@ -479,14 +497,33 @@ const Register = () => {
           borderRadius: 3
         }}
       >
-        <Typography 
-          variant="h1" 
-          component="h1" 
-          color="primary" 
-          sx={{ mb: 2, textAlign: 'center' }}
-        >
-          Join Sportea
-        </Typography>
+        <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <Box
+            component="img"
+            src="/Sportea_logo/Sportea.png"
+            alt="Sportea Logo"
+            sx={{
+              height: 200,
+              width: 'auto',
+              mb: 2,
+              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+            }}
+          />
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              fontWeight: 600,
+              color: '#8A1538',
+              mb: 1
+            }}
+          >
+            Join Sportea
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
+            Create your account to get started
+          </Typography>
+        </Box>
         
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
           Connect with UiTM students for sports

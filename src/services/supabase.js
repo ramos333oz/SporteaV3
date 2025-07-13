@@ -40,8 +40,10 @@ if (!normalizedSupabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables. Please check your .env file.');
 }
 
-// Log the WebSocket URL for debugging
-console.log('WebSocket URL for realtime connection:', wsUrl);
+// Log the WebSocket URL for debugging (dev only)
+if (import.meta.env.DEV) {
+  console.log('WebSocket URL for realtime connection:', wsUrl);
+}
 
 // Enhanced options for realtime WebSocket connections with more aggressive retry settings
 const realtimeOptions = {
@@ -57,13 +59,15 @@ const realtimeOptions = {
   maxReconnectionAttempts: 30   // Double reconnection attempts
 };
 
-// Log realtime options for debugging
-console.log('Realtime options:', { 
-  wsUrl,
-  heartbeat: realtimeOptions.heartbeatIntervalMs,
-  retries: realtimeOptions.maxRetryAttempts,
-  reconnects: realtimeOptions.maxReconnectionAttempts
-});
+// Log realtime options for debugging (dev only)
+if (import.meta.env.DEV) {
+  console.log('Realtime options:', {
+    wsUrl,
+    heartbeat: realtimeOptions.heartbeatIntervalMs,
+    retries: realtimeOptions.maxRetryAttempts,
+    reconnects: realtimeOptions.maxReconnectionAttempts
+  });
+}
 
 // Initialize Supabase client with enhanced WebSocket configuration
 // Ensure we create a robust instance that can handle network instability

@@ -1,0 +1,70 @@
+<svg width="800" height="480" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="480" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Cancel Match Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Cancel Match</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Regular User (Match Host)</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Allows match hosts to cancel their created matches with participant notifications,</text>
+  <text x="175" y="152" class="cell">XP implications, and proper system cleanup of match-related data.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. User must be the original host of the match</text>
+  <text x="175" y="202" class="cell">2. Match must not have started or been completed</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="210" width="150" height="160" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="227" class="label">Main Flow:</text>
+  <rect x="170" y="210" width="610" height="160" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="227" class="cell">1. Host navigates to their hosted match details page</text>
+  <text x="175" y="242" class="cell">2. Host clicks "Cancel Match" button (visible only to host)</text>
+  <text x="175" y="257" class="cell">3. System displays cancellation confirmation dialog with impact warning</text>
+  <text x="175" y="272" class="cell">4. System shows list of current participants who will be affected</text>
+  <text x="175" y="287" class="cell">5. Host provides optional cancellation reason for participants</text>
+  <text x="175" y="302" class="cell">6. Host confirms cancellation decision</text>
+  <text x="175" y="317" class="cell">7. System marks match as cancelled and removes from active listings</text>
+  <text x="175" y="332" class="cell">8. System sends cancellation notifications to all participants</text>
+  <text x="175" y="347" class="cell">9. System processes XP implications (potential penalties for frequent cancellations)</text>
+  <text x="175" y="362" class="cell">10. System updates host's match history with cancellation record</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="370" width="150" height="90" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="387" class="label">Alternative Flows:</text>
+  <rect x="170" y="370" width="610" height="90" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="387" class="cell">A1. Cancel confirmation: Host cancels the cancellation and returns to match</text>
+  <text x="175" y="402" class="cell">A2. Emergency cancellation: System provides expedited cancellation for urgent situations</text>
+  <text x="175" y="417" class="cell">A3. Reschedule option: Host chooses to reschedule instead of cancel</text>
+  <text x="175" y="432" class="cell">A4. Participant compensation: System considers XP compensation for affected participants</text>
+  <text x="175" y="447" class="cell">A5. Frequent canceller: System flags hosts with excessive cancellation patterns</text>
+</svg>

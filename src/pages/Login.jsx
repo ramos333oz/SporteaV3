@@ -224,14 +224,33 @@ const Login = () => {
           borderRadius: 3
         }}
       >
-        <Typography 
-          variant="h1" 
-          component="h1" 
-          color="primary" 
-          sx={{ mb: 3, textAlign: 'center' }}
-        >
-          Sportea
-        </Typography>
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Box
+            component="img"
+            src="/Sportea_logo/Sportea.png"
+            alt="Sportea Logo"
+            sx={{
+              height: 240,
+              width: 'auto',
+              mb: 2,
+              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+            }}
+          />
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              fontWeight: 600,
+              color: '#8A1538',
+              mb: 1
+            }}
+          >
+            Welcome Back
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
+            Sign in to your Sportea account
+          </Typography>
+        </Box>
         
         {error && (
           <Alert 

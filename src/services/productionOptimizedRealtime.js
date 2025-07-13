@@ -15,11 +15,10 @@
  */
 
 import { supabase } from './supabase';
+import { logRealtime, logError, logDebug } from '../utils/productionLogger';
 
 // Production logging control
 const isDev = import.meta.env.DEV;
-const log = isDev ? console.log : () => {};
-const logError = console.error; // Always log errors
 
 class ProductionOptimizedRealtimeService {
   constructor() {
@@ -45,7 +44,7 @@ class ProductionOptimizedRealtimeService {
       lastCleanup: Date.now()
     };
     
-    log('[ProductionRealtime] Service initialized with optimized settings');
+    logRealtime('service-init', 'Service initialized with optimized settings');
     this.startPerformanceMonitoring();
   }
 
@@ -55,7 +54,7 @@ class ProductionOptimizedRealtimeService {
    */
   async initializeUser(userId) {
     if (this.connections.has(userId)) {
-      log('[ProductionRealtime] User already initialized:', userId);
+      logRealtime('user-init', `User already initialized: ${userId}`);
       return this.connections.get(userId);
     }
 
@@ -79,7 +78,7 @@ class ProductionOptimizedRealtimeService {
       this.connections.set(userId, userConnection);
       this.metrics.connectionsCreated++;
       
-      log('[ProductionRealtime] User initialized with 2 optimized channels:', userId);
+      logRealtime('user-initialized', `User initialized with 2 optimized channels: ${userId}`);
       return userConnection;
 
     } catch (error) {
@@ -120,7 +119,7 @@ class ProductionOptimizedRealtimeService {
         this.handleChannelError(channelName, error);
       })
       .subscribe((status) => {
-        log('[ProductionRealtime] User hub channel status:', status);
+        logRealtime('user-hub-status', status);
         this.updateConnectionState(status);
       });
 
@@ -164,7 +163,7 @@ class ProductionOptimizedRealtimeService {
         this.handleChannelError(channelName, error);
       })
       .subscribe((status) => {
-        log('[ProductionRealtime] Global channel status:', status);
+        logRealtime('global-status', status);
         this.updateConnectionState(status);
       });
 
@@ -190,7 +189,7 @@ class ProductionOptimizedRealtimeService {
       this.connections.delete(userId);
       this.metrics.subscriptionsActive -= userConnection.subscriptionCount;
       
-      log('[ProductionRealtime] User cleanup completed:', userId);
+      logRealtime('user-cleanup', `User cleanup completed: ${userId}`);
 
     } catch (error) {
       logError('[ProductionRealtime] Cleanup error:', error);
@@ -205,7 +204,7 @@ class ProductionOptimizedRealtimeService {
       if (channel && typeof channel.unsubscribe === 'function') {
         await channel.unsubscribe();
         this.subscriptions.delete(channelName);
-        log('[ProductionRealtime] Unsubscribed from:', channelName);
+        logRealtime('unsubscribed', channelName);
       }
     } catch (error) {
       logError('[ProductionRealtime] Unsubscribe error:', channelName, error);
@@ -242,7 +241,7 @@ class ProductionOptimizedRealtimeService {
     // Remove inactive connections
     for (const [userId, connection] of this.connections) {
       if (now - connection.lastActivity > inactiveThreshold) {
-        log('[ProductionRealtime] Cleaning up inactive connection:', userId);
+        logRealtime('cleanup-inactive', userId);
         this.cleanup(userId);
       }
     }
@@ -252,7 +251,7 @@ class ProductionOptimizedRealtimeService {
     this.metrics.memoryUsage = this.connections.size * 250; // Estimated KB per connection
 
     if (isDev) {
-      log('[ProductionRealtime] Memory cleanup completed. Active connections:', this.connections.size);
+      logRealtime('memory-cleanup', `Active connections: ${this.connections.size}`);
     }
   }
 
@@ -292,7 +291,7 @@ class ProductionOptimizedRealtimeService {
         await this.cleanup(userId);
       }
 
-      log('[ProductionRealtime] Global cleanup completed');
+      logRealtime('global-cleanup', 'Global cleanup completed');
 
     } catch (error) {
       logError('[ProductionRealtime] Global cleanup error:', error);
@@ -327,7 +326,7 @@ class ProductionOptimizedRealtimeService {
     // Attempt recovery if under limit
     if (this.connectionState.reconnectAttempts <= this.connectionState.maxReconnectAttempts) {
       setTimeout(() => {
-        log('[ProductionRealtime] Attempting channel recovery:', channelName);
+        logRealtime('channel-recovery', channelName);
         // Recovery logic here
       }, Math.pow(2, this.connectionState.reconnectAttempts) * 1000); // Exponential backoff
     }

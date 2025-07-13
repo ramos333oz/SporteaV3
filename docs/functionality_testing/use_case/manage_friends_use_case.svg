@@ -1,0 +1,74 @@
+<svg width="800" height="540" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="540" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Manage Friends Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Manage Friends</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Regular User</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Comprehensive social management system with four-tab interface for managing</text>
+  <text x="175" y="152" class="cell">friends, friend requests, sent requests, and blocked users with full interaction capabilities.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. User must be logged in with active account</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="195" width="150" height="220" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="212" class="label">Main Flow:</text>
+  <rect x="170" y="195" width="610" height="220" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="212" class="cell">1. User navigates to Friends page from sidebar navigation</text>
+  <text x="175" y="227" class="cell">2. System displays four-tab interface: Friends, Requests, Sent, Blocked</text>
+  <text x="175" y="242" class="cell">3. Friends tab shows current friends list with profile pictures and names</text>
+  <text x="175" y="257" class="cell">4. Each friend entry provides: View Profile, Remove Friend, Block options</text>
+  <text x="175" y="272" class="cell">5. Requests tab displays incoming friend requests with Accept/Decline buttons</text>
+  <text x="175" y="287" class="cell">6. Sent tab shows outgoing requests with Cancel Request option</text>
+  <text x="175" y="302" class="cell">7. Blocked tab lists blocked users with Unblock functionality</text>
+  <text x="175" y="317" class="cell">8. User can search for new friends using search functionality</text>
+  <text x="175" y="332" class="cell">9. System provides "Add Friend" button for discovered users</text>
+  <text x="175" y="347" class="cell">10. Friend requests generate notifications to recipients</text>
+  <text x="175" y="362" class="cell">11. System updates friend counts and status in real-time</text>
+  <text x="175" y="377" class="cell">12. All social interactions are logged for activity tracking</text>
+  <text x="175" y="392" class="cell">13. System maintains privacy settings for friend visibility</text>
+  <text x="175" y="407" class="cell">14. Friends can view each other's public profile information</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="415" width="150" height="105" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="432" class="label">Alternative Flows:</text>
+  <rect x="170" y="415" width="610" height="105" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="432" class="cell">A1. Accept request: User accepts friend request, both users become friends</text>
+  <text x="175" y="447" class="cell">A2. Decline request: User declines request, sender receives notification</text>
+  <text x="175" y="462" class="cell">A3. Block user: User blocks another user, preventing all future interactions</text>
+  <text x="175" y="477" class="cell">A4. Remove friend: User removes friend, both users lose friend connection</text>
+  <text x="175" y="492" class="cell">A5. Cancel sent request: User cancels outgoing friend request</text>
+  <text x="175" y="507" class="cell">A6. Unblock user: User unblocks previously blocked user, restoring interaction</text>
+</svg>

@@ -1,0 +1,71 @@
+<svg width="800" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="500" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">View Notifications Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">View Notifications</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Regular User</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Comprehensive notification panel displaying achievement alerts, match updates,</text>
+  <text x="175" y="152" class="cell">friend requests, and system messages with read status management and filtering.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. User must be logged in with active account</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="195" width="150" height="180" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="212" class="label">Main Flow:</text>
+  <rect x="170" y="195" width="610" height="180" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="212" class="cell">1. User clicks notification bell icon in top navigation bar</text>
+  <text x="175" y="227" class="cell">2. System displays notification panel with recent notifications</text>
+  <text x="175" y="242" class="cell">3. System shows notification count badge for unread notifications</text>
+  <text x="175" y="257" class="cell">4. Notifications include: Achievement unlocks, XP gains, match updates</text>
+  <text x="175" y="272" class="cell">5. System displays friend requests, match invitations, system announcements</text>
+  <text x="175" y="287" class="cell">6. Each notification shows: icon, title, description, timestamp</text>
+  <text x="175" y="302" class="cell">7. Unread notifications are highlighted with different styling</text>
+  <text x="175" y="317" class="cell">8. User can click notifications to view related content or take actions</text>
+  <text x="175" y="332" class="cell">9. System marks notifications as read when clicked or viewed</text>
+  <text x="175" y="347" class="cell">10. System provides "Mark All as Read" functionality</text>
+  <text x="175" y="362" class="cell">11. System maintains notification history with pagination</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="375" width="150" height="105" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="392" class="label">Alternative Flows:</text>
+  <rect x="170" y="375" width="610" height="105" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="392" class="cell">A1. No notifications: System displays "No new notifications" message</text>
+  <text x="175" y="407" class="cell">A2. Notification actions: User can accept/decline friend requests directly</text>
+  <text x="175" y="422" class="cell">A3. Filter notifications: User can filter by type (achievements, matches, social)</text>
+  <text x="175" y="437" class="cell">A4. Delete notifications: User can remove individual notifications</text>
+  <text x="175" y="452" class="cell">A5. Notification settings: User can access notification preferences</text>
+  <text x="175" y="467" class="cell">A6. Real-time updates: New notifications appear automatically without refresh</text>
+</svg>

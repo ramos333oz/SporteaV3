@@ -1,0 +1,71 @@
+<svg width="800" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="500" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">View Analytics Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">View Analytics</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Admin User</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Comprehensive analytics dashboard providing match statistics, user engagement metrics,</text>
+  <text x="175" y="152" class="cell">performance indicators, and system health monitoring for administrative oversight.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. Admin must be logged in with analytics access permissions</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="195" width="150" height="180" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="212" class="label">Main Flow:</text>
+  <rect x="170" y="195" width="610" height="180" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="212" class="cell">1. Admin navigates to Matches section from admin dashboard</text>
+  <text x="175" y="227" class="cell">2. System displays comprehensive match analytics dashboard</text>
+  <text x="175" y="242" class="cell">3. System shows key metrics: total matches, completion rates, participation averages</text>
+  <text x="175" y="257" class="cell">4. System displays sport-wise analytics with popularity rankings</text>
+  <text x="175" y="272" class="cell">5. System provides match creation trends with time-based visualizations</text>
+  <text x="175" y="287" class="cell">6. System shows match status distribution: active, completed, cancelled</text>
+  <text x="175" y="302" class="cell">7. System displays user engagement metrics and activity patterns</text>
+  <text x="175" y="317" class="cell">8. System provides venue utilization statistics and booking patterns</text>
+  <text x="175" y="332" class="cell">9. Admin can filter analytics by date range, sport type, or user demographics</text>
+  <text x="175" y="347" class="cell">10. System generates exportable reports for external analysis</text>
+  <text x="175" y="362" class="cell">11. System provides real-time data updates and refresh capabilities</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="375" width="150" height="105" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="392" class="label">Alternative Flows:</text>
+  <rect x="170" y="375" width="610" height="105" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="392" class="cell">A1. Custom date range: Admin selects specific time periods for analysis</text>
+  <text x="175" y="407" class="cell">A2. Export data: Admin downloads analytics data in various formats (CSV, PDF)</text>
+  <text x="175" y="422" class="cell">A3. Drill-down analysis: Admin explores detailed metrics for specific categories</text>
+  <text x="175" y="437" class="cell">A4. Comparative analysis: Admin compares metrics across different time periods</text>
+  <text x="175" y="452" class="cell">A5. Alert thresholds: Admin sets up automated alerts for metric changes</text>
+  <text x="175" y="467" class="cell">A6. Dashboard customization: Admin configures preferred metrics and layouts</text>
+</svg>

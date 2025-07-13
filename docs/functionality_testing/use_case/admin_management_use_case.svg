@@ -1,0 +1,71 @@
+<svg width="800" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="500" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Admin Management Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Admin Management</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Admin User</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Provides comprehensive administrative oversight including user management,</text>
+  <text x="175" y="152" class="cell">analytics monitoring, content moderation, and system administration.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. Admin must be logged in with administrative privileges</text>
+  <text x="175" y="202" class="cell">2. Admin must access through /admin/login portal</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="210" width="150" height="180" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="227" class="label">Main Flow:</text>
+  <rect x="170" y="210" width="610" height="180" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="227" class="cell">1. Admin accesses admin dashboard (/admin/dashboard)</text>
+  <text x="175" y="242" class="cell">2. Admin views system overview with key metrics:</text>
+  <text x="175" y="257" class="cell">   - Total users, matches, participations</text>
+  <text x="175" y="272" class="cell">   - Growth statistics and feedback scores</text>
+  <text x="175" y="287" class="cell">3. Admin manages users and handles user reports</text>
+  <text x="175" y="302" class="cell">4. Admin monitors match analytics and sport-wise statistics</text>
+  <text x="175" y="317" class="cell">5. Admin reviews feedback and algorithm performance</text>
+  <text x="175" y="332" class="cell">6. Admin moderates content using ML-powered tools</text>
+  <text x="175" y="347" class="cell">7. Admin handles high-risk content and manual reviews</text>
+  <text x="175" y="362" class="cell">8. Admin generates reports and monitors system health</text>
+  <text x="175" y="377" class="cell">9. Admin configures system settings and policies</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="390" width="150" height="90" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="407" class="label">Alternative Flows:</text>
+  <rect x="170" y="390" width="610" height="90" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="407" class="cell">A1. User Reports: Admin investigates and resolves user-reported issues</text>
+  <text x="175" y="422" class="cell">A2. Content Flagged: Admin manually reviews flagged content for approval/rejection</text>
+  <text x="175" y="437" class="cell">A3. System Alerts: Admin responds to urgent system notifications</text>
+  <text x="175" y="452" class="cell">A4. Data Export: Admin exports analytics data for external analysis</text>
+  <text x="175" y="467" class="cell">A5. Emergency Actions: Admin can suspend users or disable features if needed</text>
+</svg>

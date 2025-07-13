@@ -10,6 +10,10 @@ import {
   initializePerformanceOptimizations,
   cleanupPerformanceOptimizations
 } from './utils/performanceOptimizations';
+import {
+  initializeLoggingOptimizations,
+  monitorLoggingPerformance
+} from './utils/loggingOptimizations';
 
 // Pages
 import Home from './pages/Home';
@@ -323,6 +327,8 @@ function App() {
   // Initialize performance optimizations on app startup
   useEffect(() => {
     initializePerformanceOptimizations();
+    initializeLoggingOptimizations();
+    monitorLoggingPerformance();
 
     // Cleanup on app unmount
     return () => {

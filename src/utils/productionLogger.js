@@ -22,8 +22,38 @@ const LOG_LEVELS = {
   DEBUG: 3
 };
 
-// Current log level based on environment
-const CURRENT_LOG_LEVEL = isDev ? LOG_LEVELS.DEBUG : LOG_LEVELS.ERROR;
+// Enhanced log level configuration with performance considerations
+const CURRENT_LOG_LEVEL = (() => {
+  // Check for URL parameter override (for debugging in production)
+  const urlParams = new URLSearchParams(window.location.search);
+  const debugParam = urlParams.get('debug');
+
+  if (debugParam === 'true' && isProduction) {
+    console.warn('[Sportea] Debug mode enabled in production via URL parameter');
+    return LOG_LEVELS.WARN; // Limited debug in production
+  }
+
+  return isDev ? LOG_LEVELS.DEBUG : LOG_LEVELS.ERROR; // More restrictive in production
+})();
+
+// Performance-optimized logging configuration
+const LOGGING_CONFIG = {
+  // Reduce real-time logging frequency
+  realtimeThrottleMs: isDev ? 0 : 5000, // Throttle real-time logs to every 5 seconds in production
+
+  // Batch console operations to reduce performance impact
+  batchSize: isDev ? 1 : 10,
+  batchTimeoutMs: isDev ? 0 : 1000,
+
+  // Limit recommendation system logging
+  recommendationLogLimit: isDev ? Infinity : 1, // Only log first recommendation in production
+
+  // Connection status logging limits
+  maxConnectionLogs: isDev ? Infinity : 5, // Limit connection status logs
+
+  // Memory monitoring frequency
+  memoryCheckIntervalMs: isDev ? 30000 : 300000, // Check memory every 5 minutes in production
+};
 
 /**
  * Production-safe logger
@@ -33,6 +63,17 @@ class ProductionLogger {
     this.startTime = Date.now();
     this.logCount = 0;
     this.errorCount = 0;
+
+    // Throttling and batching state
+    this.throttleTimers = new Map();
+    this.logBatch = [];
+    this.batchTimer = null;
+    this.logCounters = new Map(); // Track log frequency by category
+
+    // Performance monitoring
+    this.lastMemoryCheck = 0;
+    this.connectionLogCount = 0;
+    this.recommendationLogCount = 0;
   }
 
   /**
@@ -111,17 +152,31 @@ class ProductionLogger {
   }
 
   /**
-   * Memory usage logging (dev only)
+   * Optimized memory usage logging with throttling
    */
   memory(label) {
-    if (!isDev || !performance.memory) return;
+    if (!performance.memory) return;
+
+    const now = Date.now();
+
+    // Throttle memory checks based on environment
+    if (now - this.lastMemoryCheck < LOGGING_CONFIG.memoryCheckIntervalMs) {
+      return;
+    }
+
+    this.lastMemoryCheck = now;
 
     const memory = performance.memory;
-    this.debug(`Memory [${label}]:`, {
-      used: `${(memory.usedJSHeapSize / 1024 / 1024).toFixed(2)}MB`,
-      total: `${(memory.totalJSHeapSize / 1024 / 1024).toFixed(2)}MB`,
-      limit: `${(memory.jsHeapSizeLimit / 1024 / 1024).toFixed(2)}MB`
-    });
+    const usedMB = (memory.usedJSHeapSize / 1024 / 1024).toFixed(2);
+
+    // Only log if memory usage is concerning or in development
+    if (isDev || usedMB > 50) { // Alert if over 50MB in production
+      this.debug(`Memory [${label}]:`, {
+        used: `${usedMB}MB`,
+        total: `${(memory.totalJSHeapSize / 1024 / 1024).toFixed(2)}MB`,
+        limit: `${(memory.jsHeapSizeLimit / 1024 / 1024).toFixed(2)}MB`
+      });
+    }
   }
 
   /**
@@ -136,12 +191,55 @@ class ProductionLogger {
   }
 
   /**
-   * Realtime connection logging
+   * Throttled realtime connection logging
    */
   realtime(event, data) {
-    if (isDev) {
+    // Limit connection logs in production
+    if (isProduction && this.connectionLogCount >= LOGGING_CONFIG.maxConnectionLogs) {
+      return;
+    }
+
+    const throttleKey = `realtime-${event}`;
+    if (this.shouldThrottle(throttleKey, LOGGING_CONFIG.realtimeThrottleMs)) {
+      return;
+    }
+
+    if (isDev || CURRENT_LOG_LEVEL >= LOG_LEVELS.INFO) {
+      this.connectionLogCount++;
       this.debug(`Realtime [${event}]:`, data);
     }
+  }
+
+  /**
+   * Throttled recommendation system logging
+   */
+  recommendation(message, data) {
+    // Limit recommendation logs in production
+    if (isProduction && this.recommendationLogCount >= LOGGING_CONFIG.recommendationLogLimit) {
+      return;
+    }
+
+    if (isDev || CURRENT_LOG_LEVEL >= LOG_LEVELS.INFO) {
+      this.recommendationLogCount++;
+      this.debug(`Recommendation: ${message}`, data);
+    }
+  }
+
+  /**
+   * Throttling helper method
+   */
+  shouldThrottle(key, intervalMs) {
+    if (intervalMs === 0) return false;
+
+    const now = Date.now();
+    const lastLog = this.throttleTimers.get(key);
+
+    if (!lastLog || now - lastLog >= intervalMs) {
+      this.throttleTimers.set(key, now);
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -217,6 +315,7 @@ export const logPerfAsync = (label, fn) => logger.perfAsync(label, fn);
 export const logMemory = (label) => logger.memory(label);
 export const logNetwork = (method, url, status, duration) => logger.network(method, url, status, duration);
 export const logRealtime = (event, data) => logger.realtime(event, data);
+export const logRecommendation = (message, data) => logger.recommendation(message, data);
 export const logComponent = (name, event, data) => logger.component(name, event, data);
 
 // Export logger instance

@@ -1,0 +1,69 @@
+<svg width="800" height="460" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="460" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Receive Notifications Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Receive Notifications</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Regular User, System</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Real-time notification delivery system providing users with immediate updates</text>
+  <text x="175" y="152" class="cell">about achievements, match activities, social interactions, and system events.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. User must be logged in with active session</text>
+  <text x="175" y="202" class="cell">2. User must have notifications enabled in preferences</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="210" width="150" height="140" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="227" class="label">Main Flow:</text>
+  <rect x="170" y="210" width="610" height="140" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="227" class="cell">1. System generates notification for user-specific event</text>
+  <text x="175" y="242" class="cell">2. System delivers notification to user's active session in real-time</text>
+  <text x="175" y="257" class="cell">3. User receives notification through multiple channels: in-app, badge updates</text>
+  <text x="175" y="272" class="cell">4. System updates notification bell icon with unread count</text>
+  <text x="175" y="287" class="cell">5. User sees visual indicator (red badge) showing new notifications</text>
+  <text x="175" y="302" class="cell">6. System stores notification in user's notification history</text>
+  <text x="175" y="317" class="cell">7. User can access notifications immediately through notification panel</text>
+  <text x="175" y="332" class="cell">8. System maintains notification persistence across sessions</text>
+  <text x="175" y="347" class="cell">9. System provides notification categorization and priority handling</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="350" width="150" height="90" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="367" class="label">Alternative Flows:</text>
+  <rect x="170" y="350" width="610" height="90" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="367" class="cell">A1. Offline user: System queues notifications for delivery when user returns</text>
+  <text x="175" y="382" class="cell">A2. Disabled notifications: System respects user preferences and skips delivery</text>
+  <text x="175" y="397" class="cell">A3. Multiple sessions: System delivers notifications to all active user sessions</text>
+  <text x="175" y="412" class="cell">A4. High priority: System uses enhanced delivery methods for urgent notifications</text>
+  <text x="175" y="427" class="cell">A5. Notification overflow: System manages notification limits and cleanup</text>
+</svg>

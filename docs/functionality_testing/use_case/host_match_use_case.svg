@@ -1,0 +1,70 @@
+<svg width="800" height="480" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="480" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Host Match Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Host Match</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Regular User</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Allows users to create, manage, and host sports matches including setting up</text>
+  <text x="175" y="152" class="cell">match details, location, time, and managing participants throughout the match lifecycle.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. User must be logged in</text>
+  <text x="175" y="202" class="cell">2. User profile must be complete with basic information</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="210" width="150" height="160" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="227" class="label">Main Flow:</text>
+  <rect x="170" y="210" width="610" height="160" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="227" class="cell">1. User navigates to Host page (/host)</text>
+  <text x="175" y="242" class="cell">2. User clicks "Create New Match" button</text>
+  <text x="175" y="257" class="cell">3. System displays 4-step match creation wizard:</text>
+  <text x="175" y="272" class="cell">   - Step 1: Select Sport (with player count guidelines)</text>
+  <text x="175" y="287" class="cell">   - Step 2: Match Details (title, description, skill level, duration)</text>
+  <text x="175" y="302" class="cell">   - Step 3: Location (venue, court, address)</text>
+  <text x="175" y="317" class="cell">   - Step 4: Review and confirm all details</text>
+  <text x="175" y="332" class="cell">4. User completes each step and submits match</text>
+  <text x="175" y="347" class="cell">5. System processes match through content moderation</text>
+  <text x="175" y="362" class="cell">6. Match becomes available for other users to join</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="370" width="150" height="90" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="387" class="label">Alternative Flows:</text>
+  <rect x="170" y="370" width="610" height="90" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="387" class="cell">A1. Edit Match: User can modify existing match details before match starts</text>
+  <text x="175" y="402" class="cell">A2. Cancel Match: User can cancel hosted matches with participant notification</text>
+  <text x="175" y="417" class="cell">A3. Content Flagged: System flags inappropriate content for manual review</text>
+  <text x="175" y="432" class="cell">A4. Validation Error: System displays error messages for incomplete/invalid data</text>
+  <text x="175" y="447" class="cell">A5. XP Reward: User earns XP points for successfully hosting matches</text>
+</svg>

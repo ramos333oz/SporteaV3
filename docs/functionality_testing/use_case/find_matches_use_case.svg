@@ -1,0 +1,67 @@
+<svg width="800" height="450" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="450" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Find Matches Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Find Matches</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Regular User</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Allows users to search and discover available sports matches using various</text>
+  <text x="175" y="152" class="cell">filters, view modes, and recommendation algorithms based on their preferences.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. User must be logged in</text>
+  <text x="175" y="202" class="cell">2. User profile with preferences should be configured</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="210" width="150" height="140" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="227" class="label">Main Flow:</text>
+  <rect x="170" y="210" width="610" height="140" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="227" class="cell">1. User navigates to Find page (/find)</text>
+  <text x="175" y="242" class="cell">2. System displays available matches with recommendation scores</text>
+  <text x="175" y="257" class="cell">3. User can switch between "Games" and "Players" tabs</text>
+  <text x="175" y="272" class="cell">4. User applies filters (sport type, skill level, location, time)</text>
+  <text x="175" y="287" class="cell">5. User selects view mode (List View, Map View, Calendar)</text>
+  <text x="175" y="302" class="cell">6. System updates results based on filters and preferences</text>
+  <text x="175" y="317" class="cell">7. User views match details and can join matches</text>
+  <text x="175" y="332" class="cell">8. System tracks user interactions for recommendation improvement</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="350" width="150" height="80" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="367" class="label">Alternative Flows:</text>
+  <rect x="170" y="350" width="610" height="80" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="367" class="cell">A1. No matches found: System displays "No matches found" message</text>
+  <text x="175" y="382" class="cell">A2. Find Players: User switches to Players tab to find individual players</text>
+  <text x="175" y="397" class="cell">A3. Advanced filters: User clicks "More Filters" for additional filtering options</text>
+  <text x="175" y="412" class="cell">A4. Real-time updates: System automatically refreshes match availability</text>
+</svg>

@@ -1,0 +1,192 @@
+<svg width="1400" height="2200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .activity-label { font-family: Arial, sans-serif; font-size: 18px; text-anchor: middle; fill: #000; }
+      .decision-label { font-family: Arial, sans-serif; font-size: 16px; text-anchor: middle; fill: #000; }
+      .flow-label { font-family: Arial, sans-serif; font-size: 14px; text-anchor: middle; fill: #000; }
+      .boundary { fill: none; stroke: #000; stroke-width: 2; }
+      .activity { fill: #fff; stroke: #000; stroke-width: 1.5; }
+      .decision { fill: #fff; stroke: #000; stroke-width: 1.5; }
+      .start-end { fill: #000; stroke: #000; stroke-width: 2; }
+      .flow-line { stroke: #000; stroke-width: 1.5; fill: none; }
+      .sync-bar { fill: #000; stroke: #000; stroke-width: 2; }
+    </style>
+  </defs>
+
+  <!-- System Boundary -->
+  <rect x="70" y="70" width="1260" height="2060" class="boundary"/>
+
+  <!-- Start Node -->
+  <circle cx="700" cy="130" r="18" class="start-end"/>
+
+  <!-- Admin Login Activity -->
+  <rect x="550" y="180" width="300" height="70" rx="35" class="activity"/>
+  <text x="700" y="210" class="activity-label">Admin</text>
+  <text x="700" y="235" class="activity-label">Login</text>
+
+  <!-- Login Success Decision -->
+  <polygon points="700,290 740,330 700,370 660,330" class="decision"/>
+  <text x="700" y="325" class="decision-label">Login</text>
+  <text x="700" y="345" class="decision-label">Success?</text>
+
+  <!-- Admin Dashboard Activity -->
+  <rect x="550" y="420" width="300" height="70" rx="35" class="activity"/>
+  <text x="700" y="450" class="activity-label">Admin</text>
+  <text x="700" y="475" class="activity-label">Dashboard</text>
+
+  <!-- Synchronization Bar -->
+  <rect x="140" y="540" width="1120" height="20" class="sync-bar"/>
+
+  <!-- Core Admin Feature Activities - Extreme Wide Spacing -->
+  <!-- Overview -->
+  <rect x="170" y="620" width="200" height="80" rx="40" class="activity"/>
+  <text x="270" y="650" class="activity-label">View</text>
+  <text x="270" y="675" class="activity-label">Overview</text>
+
+  <!-- Users -->
+  <rect x="400" y="620" width="200" height="80" rx="40" class="activity"/>
+  <text x="500" y="650" class="activity-label">Manage</text>
+  <text x="500" y="675" class="activity-label">Users</text>
+
+  <!-- Matches -->
+  <rect x="630" y="620" width="200" height="80" rx="40" class="activity"/>
+  <text x="730" y="650" class="activity-label">View</text>
+  <text x="730" y="675" class="activity-label">Analytics</text>
+
+  <!-- Feedback -->
+  <rect x="860" y="620" width="200" height="80" rx="40" class="activity"/>
+  <text x="960" y="650" class="activity-label">Manage</text>
+  <text x="960" y="675" class="activity-label">Feedback</text>
+
+  <!-- Content Moderation - Much Smaller and Centered -->
+  <rect x="600" y="750" width="200" height="60" rx="30" class="activity"/>
+  <text x="700" y="775" class="activity-label">Moderate</text>
+  <text x="700" y="795" class="activity-label">Content</text>
+
+  <!-- Second Level Activities - Extreme Wide Spacing -->
+  <!-- Monitor Metrics -->
+  <rect x="170" y="870" width="200" height="80" rx="40" class="activity"/>
+  <text x="270" y="900" class="activity-label">Monitor</text>
+  <text x="270" y="925" class="activity-label">Metrics</text>
+
+  <!-- Review Reports -->
+  <rect x="400" y="870" width="200" height="80" rx="40" class="activity"/>
+  <text x="500" y="900" class="activity-label">Review</text>
+  <text x="500" y="925" class="activity-label">Reports</text>
+
+  <!-- Analyze Data -->
+  <rect x="630" y="870" width="200" height="80" rx="40" class="activity"/>
+  <text x="730" y="900" class="activity-label">Analyze</text>
+  <text x="730" y="925" class="activity-label">Data</text>
+
+  <!-- Review Feedback -->
+  <rect x="860" y="870" width="200" height="80" rx="40" class="activity"/>
+  <text x="960" y="900" class="activity-label">Review</text>
+  <text x="960" y="925" class="activity-label">Feedback</text>
+
+  <!-- Review Queue - Much Smaller and Centered -->
+  <rect x="600" y="1000" width="200" height="60" rx="30" class="activity"/>
+  <text x="700" y="1025" class="activity-label">Review</text>
+  <text x="700" y="1045" class="activity-label">Queue</text>
+
+  <!-- Third Level Activities - Extreme Wide Spacing -->
+  <!-- System Health -->
+  <rect x="170" y="1120" width="200" height="80" rx="40" class="activity"/>
+  <text x="270" y="1145" class="activity-label">Check System</text>
+  <text x="270" y="1170" class="activity-label">Health</text>
+
+  <!-- Resolve Issues -->
+  <rect x="400" y="1120" width="200" height="80" rx="40" class="activity"/>
+  <text x="500" y="1150" class="activity-label">Resolve</text>
+  <text x="500" y="1175" class="activity-label">Issues</text>
+
+  <!-- Generate Reports -->
+  <rect x="630" y="1120" width="200" height="80" rx="40" class="activity"/>
+  <text x="730" y="1150" class="activity-label">Generate</text>
+  <text x="730" y="1175" class="activity-label">Reports</text>
+
+  <!-- Optimize System -->
+  <rect x="860" y="1120" width="200" height="80" rx="40" class="activity"/>
+  <text x="960" y="1150" class="activity-label">Optimize</text>
+  <text x="960" y="1175" class="activity-label">System</text>
+
+  <!-- Approve/Reject - Much Smaller and Centered -->
+  <rect x="600" y="1250" width="200" height="60" rx="30" class="activity"/>
+  <text x="700" y="1275" class="activity-label">Approve/Reject</text>
+  <text x="700" y="1295" class="activity-label">Content</text>
+
+  <!-- Synchronization Bar -->
+  <rect x="170" y="1370" width="1060" height="20" class="sync-bar"/>
+
+  <!-- Continue Decision -->
+  <polygon points="700,1440 740,1480 700,1520 660,1480" class="decision"/>
+  <text x="700" y="1483" class="decision-label">Continue?</text>
+
+  <!-- Admin Logout Activity -->
+  <rect x="550" y="1570" width="300" height="70" rx="35" class="activity"/>
+  <text x="700" y="1600" class="activity-label">Admin</text>
+  <text x="700" y="1625" class="activity-label">Logout</text>
+
+  <!-- End Node -->
+  <circle cx="700" cy="1690" r="18" class="start-end"/>
+
+  <!-- Flow Lines - Extreme Wide Spacing to Eliminate All Overlaps -->
+  <!-- Start to Admin Login -->
+  <line x1="700" y1="148" x2="700" y2="180" class="flow-line"/>
+
+  <!-- Admin Login to Decision -->
+  <line x1="700" y1="250" x2="700" y2="290" class="flow-line"/>
+
+  <!-- Login Decision No Loop -->
+  <path d="M 660 330 L 380 330 L 380 215 L 550 215" class="flow-line"/>
+  <text x="375" y="325" class="flow-label">No</text>
+
+  <!-- Login Decision Yes to Dashboard -->
+  <line x1="700" y1="370" x2="700" y2="420" class="flow-line"/>
+  <text x="750" y="395" class="flow-label">Yes</text>
+
+  <!-- Dashboard to Sync Bar -->
+  <line x1="700" y1="490" x2="700" y2="540" class="flow-line"/>
+
+  <!-- Sync Bar to Activities - Extreme Wide Spacing -->
+  <line x1="270" y1="560" x2="270" y2="620" class="flow-line"/>
+  <line x1="500" y1="560" x2="500" y2="620" class="flow-line"/>
+  <line x1="730" y1="560" x2="730" y2="620" class="flow-line"/>
+  <line x1="960" y1="560" x2="960" y2="620" class="flow-line"/>
+  <line x1="700" y1="560" x2="700" y2="750" class="flow-line"/>
+
+  <!-- First to Second Level -->
+  <line x1="270" y1="700" x2="270" y2="870" class="flow-line"/>
+  <line x1="500" y1="700" x2="500" y2="870" class="flow-line"/>
+  <line x1="730" y1="700" x2="730" y2="870" class="flow-line"/>
+  <line x1="960" y1="700" x2="960" y2="870" class="flow-line"/>
+  <line x1="700" y1="810" x2="700" y2="1000" class="flow-line"/>
+
+  <!-- Second to Third Level -->
+  <line x1="270" y1="950" x2="270" y2="1120" class="flow-line"/>
+  <line x1="500" y1="950" x2="500" y2="1120" class="flow-line"/>
+  <line x1="730" y1="950" x2="730" y2="1120" class="flow-line"/>
+  <line x1="960" y1="950" x2="960" y2="1120" class="flow-line"/>
+  <line x1="700" y1="1060" x2="700" y2="1250" class="flow-line"/>
+
+  <!-- Third Level to Sync Bar -->
+  <line x1="270" y1="1200" x2="270" y2="1370" class="flow-line"/>
+  <line x1="500" y1="1200" x2="500" y2="1370" class="flow-line"/>
+  <line x1="730" y1="1200" x2="730" y2="1370" class="flow-line"/>
+  <line x1="960" y1="1200" x2="960" y2="1370" class="flow-line"/>
+  <line x1="700" y1="1310" x2="700" y2="1370" class="flow-line"/>
+
+  <!-- Sync Bar to Continue Decision -->
+  <line x1="700" y1="1390" x2="700" y2="1440" class="flow-line"/>
+
+  <!-- Continue Decision Yes Loop - Extreme Wide Arc -->
+  <path d="M 660 1480 L 100 1480 L 100 455 L 550 455" class="flow-line"/>
+  <text x="95" y="1475" class="flow-label">Yes</text>
+
+  <!-- Continue Decision No to Logout -->
+  <line x1="700" y1="1520" x2="700" y2="1570" class="flow-line"/>
+  <text x="750" y="1545" class="flow-label">No</text>
+
+  <!-- Logout to End -->
+  <line x1="700" y1="1640" x2="700" y2="1672" class="flow-line"/>
+</svg>

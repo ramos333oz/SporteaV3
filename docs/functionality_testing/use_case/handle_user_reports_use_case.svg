@@ -1,0 +1,74 @@
+<svg width="800" height="540" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="540" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Handle User Reports Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Handle User Reports</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Admin User</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Dedicated admin workflow for reviewing, investigating, and resolving user-submitted</text>
+  <text x="175" y="152" class="cell">reports with status tracking, resolution actions, and comprehensive audit trails.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. Admin must be logged in with report management permissions</text>
+  <text x="175" y="202" class="cell">2. User reports must exist in the system queue</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="210" width="150" height="220" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="227" class="label">Main Flow:</text>
+  <rect x="170" y="210" width="610" height="220" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="227" class="cell">1. Admin accesses user reports queue from admin dashboard</text>
+  <text x="175" y="242" class="cell">2. System displays reports filtered by status: Pending, In Progress, Resolved</text>
+  <text x="175" y="257" class="cell">3. System shows report categories: Inappropriate Content, Harassment, Spam, Technical</text>
+  <text x="175" y="272" class="cell">4. Admin selects specific report for detailed investigation</text>
+  <text x="175" y="287" class="cell">5. System displays complete report details: reporter, reported user, evidence, timestamp</text>
+  <text x="175" y="302" class="cell">6. Admin reviews reported content, user profiles, and interaction history</text>
+  <text x="175" y="317" class="cell">7. Admin investigates context and gathers additional evidence if needed</text>
+  <text x="175" y="332" class="cell">8. Admin determines violation severity and appropriate response action</text>
+  <text x="175" y="347" class="cell">9. Admin takes action: Resolve (no violation), Investigate (needs more review), Escalate</text>
+  <text x="175" y="362" class="cell">10. Admin provides detailed resolution notes and reasoning</text>
+  <text x="175" y="377" class="cell">11. System updates report status and logs all admin actions</text>
+  <text x="175" y="392" class="cell">12. System sends resolution notifications to reporter and reported user</text>
+  <text x="175" y="407" class="cell">13. Admin monitors report resolution effectiveness and user compliance</text>
+  <text x="175" y="422" class="cell">14. System maintains comprehensive audit trail for all report handling</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="430" width="150" height="90" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="447" class="label">Alternative Flows:</text>
+  <rect x="170" y="430" width="610" height="90" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="447" class="cell">A1. Urgent report: High-priority reports receive immediate admin attention</text>
+  <text x="175" y="462" class="cell">A2. Complex investigation: Admin sets report to "In Progress" for extended review</text>
+  <text x="175" y="477" class="cell">A3. False report: Admin marks report as invalid and may take action against false reporter</text>
+  <text x="175" y="492" class="cell">A4. Escalation: Admin forwards serious violations to higher authority or legal team</text>
+  <text x="175" y="507" class="cell">A5. Batch processing: Admin handles multiple similar reports efficiently</text>
+</svg>

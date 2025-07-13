@@ -1,0 +1,70 @@
+<svg width="800" height="480" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="480" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Track Progress Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Track Progress</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Regular User, System</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Comprehensive progress monitoring system tracking user advancement through</text>
+  <text x="175" y="152" class="cell">five-tier ranking system with XP accumulation, achievement progress, and level progression.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. User must be logged in with active account and activity history</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="195" width="150" height="160" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="212" class="label">Main Flow:</text>
+  <rect x="170" y="195" width="610" height="160" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="212" class="cell">1. System continuously monitors user activities and XP accumulation</text>
+  <text x="175" y="227" class="cell">2. System tracks current tier: Bronze, Silver, Gold, Platinum, Diamond</text>
+  <text x="175" y="242" class="cell">3. System displays XP progress bar showing advancement to next tier</text>
+  <text x="175" y="257" class="cell">4. System calculates percentage completion toward next level</text>
+  <text x="175" y="272" class="cell">5. System tracks achievement progress across 20+ available achievements</text>
+  <text x="175" y="287" class="cell">6. System monitors match participation statistics and hosting frequency</text>
+  <text x="175" y="302" class="cell">7. System provides progress visualization in profile and leaderboard</text>
+  <text x="175" y="317" class="cell">8. System updates progress displays in real-time after activities</text>
+  <text x="175" y="332" class="cell">9. System maintains historical progress data for trend analysis</text>
+  <text x="175" y="347" class="cell">10. System provides progress insights and recommendations for advancement</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="355" width="150" height="105" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="372" class="label">Alternative Flows:</text>
+  <rect x="170" y="355" width="610" height="105" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="372" class="cell">A1. Tier promotion: System celebrates advancement with special notifications</text>
+  <text x="175" y="387" class="cell">A2. Progress stagnation: System provides tips for continued advancement</text>
+  <text x="175" y="402" class="cell">A3. Achievement near completion: System highlights close achievements</text>
+  <text x="175" y="417" class="cell">A4. Leaderboard ranking: System shows relative progress compared to peers</text>
+  <text x="175" y="432" class="cell">A5. Progress sharing: User can share milestones with friends</text>
+  <text x="175" y="447" class="cell">A6. Historical view: User can review past progress and achievements</text>
+</svg>

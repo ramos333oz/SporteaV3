@@ -1,0 +1,71 @@
+<svg width="800" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="500" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Edit Match Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Edit Match</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Regular User (Match Host)</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Allows match hosts to modify their created matches with participant notifications,</text>
+  <text x="175" y="152" class="cell">content re-moderation, and system validation for changes affecting participants.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. User must be the original host of the match</text>
+  <text x="175" y="202" class="cell">2. Match must not have started or been completed</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="210" width="150" height="180" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="227" class="label">Main Flow:</text>
+  <rect x="170" y="210" width="610" height="180" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="227" class="cell">1. Host navigates to their hosted match details page</text>
+  <text x="175" y="242" class="cell">2. Host clicks "Edit Match" button (visible only to host)</text>
+  <text x="175" y="257" class="cell">3. System loads match editing form with current information</text>
+  <text x="175" y="272" class="cell">4. Host modifies desired fields: title, description, time, venue, requirements</text>
+  <text x="175" y="287" class="cell">5. System validates changes and checks for conflicts with participants</text>
+  <text x="175" y="302" class="cell">6. If content changed, system runs ML moderation on new text</text>
+  <text x="175" y="317" class="cell">7. System identifies participants affected by changes (time, venue, requirements)</text>
+  <text x="175" y="332" class="cell">8. Host confirms changes and impact on current participants</text>
+  <text x="175" y="347" class="cell">9. System updates match information and saves changes</text>
+  <text x="175" y="362" class="cell">10. System sends change notifications to all affected participants</text>
+  <text x="175" y="377" class="cell">11. Updated match information reflects in all system displays</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="390" width="150" height="90" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="407" class="label">Alternative Flows:</text>
+  <rect x="170" y="390" width="610" height="90" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="407" class="cell">A1. Major changes: System warns about significant changes affecting participants</text>
+  <text x="175" y="422" class="cell">A2. Content flagged: Edited content requires manual admin review</text>
+  <text x="175" y="437" class="cell">A3. Participant conflicts: Some participants may leave due to changes</text>
+  <text x="175" y="452" class="cell">A4. Venue unavailable: System suggests alternative venues for new time</text>
+  <text x="175" y="467" class="cell">A5. Cancel edit: Host cancels changes and returns to original match details</text>
+</svg>

@@ -1,0 +1,65 @@
+<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="400" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Login to System Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Login to System</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Regular User, Admin User</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <text x="25" y="152" class="label"></text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Allows users and administrators to authenticate and gain access to the</text>
+  <text x="175" y="152" class="cell">SporteaV3 platform using their email credentials and password.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. User must have a registered account</text>
+  <text x="175" y="202" class="cell">2. Application must be accessible and running</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="210" width="150" height="120" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="227" class="label">Main Flow:</text>
+  <rect x="170" y="210" width="610" height="120" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="227" class="cell">1. User navigates to login page (/login or /admin/login)</text>
+  <text x="175" y="242" class="cell">2. User enters email address in the email field</text>
+  <text x="175" y="257" class="cell">3. User enters password in the password field</text>
+  <text x="175" y="272" class="cell">4. User optionally selects "Remember me" checkbox</text>
+  <text x="175" y="287" class="cell">5. User clicks "Sign In" button</text>
+  <text x="175" y="302" class="cell">6. System validates credentials and redirects to appropriate dashboard</text>
+  <text x="175" y="317" class="cell">7. User gains access to platform features based on role</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="330" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="347" class="label">Alternative Flows:</text>
+  <rect x="170" y="330" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="347" class="cell">A1. Invalid credentials: System displays error message and remains on login page</text>
+  <text x="175" y="362" class="cell">A2. Forgot password: User clicks "Forgot Password" link to initiate password recovery</text>
+</svg>

@@ -1,0 +1,72 @@
+<svg width="800" height="520" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="520" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Manage Users Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Manage Users</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Admin User</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Comprehensive user oversight system allowing admins to manage user accounts,</text>
+  <text x="175" y="152" class="cell">review user reports, handle violations, and maintain platform community standards.</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">1. Admin must be logged in with administrative privileges</text>
+  <text x="175" y="202" class="cell">2. Admin must have access to user management dashboard</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="210" width="150" height="200" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="227" class="label">Main Flow:</text>
+  <rect x="170" y="210" width="610" height="200" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="227" class="cell">1. Admin accesses Users section from admin dashboard navigation</text>
+  <text x="175" y="242" class="cell">2. System displays user management interface with user reports queue</text>
+  <text x="175" y="257" class="cell">3. Admin views user reports filtered by status, category, and priority</text>
+  <text x="175" y="272" class="cell">4. Admin selects specific user report for detailed review</text>
+  <text x="175" y="287" class="cell">5. System displays report details: reporter, reported user, violation type, evidence</text>
+  <text x="175" y="302" class="cell">6. Admin investigates reported user's profile, match history, and behavior patterns</text>
+  <text x="175" y="317" class="cell">7. Admin determines appropriate action: resolve, investigate further, or escalate</text>
+  <text x="175" y="332" class="cell">8. Admin can take actions: warning, temporary suspension, permanent ban</text>
+  <text x="175" y="347" class="cell">9. Admin provides resolution notes and communicates with affected users</text>
+  <text x="175" y="362" class="cell">10. System updates report status and logs admin actions for audit trail</text>
+  <text x="175" y="377" class="cell">11. System sends notifications to relevant parties about resolution</text>
+  <text x="175" y="392" class="cell">12. Admin monitors user compliance and tracks repeat offenders</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="410" width="150" height="90" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="427" class="label">Alternative Flows:</text>
+  <rect x="170" y="410" width="610" height="90" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="427" class="cell">A1. False report: Admin marks report as invalid and may warn false reporter</text>
+  <text x="175" y="442" class="cell">A2. Escalation needed: Admin forwards complex cases to higher authority</text>
+  <text x="175" y="457" class="cell">A3. User appeal: Admin reviews appeals against previous moderation decisions</text>
+  <text x="175" y="472" class="cell">A4. Bulk actions: Admin handles multiple similar violations efficiently</text>
+  <text x="175" y="487" class="cell">A5. Emergency suspension: Admin immediately suspends users for severe violations</text>
+</svg>
