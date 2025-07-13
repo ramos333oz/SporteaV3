@@ -136,11 +136,16 @@ class AchievementService {
     }
   }
 
-  // Enhanced XP awarding with real-time updates and level progression
+  // Simplified XP awarding without streak functionality
   async awardXP(userId, xpAmount, reason = '', broadcastUpdate = true) {
     try {
+      console.log(`🔍 [DEBUG] Starting awardXP for user ${userId}, amount: ${xpAmount}, reason: ${reason}`);
+
       // Get current gamification data
       const currentData = await this.getUserGamification(userId);
+      console.log(`🔍 [DEBUG] Current data retrieved:`, currentData);
+
+      // Calculate new XP values
       const newTotalXP = currentData.total_xp + xpAmount;
       const newWeeklyXP = currentData.weekly_xp + xpAmount;
       const newMonthlyXP = currentData.monthly_xp + xpAmount;
@@ -149,8 +154,19 @@ class AchievementService {
       // Calculate new level
       const newLevel = this.calculateLevelFromXP(newTotalXP);
 
-      // Update gamification data
-      const { data, error } = await supabase
+      console.log(`🔍 [DEBUG] Calculated values - Old XP: ${currentData.total_xp}, New XP: ${newTotalXP}, Old Level: ${oldLevel}, New Level: ${newLevel}`);
+
+      // Update gamification data with separate update and fetch approach
+      console.log(`🔍 [DEBUG] Attempting database update for user ${userId}`);
+
+      // Check current authentication context
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      console.log(`🔍 [DEBUG] Current authenticated user:`, currentUser?.id, currentUser?.email);
+      console.log(`🔍 [DEBUG] Target user ID:`, userId);
+      console.log(`🔍 [DEBUG] User IDs match:`, currentUser?.id === userId);
+
+      // Perform UPDATE without .select() to avoid RLS issues
+      const { error: updateError } = await supabase
         .from('user_gamification')
         .update({
           total_xp: newTotalXP,
@@ -159,11 +175,28 @@ class AchievementService {
           current_level: newLevel,
           last_activity_date: new Date().toISOString().split('T')[0]
         })
+        .eq('user_id', userId);
+
+      console.log(`🔍 [DEBUG] Database update error:`, updateError);
+      if (updateError) throw updateError;
+
+      // Fetch the updated record separately
+      console.log(`🔍 [DEBUG] Fetching updated record after successful update`);
+      const { data: updatedData, error: fetchError } = await supabase
+        .from('user_gamification')
+        .select('*')
         .eq('user_id', userId)
-        .select()
         .single();
 
-      if (error) throw error;
+      console.log(`🔍 [DEBUG] Fetch updated record result - Data:`, updatedData, `Error:`, fetchError);
+      if (fetchError) throw fetchError;
+
+      if (!updatedData) {
+        throw new Error(`Failed to fetch updated record for user ${userId}`);
+      }
+
+      // Use the fetched updated record
+      const updatedRecord = updatedData;
 
       // Broadcast real-time updates if enabled
       if (broadcastUpdate) {
@@ -184,7 +217,7 @@ class AchievementService {
       }
 
       console.log(`Awarded ${xpAmount} XP to user ${userId}. Reason: ${reason}${newLevel > oldLevel ? ` (Level up: ${oldLevel} → ${newLevel})` : ''}`);
-      return data;
+      return updatedRecord;
     } catch (error) {
       console.error('Error awarding XP:', error);
       throw error;
@@ -424,7 +457,9 @@ class AchievementService {
         if (newProgress >= achievement.requirement_value) {
           // Achievement unlocked!
           await this.unlockAchievement(userId, achievement.id);
-          await this.awardXP(userId, achievement.xp_reward, `Achievement: ${achievement.name}`);
+          // TODO: Temporarily disable achievement XP to debug main XP awarding
+          // await this.awardXP(userId, achievement.xp_reward, `Achievement: ${achievement.name}`);
+          console.log(`🎉 Achievement unlocked: ${achievement.name} (${achievement.xp_reward} XP - not awarded yet)`);
           unlockedAchievements.push(achievement);
         } else if (newProgress > (userProgress?.current_progress || 0)) {
           // Update progress
@@ -566,7 +601,10 @@ class AchievementService {
   // Unlock achievement for user
   async unlockAchievement(userId, achievementId) {
     try {
-      const { data, error } = await supabase
+      console.log(`🔍 [DEBUG] Attempting to unlock achievement ${achievementId} for user ${userId}`);
+
+      // Perform UPSERT without .select() to avoid RLS issues
+      const { error: upsertError } = await supabase
         .from('user_achievement_progress')
         .upsert({
           user_id: userId,
@@ -575,13 +613,29 @@ class AchievementService {
           is_completed: true,
           completed_at: new Date().toISOString(),
           notified: false
-        })
-        .select()
+        });
+
+      console.log(`🔍 [DEBUG] Achievement upsert error:`, upsertError);
+      if (upsertError) throw upsertError;
+
+      // Fetch the updated record separately
+      console.log(`🔍 [DEBUG] Fetching achievement progress record after successful upsert`);
+      const { data: achievementData, error: fetchError } = await supabase
+        .from('user_achievement_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('achievement_id', achievementId)
         .single();
 
-      if (error) throw error;
-      console.log(`Achievement unlocked for user ${userId}: ${achievementId}`);
-      return data;
+      console.log(`🔍 [DEBUG] Fetch achievement record result - Data:`, achievementData, `Error:`, fetchError);
+      if (fetchError) throw fetchError;
+
+      if (!achievementData) {
+        throw new Error(`Failed to fetch achievement progress record for user ${userId}, achievement ${achievementId}`);
+      }
+
+      console.log(`🎉 Achievement unlocked for user ${userId}: ${achievementId}`);
+      return achievementData;
     } catch (error) {
       console.error('Error unlocking achievement:', error);
       throw error;
@@ -591,19 +645,33 @@ class AchievementService {
   // Update achievement progress
   async updateProgress(userId, achievementId, progress) {
     try {
-      const { data, error } = await supabase
+      console.log(`🔍 [DEBUG] Updating progress for achievement ${achievementId}, user ${userId}, progress: ${progress}`);
+
+      // Perform UPSERT without .select() to avoid RLS issues
+      const { error: upsertError } = await supabase
         .from('user_achievement_progress')
         .upsert({
           user_id: userId,
           achievement_id: achievementId,
           current_progress: progress,
           is_completed: false
-        })
-        .select()
+        });
+
+      console.log(`🔍 [DEBUG] Progress upsert error:`, upsertError);
+      if (upsertError) throw upsertError;
+
+      // Fetch the updated record separately
+      const { data: progressData, error: fetchError } = await supabase
+        .from('user_achievement_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('achievement_id', achievementId)
         .single();
 
-      if (error) throw error;
-      return data;
+      console.log(`🔍 [DEBUG] Fetch progress record result - Data:`, progressData, `Error:`, fetchError);
+      if (fetchError) throw fetchError;
+
+      return progressData;
     } catch (error) {
       console.error('Error updating progress:', error);
       throw error;
@@ -804,23 +872,28 @@ class AchievementService {
     }
   }
 
-  // Update user streak
+  // Update user streak (without recursive XP awarding)
   async updateStreak(userId) {
     try {
       const gamificationData = await this.getUserGamification(userId);
       const today = new Date().toISOString().split('T')[0];
       const lastActivity = gamificationData.last_activity_date;
-      
+
       let newStreak = gamificationData.current_streak;
-      
+      let streakBonusXP = 0;
+
       if (lastActivity) {
         const lastDate = new Date(lastActivity);
         const todayDate = new Date(today);
         const diffDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
-        
+
         if (diffDays === 1) {
           // Consecutive day
           newStreak += 1;
+          // Calculate streak bonus XP (but don't award it recursively)
+          if (newStreak > 1) {
+            streakBonusXP = XP_VALUES.STREAK_BONUS;
+          }
         } else if (diffDays > 1) {
           // Streak broken
           newStreak = 1;
@@ -830,9 +903,9 @@ class AchievementService {
         // First activity
         newStreak = 1;
       }
-      
+
       const longestStreak = Math.max(gamificationData.longest_streak, newStreak);
-      
+
       const { data, error } = await supabase
         .from('user_gamification')
         .update({
@@ -845,13 +918,12 @@ class AchievementService {
         .single();
 
       if (error) throw error;
-      
-      // Award streak bonus XP
-      if (newStreak > 1) {
-        await this.awardXP(userId, XP_VALUES.STREAK_BONUS, `Streak bonus (${newStreak} days)`);
-      }
-      
-      return data;
+
+      return {
+        ...data,
+        streakBonusXP,
+        streakMessage: streakBonusXP > 0 ? `Streak bonus (${newStreak} days)` : null
+      };
     } catch (error) {
       console.error('Error updating streak:', error);
       throw error;

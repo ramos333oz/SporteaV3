@@ -41,23 +41,23 @@ export const useAchievements = () => {
     }
   };
 
-  // Award XP and check for achievements
+  // Award XP and check for achievements (simplified - no streak handling)
   const awardXP = useCallback(async (amount, reason, actionData = {}) => {
     if (!user?.id) return;
 
     try {
-      // Award XP
-      const updatedGamification = await achievementService.awardXP(user.id, amount, reason);
+      // Award XP (simplified - no streak handling)
+      const updatedGamification = await achievementService.awardXP(
+        user.id,
+        amount,
+        reason,
+        true // broadcastUpdate
+      );
       setGamificationData(updatedGamification);
-
-      // Update streak if it's a daily activity
-      if (actionData.updateStreak) {
-        await achievementService.updateStreak(user.id);
-      }
 
       // Check for new achievements
       const unlockedAchievements = await achievementService.checkAchievements(
-        user.id, 
+        user.id,
         actionData.actionType || 'general',
         actionData
       );

@@ -164,8 +164,10 @@ const HostedMatches = () => {
 
   useEffect(() => {
     // Fetch hosted matches when component mounts or tab changes
-    fetchHostedMatches();
-  }, [tabValue, user.id]);
+    if (user?.id) {
+      fetchHostedMatches();
+    }
+  }, [tabValue, user?.id]);
   
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);

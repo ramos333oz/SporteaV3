@@ -27,6 +27,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { matchService } from '../../services/supabase';
 import { useNavigate } from 'react-router-dom';
 import { useAchievements } from '../../hooks/useAchievements';
+import { XP_VALUES } from '../../services/achievementService';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -235,14 +236,13 @@ const Host = () => {
       setCreatedMatchId(matchId);
       console.log('Match created successfully with ID:', matchId);
 
-      // 🎯 ACHIEVEMENT TRACKING: Check for "Getting Started" achievement
+      // 🎯 ACHIEVEMENT TRACKING: Award XP and check for achievements (simplified - no streak handling)
       try {
         console.log('🎯 Triggering achievement check for match hosting...');
-        await awardXP(0, 'Match hosted', {
+        await awardXP(XP_VALUES.MATCH_HOSTED, 'Hosted a match', {
           actionType: 'MATCH_HOSTED',
           matchId: matchId,
-          sport: matchData.sport,
-          updateStreak: true
+          sport: matchData.sport
         });
         console.log('✅ Achievement check completed for match hosting');
       } catch (achievementError) {
