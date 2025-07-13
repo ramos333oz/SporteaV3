@@ -837,10 +837,24 @@ const MatchDetail = () => {
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <PersonIcon sx={{ mr: 1, color: 'primary.main' }} />
                 <Typography>
-                  Hosted by: {match.host?.full_name || match.host?.username || 
-                  participants.find(p => p.user_id === match.host_id)?.user?.full_name || 
-                  participants.find(p => p.user_id === match.host_id)?.user?.username || 
-                  'Unknown'}
+                  Hosted by:{' '}
+                  <Typography
+                    component="span"
+                    sx={{
+                      color: 'primary.main',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      '&:hover': {
+                        color: 'primary.dark'
+                      }
+                    }}
+                    onClick={() => navigate(`/profile/${match.host_id}`)}
+                  >
+                    {match.host?.full_name || match.host?.username ||
+                    participants.find(p => p.user_id === match.host_id)?.user?.full_name ||
+                    participants.find(p => p.user_id === match.host_id)?.user?.username ||
+                    'Unknown'}
+                  </Typography>
                 </Typography>
               </Box>
             </Stack>
@@ -871,14 +885,16 @@ const MatchDetail = () => {
                   <Paper elevation={1}>
                     <List sx={{ bgcolor: 'background.paper', borderRadius: 1 }}>
                       {pendingParticipants.map((participant) => (
-                        <ListItem 
+                        <ListItem
                           key={`pending-${participant.id}`}
+                          onClick={() => navigate(`/profile/${participant.user_id}`)}
                           sx={{
                             borderBottom: '1px solid',
                             borderColor: 'divider',
                             '&:last-child': { borderBottom: 'none' },
                             '&:hover': { bgcolor: 'action.hover' },
-                            transition: 'background-color 0.2s'
+                            transition: 'background-color 0.2s',
+                            cursor: 'pointer'
                           }}
                           secondaryAction={
                             <Box>
@@ -961,14 +977,16 @@ const MatchDetail = () => {
                         }
                         
                         return (
-                          <ListItem 
+                          <ListItem
                             key={`current-${participant.id}`}
+                            onClick={() => navigate(`/profile/${participant.user_id}`)}
                             sx={{
                               borderBottom: '1px solid',
                               borderColor: 'divider',
                               '&:last-child': { borderBottom: 'none' },
                               '&:hover': { bgcolor: 'action.hover' },
-                              transition: 'background-color 0.2s'
+                              transition: 'background-color 0.2s',
+                              cursor: 'pointer'
                             }}
                             secondaryAction={
                               <Chip 

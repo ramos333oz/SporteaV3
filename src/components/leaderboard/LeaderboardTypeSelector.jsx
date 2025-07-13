@@ -38,22 +38,10 @@ const LeaderboardTypeSelector = ({
       description: 'Total XP earned'
     },
     {
-      value: 'community',
-      label: 'Community',
-      icon: <GroupIcon />,
-      description: 'Community building score'
-    },
-    {
       value: 'level',
       label: 'Level',
       icon: <EmojiEventsIcon />,
       description: 'Current user level'
-    },
-    {
-      value: 'streak',
-      label: 'Streak',
-      icon: <LocalFireDepartmentIcon />,
-      description: 'Daily activity streak'
     }
   ];
 

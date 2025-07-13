@@ -9,6 +9,7 @@ import {
   Paper,
   Skeleton
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { UserAvatarWithLevel } from '../achievements';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
@@ -28,6 +29,17 @@ const LeaderboardList = ({
   tierConfig = null,
   getUserTier = null
 }) => {
+  const navigate = useNavigate();
+
+  // Limit to top 10 players
+  const limitedData = data.slice(0, 10);
+
+  // Handle profile click navigation
+  const handleProfileClick = (userId) => {
+    if (userId) {
+      navigate(`/profile/${userId}`);
+    }
+  };
   // Get rank icon based on position
   const getRankIcon = (rank) => {
     switch (rank) {
@@ -148,23 +160,27 @@ const LeaderboardList = ({
   return (
     <Paper sx={{ borderRadius: 3, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
       <List sx={{ p: 0 }}>
-        {data.map((entry, index) => {
+        {limitedData.map((entry, index) => {
           const isCurrentUser = showUserHighlight && entry.userId === currentUserId;
           const tierStyling = getTierStyling(entry.level);
 
           return (
             <ListItem
               key={entry.userId}
+              onClick={() => handleProfileClick(entry.userId)}
               sx={{
                 py: 2,
                 px: 3,
-                borderBottom: index < data.length - 1 ? '1px solid' : 'none',
+                borderBottom: index < limitedData.length - 1 ? '1px solid' : 'none',
                 bgcolor: isCurrentUser ? 'primary.50' : 'transparent',
                 border: isCurrentUser ? '2px solid' : 'none',
                 borderColor: isCurrentUser ? 'primary.main' : 'divider',
                 transition: 'all 0.2s ease',
+                cursor: 'pointer',
                 '&:hover': {
-                  bgcolor: isCurrentUser ? 'primary.100' : 'grey.50'
+                  bgcolor: isCurrentUser ? 'primary.100' : 'grey.50',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                 },
                 ...tierStyling
               }}
