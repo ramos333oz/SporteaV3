@@ -348,19 +348,35 @@ const Profile = () => {
   const handleDeleteMatch = async (match) => {
     if (window.confirm('Are you sure you want to delete this match? This action cannot be undone and all match data will be permanently deleted.')) {
       try {
+        console.log('Deleting match', match.id, `(${match.title || match.sport?.name + ' Match'})`);
+
         const result = await matchService.deleteMatch(match.id);
-        
+
         if (!result.success) {
           throw new Error(result.message || 'Failed to delete the match');
         }
-        
+
+        console.log('Successfully deleted match', match.id);
         showSuccessToast('Match Deleted', 'The match has been permanently deleted');
-        
-        // Update state to remove the deleted match
-        if (match.host_id === user.id) {
-          setHostedMatches(prev => prev.filter(m => m.id !== match.id));
-        } else {
-          setJoinedMatches(prev => prev.filter(p => p.match?.id !== match.id));
+
+        // Refetch data to ensure UI is synchronized with backend
+        // This approach is more reliable than local state updates
+        try {
+          const hosted = await matchService.getHostedMatches(profileId);
+          setHostedMatches(hosted || []);
+
+          const participants = await participantService.getUserParticipations(profileId);
+          setJoinedMatches(participants || []);
+
+          console.log('Successfully refreshed match data after deletion');
+        } catch (refreshError) {
+          console.error('Error refreshing match data:', refreshError);
+          // Fallback to local state update if refetch fails
+          if (match.host_id === user.id) {
+            setHostedMatches(prev => prev.filter(m => m.id !== match.id));
+          } else {
+            setJoinedMatches(prev => prev.filter(p => p.match?.id !== match.id));
+          }
         }
       } catch (error) {
         console.error('Error deleting match:', error);

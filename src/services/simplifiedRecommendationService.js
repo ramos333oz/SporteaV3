@@ -250,10 +250,10 @@ function calculateFacultyScore(userProfile, match) {
 function calculateSkillScore(userProfile, match) {
   const userSkillLevels = userProfile.skill_levels || {};
   const matchSport = match.sport_name;
-  const matchSkillRequirement = match.skill_level || 'intermediate';
+  const matchSkillRequirement = (match.skill_level || 'intermediate').toLowerCase();
 
-  // Get user's skill level for this specific sport
-  let userSkillLevel = userSkillLevels[matchSport] || 'intermediate';
+  // Get user's skill level for this specific sport (normalize case)
+  let userSkillLevel = userSkillLevels[matchSport.toLowerCase()] || 'intermediate';
 
   // Skill compatibility matrix
   const skillMatrix = {
@@ -287,12 +287,25 @@ function calculateSkillScore(userProfile, match) {
 }
 
 /**
- * Schedule overlap calculation
+ * Helper function to parse time string (HH:MM) to minutes since midnight
+ */
+function parseTimeToMinutes(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') return 0;
+
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  if (isNaN(hours) || isNaN(minutes)) return 0;
+
+  return hours * 60 + minutes;
+}
+
+/**
+ * Schedule overlap calculation with time-specific availability checking
  */
 function calculateScheduleScore(userProfile, match) {
   const userAvailableDays = userProfile.available_days || [];
   const matchDate = new Date(match.start_time);
-  const matchDay = matchDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  // Use UTC to ensure consistent day calculation regardless of timezone
+  const matchDay = matchDate.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' }).toLowerCase();
 
   // Check if user is available on the match day
   const isAvailableOnDay = userAvailableDays.includes(matchDay);
@@ -301,9 +314,31 @@ function calculateScheduleScore(userProfile, match) {
     return 0.0; // User not available on this day
   }
 
-  // For now, if available on the day, give full points
-  // TODO: Add time-specific availability checking
-  return 1.0;
+  // Get user's available hours for this specific day
+  const userAvailableHours = userProfile.available_hours || {};
+  const dayTimeSlots = userAvailableHours[matchDay];
+
+  if (!dayTimeSlots || !Array.isArray(dayTimeSlots) || dayTimeSlots.length === 0) {
+    return 0.0; // No time slots specified for this day
+  }
+
+  // Get match time in minutes since midnight (UTC)
+  const matchTimeMinutes = matchDate.getUTCHours() * 60 + matchDate.getUTCMinutes();
+
+  // Check if match time overlaps with any available time slot
+  for (const timeSlot of dayTimeSlots) {
+    if (!timeSlot.start || !timeSlot.end) continue;
+
+    const startMinutes = parseTimeToMinutes(timeSlot.start);
+    const endMinutes = parseTimeToMinutes(timeSlot.end);
+
+    // Check if match time falls within this time slot
+    if (matchTimeMinutes >= startMinutes && matchTimeMinutes <= endMinutes) {
+      return 1.0; // Match time overlaps with available hours
+    }
+  }
+
+  return 0.0; // No time overlap found
 }
 
 /**
