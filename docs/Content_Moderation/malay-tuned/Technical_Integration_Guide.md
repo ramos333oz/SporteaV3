@@ -129,11 +129,12 @@ Integrate the production-ready Malaysian SFW Classifier:
 
 ```typescript
 /**
- * Malaysian SFW Classifier Integration
- * Uses the malaysia-ai/malaysian-sfw-classifier model via Hugging Face API
+ * Multilingual XLM-RoBERTa Integration (PRODUCTION MODEL)
+ * Uses the unitary/multilingual-toxic-xlm-roberta model via Hugging Face API
+ * NOTE: Malaysian SFW Classifier is not available (404 errors)
  */
-async function detectToxicContentMalaysianSFW(
-  text: string, 
+async function detectToxicContentML_Enhanced(
+  text: string,
   settings: ModerationSettings
 ): Promise<MLResult> {
   const startTime = Date.now();
@@ -144,10 +145,10 @@ async function detectToxicContentMalaysianSFW(
       throw new Error('No Hugging Face API key available');
     }
 
-    console.log('[Malaysian SFW] Starting analysis...');
+    console.log('[ML Enhanced] Starting analysis...');
 
     const response = await fetch(
-      `${HUGGINGFACE_API_URL}/malaysia-ai/malaysian-sfw-classifier`,
+      `${HUGGINGFACE_API_URL}/unitary/multilingual-toxic-xlm-roberta`,
       {
         method: 'POST',
         headers: {
@@ -197,7 +198,7 @@ async function detectToxicContentMalaysianSFW(
     return {
       score: toxicityScore,
       confidence: confidence,
-      model_used: 'malaysia-ai/malaysian-sfw-classifier',
+      model_used: 'unitary/multilingual-toxic-xlm-roberta',
       processing_time_ms: Date.now() - startTime,
       fallback_used: false,
       flagged_words: toxicityScore > 0.5 ? extractMalayToxicWords(text) : [],

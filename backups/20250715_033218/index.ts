@@ -1,16 +1,3 @@
-/**
- * Enhanced Edge Function for Malay Language Content Moderation
- *
- * This is the enhanced edge function that fixes the core issue where
- * "bodoh" and "sial" return 0.13% instead of 60-65% toxicity.
- *
- * Key Enhancements:
- * - Malay profanity lexicon with weighted scoring
- * - Malaysian SFW Classifier integration
- * - Hybrid detection pipeline with intelligent routing
- * - Enhanced fallback mechanisms
- */
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -21,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 }
 
-// Enhanced ML Integration Configuration
+// ML Integration Configuration
 const HUGGINGFACE_API_URL = 'https://api-inference.huggingface.co/models'
 const ML_TIMEOUT_MS = parseInt(Deno.env.get('ML_TIMEOUT_MS') || '5000')
 const ML_CONFIDENCE_THRESHOLD = parseFloat(Deno.env.get('ML_CONFIDENCE_THRESHOLD') || '0.7')
@@ -74,7 +61,6 @@ interface MLResult {
   processing_time_ms: number
   fallback_used: boolean
   flagged_words: string[]
-  additional_info?: any
 }
 
 interface HuggingFaceResponse {
@@ -101,143 +87,8 @@ interface LearningContext {
 }
 
 /**
- * Enhanced Malay Toxicity Detection Service
- * Addresses the core issue where Malay profanity is under-detected
- * FIXES: "bodoh" 0.13% → 65%, "sial" 0.13% → 60%
- */
-class MalayToxicityDetector {
-  private readonly lexicon = {
-    // High severity (0.8-1.0) - Educational environment standards
-    high_severity: {
-      'puki': 0.95, 'pukimak': 0.98, 'kontol': 0.90, 'babi': 0.85,
-      'anjing': 0.80, 'celaka': 0.82, 'bangsat': 0.88, 'lancau': 0.85,
-      'kimak': 0.87, 'pantat': 0.83
-    },
-
-    // Medium severity (0.5-0.8) - FIXES THE 0.13% ISSUE
-    medium_severity: {
-      'bodoh': 0.65,    // Was 0.13%, now correctly 65%
-      'sial': 0.60,     // Was 0.13%, now correctly 60%
-      'tolol': 0.62, 'gila': 0.55, 'bengap': 0.58, 'bangang': 0.63,
-      'hampeh': 0.57, 'bongok': 0.59, 'kepala hotak': 0.61
-    },
-
-    // Low severity (0.2-0.5)
-    low_severity: {
-      'celah': 0.30, 'hampas': 0.35, 'tak guna': 0.40,
-      'lemah': 0.25, 'teruk': 0.28
-    },
-
-    // Context modifiers
-    intensifiers: ['betul', 'sangat', 'memang', 'benar', 'amat'],
-    targets: ['kau', 'korang', 'awak', 'dia', 'mereka']
-  }
-
-  detectToxicity(text: string) {
-    const lowerText = text.toLowerCase()
-    let maxScore = 0
-    const detectedWords: string[] = []
-
-    // Check all severity categories
-    Object.entries(this.lexicon).forEach(([category, words]) => {
-      if (category.includes('severity')) {
-        Object.entries(words as Record<string, number>).forEach(([word, score]) => {
-          const regex = new RegExp(`\\b${word.replace(/\s+/g, '\\s+')}\\b`, 'gi')
-          if (regex.test(lowerText)) {
-            detectedWords.push(word)
-            maxScore = Math.max(maxScore, score)
-          }
-        })
-      }
-    })
-
-    // Apply context modifiers
-    const contextMultiplier = this.getContextMultiplier(lowerText)
-    const finalScore = Math.min(maxScore * contextMultiplier, 1.0)
-
-    return {
-      toxicity_score: finalScore,
-      detected_words: detectedWords,
-      confidence: detectedWords.length > 0 ? 0.95 : 0.0
-    }
-  }
-
-  private getContextMultiplier(text: string): number {
-    let multiplier = 1.0
-
-    // Increase severity if intensifiers present
-    if (this.lexicon.intensifiers.some(word => text.includes(word))) {
-      multiplier *= 1.2
-    }
-
-    // Increase severity if targeting people
-    if (this.lexicon.targets.some(word => text.includes(word))) {
-      multiplier *= 1.15
-    }
-
-    // Reduce severity for sports context
-    const sportsContext = /\b(main|permainan|lawan|menang|kalah|pertandingan)\b/gi
-    if (sportsContext.test(text)) {
-      multiplier *= 0.9
-    }
-
-    return Math.min(multiplier, 1.5)
-  }
-}
-
-/**
- * DEPRECATED: Malaysian SFW Classifier Integration
- * NOTE: malaysia-ai/malaysian-sfw-classifier is not available (404 errors)
- * This function is kept for reference but should not be used in production
- * Use detectToxicContentML_Enhanced with XLM-RoBERTa instead
- */
-async function detectToxicContentMalaysianSFW_DEPRECATED(
-  text: string,
-  settings: ModerationSettings
-): Promise<MLResult> {
-  console.warn('[DEPRECATED] Malaysian SFW Classifier is not available - use XLM-RoBERTa instead')
-  throw new Error('Malaysian SFW Classifier is not available (404 errors) - use XLM-RoBERTa instead')
-}
-
-/**
- * Language Detection for Intelligent Routing
- */
-function detectLanguageContent(text: string) {
-  const lowerText = text.toLowerCase()
-
-  // Malay language indicators
-  const malayPatterns = [
-    /\b(yang|dan|ini|itu|dengan|untuk|pada|dari|ke|di|adalah|akan|sudah|belum|tidak|tak)\b/gi,
-    /\b(saya|kami|kita|awak|kau|dia|mereka|anda)\b/gi,
-    /\b(main|permainan|sukan|latihan|pertandingan|lawan|menang|kalah)\b/gi,
-    /\b(bodoh|sial|tolol|gila|babi|anjing|puki|bangsat)\b/gi
-  ]
-
-  let malayMatches = 0
-  malayPatterns.forEach(pattern => {
-    const matches = lowerText.match(pattern)
-    if (matches) malayMatches += matches.length
-  })
-
-  const totalWords = text.split(/\s+/).length
-  const malayRatio = malayMatches / totalWords
-
-  return {
-    primary: malayRatio > 0.1 ? 'malay' : 'english',
-    confidence: Math.min(malayRatio * 2, 1.0),
-    hasMalayContent: malayMatches > 0
-  }
-}
-
-function extractMalayToxicWords(text: string): string[] {
-  const malayDetector = new MalayToxicityDetector()
-  const result = malayDetector.detectToxicity(text)
-  return result.detected_words
-}
-
-/**
- * Enhanced Hybrid ML Detection - MAIN FUNCTION
- * This replaces the existing detectToxicContentML function
+ * ML-Powered Toxic Content Detection using Hugging Face API
+ * Primary: unitary/toxic-bert, Fallback: martin-ha/toxic-comment-model
  */
 async function detectToxicContentML(text: string, settings: ModerationSettings): Promise<MLResult> {
   const startTime = Date.now()
@@ -248,54 +99,16 @@ async function detectToxicContentML(text: string, settings: ModerationSettings):
     return await detectToxicContentRuleBased(text, startTime)
   }
 
-  console.log(`[ML] Using primary model: ${settings.ml_primary_model || 'unitary/multilingual-toxic-xlm-roberta'}`)
-
-  try {
-    // Use the enhanced ML detection function
-    const mlResult = await detectToxicContentML_Enhanced(text, settings)
-
-    console.log(`[ML] Success: ${mlResult.score.toFixed(4)} toxic score from ${mlResult.model_used}`)
-    console.log(`[ML] Fallback used: ${mlResult.fallback_used}`)
-    console.log(`[ML] Processing time: ${mlResult.processing_time_ms}ms`)
-
-    return mlResult
-
-  } catch (error) {
-    console.warn(`[ML] All ML models failed: ${error.message}, using enhanced rule-based fallback`)
-
-    // Enhanced rule-based fallback
-    const malayDetector = new MalayToxicityDetector()
-    const malayResult = malayDetector.detectToxicity(text)
-
-    return {
-      score: malayResult.toxicity_score,
-      confidence: malayResult.confidence > 0.8 ? 'high' : 'medium',
-      model_used: 'enhanced-malay-lexicon-fallback',
-      processing_time_ms: Date.now() - startTime,
-      fallback_used: true,
-      flagged_words: malayResult.detected_words
-    }
+  const apiKey = Deno.env.get('HUGGINGFACE_API_KEY')
+  if (!apiKey) {
+    console.warn('[ML] No Hugging Face API key found, using rule-based fallback')
+    return await detectToxicContentRuleBased(text, startTime)
   }
-}
-
-/**
- * Existing toxic-bert function (unchanged for English content)
- */
-/**
- * Enhanced ML Detection Function - Supports Multiple Models
- * Now supports both Multilingual XLM-RoBERTa and Toxic-BERT with proper response parsing
- */
-async function detectToxicContentML_Enhanced(text: string, settings: ModerationSettings): Promise<MLResult> {
-  const startTime = Date.now()
 
   try {
-    const apiKey = Deno.env.get('HUGGINGFACE_API_KEY')
-    if (!apiKey) {
-      throw new Error('No Hugging Face API key available')
-    }
-
-    const primaryModel = settings.ml_primary_model || 'unitary/multilingual-toxic-xlm-roberta'
-    console.log(`[ML Enhanced] Attempting model: ${primaryModel}`)
+    // Primary model: unitary/toxic-bert
+    const primaryModel = settings.ml_primary_model || 'unitary/toxic-bert'
+    console.log(`[ML] Attempting primary model: ${primaryModel}`)
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), settings.ml_timeout_ms || ML_TIMEOUT_MS)
@@ -308,9 +121,8 @@ async function detectToxicContentML_Enhanced(text: string, settings: ModerationS
       },
       body: JSON.stringify({
         inputs: text,
-        options: {
-          wait_for_model: true,
-          use_cache: false
+        parameters: {
+          return_all_scores: true
         }
       }),
       signal: controller.signal
@@ -323,107 +135,105 @@ async function detectToxicContentML_Enhanced(text: string, settings: ModerationS
     }
 
     const result = await response.json()
-    console.log(`[ML Enhanced] Raw response:`, JSON.stringify(result))
 
-    // Handle nested array structure: [[{label, score}]] or [{label, score}]
-    let predictions: any[]
-    if (Array.isArray(result) && Array.isArray(result[0])) {
-      predictions = result[0] // Nested array case
-    } else if (Array.isArray(result)) {
-      predictions = result // Direct array case
-    } else {
-      throw new Error('Unexpected response format')
-    }
+    // Handle nested array response format from Hugging Face
+    const predictions = Array.isArray(result[0]) ? result[0] : result
 
-    console.log(`[ML Enhanced] Parsed predictions:`, JSON.stringify(predictions))
+    // Find toxic score (label is lowercase 'toxic')
+    const toxicResult = predictions.find(r => r.label === 'toxic')
+    const toxicScore = toxicResult?.score || 0
 
-    // Find toxic score - handle different label formats
-    let toxicScore = 0
-    let detectedCategory = 'safe'
-
-    // Look for 'toxic' label (case insensitive)
-    const toxicResult = predictions.find((r: any) =>
-      r.label && r.label.toLowerCase() === 'toxic'
-    )
-
-    if (toxicResult) {
-      toxicScore = toxicResult.score || 0
-      detectedCategory = toxicResult.label
-      console.log(`[ML Enhanced] Found toxic label: ${detectedCategory} with score ${toxicScore.toFixed(4)}`)
-    } else {
-      // If no 'toxic' label found, use highest score
-      const maxResult = predictions.reduce((max: any, current: any) =>
-        (current.score || 0) > (max.score || 0) ? current : max
-      , { score: 0, label: 'unknown' })
-
-      toxicScore = maxResult.score || 0
-      detectedCategory = maxResult.label || 'unknown'
-      console.log(`[ML Enhanced] No toxic label found, using highest score: ${detectedCategory} with score ${toxicScore.toFixed(4)}`)
-    }
-
-    console.log(`[ML Enhanced] Final toxic score: ${toxicScore.toFixed(4)} from model: ${primaryModel}`)
+    console.log(`[ML] Primary model success: ${toxicScore.toFixed(4)} toxic score`)
 
     return {
       score: toxicScore,
-      confidence: toxicScore > (settings.ml_confidence_threshold || 0.5) ? 'high' :
-                 toxicScore > 0.3 ? 'medium' : 'low',
+      confidence: toxicScore > (settings.ml_confidence_threshold || ML_CONFIDENCE_THRESHOLD) ? 'high' :
+                 toxicScore > 0.4 ? 'medium' : 'low',
       model_used: primaryModel,
       processing_time_ms: Date.now() - startTime,
       fallback_used: false,
-      flagged_words: toxicScore > 0.4 ? extractToxicWords(text) : []
+      flagged_words: toxicScore > 0.5 ? extractToxicWords(text) : []
     }
 
-  } catch (error) {
-    console.error(`[ML Enhanced] Error with ${settings.ml_primary_model}: ${error.message}`)
+  } catch (primaryError) {
+    console.warn(`[ML] Primary model failed: ${primaryError.message}`)
 
-    // Try fallback model if primary fails
-    if (settings.ml_fallback_model && settings.ml_fallback_model !== settings.ml_primary_model) {
-      console.log(`[ML Enhanced] Trying fallback model: ${settings.ml_fallback_model}`)
+    try {
+      // Fallback model: martin-ha/toxic-comment-model
+      const fallbackModel = settings.ml_fallback_model || 'martin-ha/toxic-comment-model'
+      console.log(`[ML] Attempting fallback model: ${fallbackModel}`)
 
-      const fallbackSettings = { ...settings, ml_primary_model: settings.ml_fallback_model }
-      try {
-        const fallbackResult = await detectToxicContentML_Enhanced(text, fallbackSettings)
-        return { ...fallbackResult, fallback_used: true }
-      } catch (fallbackError) {
-        console.error(`[ML Enhanced] Fallback model also failed: ${fallbackError.message}`)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3000) // Shorter timeout for fallback
+
+      const response = await fetch(`${HUGGINGFACE_API_URL}/${fallbackModel}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('HUGGINGFACE_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ inputs: text }),
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
+
+      const result = await response.json()
+
+      // Handle nested array response format from Hugging Face
+      const predictions = Array.isArray(result[0]) ? result[0] : result
+
+      // Find toxic score for fallback model
+      const toxicResult = predictions.find(r => r.label === 'toxic')
+      const toxicScore = toxicResult?.score || 0
+
+      console.log(`[ML] Fallback model success: ${toxicScore.toFixed(4)} toxic score`)
+
+      return {
+        score: toxicScore,
+        confidence: 'medium',
+        model_used: fallbackModel,
+        processing_time_ms: Date.now() - startTime,
+        fallback_used: true,
+        flagged_words: toxicScore > 0.5 ? extractToxicWords(text) : []
+      }
+
+    } catch (fallbackError) {
+      console.error(`[ML] All ML models failed, using rule-based fallback: ${fallbackError.message}`)
+      return await detectToxicContentRuleBased(text, startTime, true)
     }
-
-    throw error // Let main function handle final fallback
   }
-}
-
-async function detectToxicContentToxicBert(text: string, settings: ModerationSettings): Promise<MLResult> {
-  // Use the enhanced ML function for better compatibility
-  return await detectToxicContentML_Enhanced(text, settings)
 }
 
 /**
  * Rule-based toxic content detection (fallback when ML fails)
  */
 async function detectToxicContentRuleBased(text: string, startTime: number, isFallback = false): Promise<MLResult> {
-  console.log(`[ML] Using enhanced rule-based detection ${isFallback ? '(ML fallback)' : '(ML disabled)'}`)
+  console.log(`[ML] Using rule-based detection ${isFallback ? '(ML fallback)' : '(ML disabled)'}`)
 
-  // Use enhanced Malay detector first
-  const malayDetector = new MalayToxicityDetector()
-  const malayResult = malayDetector.detectToxicity(text)
+  const result = await detectToxicContent(text)
 
-  // Use traditional detection for comparison
-  const traditionalResult = await detectToxicContent(text)
+  // CRITICAL FIX: Ensure Malay profanity like "babi" gets proper scoring
+  let adjustedScore = result.score;
+  const malayProfanity = ['babi', 'puki', 'pukimak', 'kontol', 'anjing', 'bangsat'];
+  const hasMalayProfanity = malayProfanity.some(word => text.toLowerCase().includes(word));
 
-  // Use the higher score to ensure proper detection
-  const finalScore = Math.max(malayResult.toxicity_score, traditionalResult.score)
-  const allFlaggedWords = [...malayResult.detected_words, ...traditionalResult.flagged]
-
-  console.log(`[Enhanced Rule-Based] Malay score: ${malayResult.toxicity_score.toFixed(4)}, Traditional score: ${traditionalResult.score.toFixed(4)}, Final: ${finalScore.toFixed(4)}`)
+  if (hasMalayProfanity && adjustedScore < 0.4) {
+    adjustedScore = Math.max(adjustedScore, 0.4); // Ensure minimum medium risk for Malay profanity
+    console.log(`[Rule-Based] Malay profanity detected, adjusting score from ${result.score} to ${adjustedScore}`);
+  }
 
   return {
-    score: finalScore,
-    confidence: finalScore > 0.5 ? 'high' : finalScore > 0.3 ? 'medium' : 'low',
-    model_used: 'enhanced-rule-based-malay',
+    score: adjustedScore,
+    confidence: adjustedScore > 0.5 ? 'medium' : 'low',
+    model_used: 'rule-based-fallback',
     processing_time_ms: Date.now() - startTime,
     fallback_used: isFallback,
-    flagged_words: [...new Set(allFlaggedWords)]
+    flagged_words: result.flagged
   }
 }
 
@@ -463,7 +273,7 @@ const SPORTS_KEYWORDS = {
   // Malay Sports Names (High Weight)
   'bola keranjang': 0.9, 'bola sepak': 0.9, 'tenis': 0.9,
   'bola tampar': 0.9, 'renang': 0.9, 'larian': 0.9,
-  'basikal': 0.8, 'ragbi': 0.8, 'hoki': 0.8,
+  'basikal': 0.8, 'golf': 0.8, 'ragbi': 0.8, 'hoki': 0.8,
 
   // General Sports Terms (Medium Weight)
   'sport': 0.8, 'sports': 0.8, 'sukan': 0.8, 'olahraga': 0.8,
@@ -491,7 +301,7 @@ const SPORTS_KEYWORDS = {
 
   // Facilities (Medium Weight)
   'court': 0.7, 'gelanggang': 0.7, 'field': 0.7, 'padang': 0.7,
-  'stadium': 0.8, 'gym': 0.6, 'gimnasium': 0.6,
+  'stadium': 0.8, 'stadium': 0.8, 'gym': 0.6, 'gimnasium': 0.6,
 
   // Skill Levels (Lower Weight)
   'beginner': 0.4, 'pemula': 0.4, 'intermediate': 0.4, 'pertengahan': 0.4,

@@ -75,10 +75,10 @@ docs/malay-tuned/
 
 ### **Enhanced Detection Pipeline:**
 ```
-Input Text → Language Detection → Route to Appropriate Model
+Input Text → Multilingual XLM-RoBERTa Model → Enhanced Detection
                                 ↓
-┌─ English Content → toxic-bert (existing)
-└─ Malay Content → Malaysian SFW Classifier + Enhanced Rules
+┌─ High Confidence → Direct Classification
+└─ Low Confidence → Enhanced Malay Lexicon Fallback
                                 ↓
                     Hybrid Score Calculation
                                 ↓
