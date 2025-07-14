@@ -1195,7 +1195,273 @@ async function sendUserNotification(matchId, decision, reason = '') {
   }
 }
 
-// Export functions
+// Functions will be exported at the end of the file
+
+/**
+ * Process admin feedback for adaptive learning
+ * @param {Object} feedbackData - Admin decision data
+ */
+async function processAdminFeedback(feedbackData) {
+  try {
+    const {
+      queueItemId,
+      adminDecision,
+      adminNotes,
+      originalScore,
+      originalThreshold
+    } = feedbackData;
+
+    log(`[Adaptive Learning] Processing admin feedback: ${adminDecision}`);
+
+    // Try to get context information from admin_review_queue
+    const { data: queueItem } = await supabase
+      .from('admin_review_queue')
+      .select(`
+        *,
+        moderation_result:content_moderation_results (
+          threshold_context_used,
+          adaptive_thresholds_applied,
+          inappropriate_score,
+          overall_risk_level
+        )
+      `)
+      .eq('id', queueItemId)
+      .single();
+
+    // If queue item not found, create a basic learning signal with available data
+    if (!queueItem) {
+      log(`[Adaptive Learning] Queue item not found, creating basic learning signal`);
+
+      // Create basic learning signal without context
+      const { data: signal } = await supabase
+        .from('learning_feedback_signals')
+        .insert({
+          queue_item_id: queueItemId,
+          signal_type: adminDecision === 'approve' ? 'admin_approval' : 'admin_rejection',
+          signal_strength: calculateSignalStrength(originalScore || 0.5, originalThreshold || 0.5, adminDecision),
+          confidence_level: 0.8, // Slightly lower confidence without full context
+          original_threshold: originalThreshold || 0.5,
+          original_score: originalScore || 0.5,
+          admin_notes: adminNotes,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (signal) {
+        log(`[Adaptive Learning] Basic learning signal created: ${signal.id}`);
+        await processLearningSignal(signal);
+      }
+
+      return { success: true, message: 'Basic learning signal processed' };
+    }
+
+    // Create learning signal
+    const { data: signal } = await supabase
+      .from('learning_feedback_signals')
+      .insert({
+        moderation_result_id: queueItem.moderation_result_id,
+        queue_item_id: queueItemId,
+        signal_type: adminDecision === 'approve' ? 'admin_approval' : 'admin_rejection',
+        signal_strength: calculateSignalStrength(
+          queueItem.moderation_result?.inappropriate_score || originalScore,
+          originalThreshold || 0.5,
+          adminDecision
+        ),
+        confidence_level: 0.9, // High confidence for admin decisions
+        original_threshold: originalThreshold || 0.5,
+        original_score: queueItem.moderation_result?.inappropriate_score || originalScore,
+        context_id: queueItem.moderation_result?.threshold_context_used,
+        admin_notes: adminNotes
+      })
+      .select()
+      .single();
+
+    // Process the learning signal
+    await processLearningSignal(signal.id);
+
+    // Mark queue item as processed (if possible)
+    try {
+      await supabase
+        .from('admin_review_queue')
+        .update({
+          learning_signal_processed: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', queueItemId);
+    } catch (updateError) {
+      log(`[Adaptive Learning] Could not update queue item (non-critical): ${updateError.message}`);
+    }
+
+    log(`[Adaptive Learning] Feedback processed successfully`);
+    return { success: true, signalId: signal.id };
+
+  } catch (error) {
+    logError('Error processing admin feedback:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Calculate signal strength based on decision context
+ */
+function calculateSignalStrength(score, threshold, decision) {
+  const distance = Math.abs(score - threshold);
+  let strength = Math.min(1.0, distance * 2);
+
+  // Strong signal for clear misclassifications
+  if ((decision === 'approve' && score > threshold) ||
+      (decision === 'reject' && score < threshold)) {
+    strength = Math.max(0.7, strength);
+  } else {
+    strength *= 0.5; // Weaker signal for correct decisions
+  }
+
+  return Math.round(strength * 10000) / 10000;
+}
+
+/**
+ * Process learning signal and adjust thresholds
+ */
+async function processLearningSignal(signalId) {
+  try {
+    // Get learning signal
+    const { data: signal } = await supabase
+      .from('learning_feedback_signals')
+      .select('*')
+      .eq('id', signalId)
+      .single();
+
+    if (!signal || signal.processed) {
+      return; // Already processed
+    }
+
+    // Get learning parameters
+    const { data: params } = await supabase
+      .from('learning_parameters')
+      .select('parameter_name, parameter_value')
+      .in('parameter_name', ['global_learning_rate', 'max_adjustment_per_cycle']);
+
+    const learningRate = params.find(p => p.parameter_name === 'global_learning_rate')?.parameter_value || 0.1;
+    const maxAdjustment = params.find(p => p.parameter_name === 'max_adjustment_per_cycle')?.parameter_value || 0.05;
+
+    // Calculate threshold adjustment
+    const adjustment = calculateThresholdAdjustment(signal, learningRate, maxAdjustment);
+
+    if (adjustment && Math.abs(adjustment.magnitude) > 0.001) {
+      await applyThresholdAdjustment(signal.context_id, adjustment);
+    }
+
+    // Mark as processed
+    await supabase
+      .from('learning_feedback_signals')
+      .update({
+        processed: true,
+        processing_timestamp: new Date().toISOString(),
+        threshold_adjustment_applied: adjustment?.magnitude || 0
+      })
+      .eq('id', signalId);
+
+  } catch (error) {
+    logError('Error processing learning signal:', error);
+  }
+}
+
+/**
+ * Calculate threshold adjustment
+ */
+function calculateThresholdAdjustment(signal, learningRate, maxAdjustment) {
+  let direction = 0;
+
+  if (signal.signal_type === 'admin_approval' && signal.original_score > signal.original_threshold) {
+    direction = 1; // Increase threshold to reduce false positives
+  } else if (signal.signal_type === 'admin_rejection' && signal.original_score < signal.original_threshold) {
+    direction = -1; // Decrease threshold to catch more violations
+  } else {
+    direction = signal.signal_type === 'admin_approval' ? -0.1 : 0.1;
+  }
+
+  const magnitude = learningRate * signal.signal_strength * direction;
+  const clampedMagnitude = Math.max(-maxAdjustment, Math.min(maxAdjustment, magnitude));
+
+  if (Math.abs(clampedMagnitude) < 0.001) {
+    return null;
+  }
+
+  return {
+    magnitude: clampedMagnitude,
+    thresholdType: determineThresholdType(signal.original_score),
+    confidence: signal.confidence_level * signal.signal_strength
+  };
+}
+
+/**
+ * Apply threshold adjustment to context
+ */
+async function applyThresholdAdjustment(contextId, adjustment) {
+  try {
+    // Get current context
+    const { data: context } = await supabase
+      .from('threshold_contexts')
+      .select('*')
+      .eq('id', contextId)
+      .single();
+
+    if (!context) return;
+
+    // Calculate new threshold
+    const currentValue = context[`${adjustment.thresholdType}_threshold`];
+    const newValue = currentValue + adjustment.magnitude;
+
+    // Apply safety bounds
+    const bounds = getSafetyBounds(adjustment.thresholdType);
+    const clampedValue = Math.max(bounds.min, Math.min(bounds.max, newValue));
+
+    // Update threshold
+    await supabase
+      .from('threshold_contexts')
+      .update({
+        [`${adjustment.thresholdType}_threshold`]: clampedValue,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', contextId);
+
+    // Record in history
+    await supabase
+      .from('adaptive_threshold_history')
+      .insert({
+        context_type: context.context_type,
+        context_value: contextId,
+        threshold_type: adjustment.thresholdType,
+        old_value: currentValue,
+        new_value: clampedValue,
+        adjustment_reason: `Admin feedback adjustment (confidence: ${adjustment.confidence.toFixed(3)})`,
+        confidence_score: adjustment.confidence
+      });
+
+    log(`[Adaptive Learning] Adjusted ${adjustment.thresholdType} threshold from ${currentValue} to ${clampedValue}`);
+
+  } catch (error) {
+    logError('Error applying threshold adjustment:', error);
+  }
+}
+
+function determineThresholdType(score) {
+  if (score >= 0.7) return 'high_risk';
+  if (score >= 0.4) return 'medium_risk';
+  return 'low_risk';
+}
+
+function getSafetyBounds(thresholdType) {
+  const bounds = {
+    high_risk: { min: 0.7, max: 0.95 },
+    medium_risk: { min: 0.3, max: 0.8 },
+    low_risk: { min: 0.05, max: 0.5 }
+  };
+  return bounds[thresholdType] || { min: 0.1, max: 0.9 };
+}
+
+// Export all functions
 export {
   moderateContent,
   storeModerationResult,
@@ -1209,5 +1475,8 @@ export {
   approveMatch,
   rejectMatch,
   getMatchReviewDetails,
-  sendEnhancedHostNotification
+  sendEnhancedHostNotification,
+  // New adaptive learning functions
+  processAdminFeedback,
+  processLearningSignal
 };

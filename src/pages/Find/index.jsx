@@ -182,6 +182,7 @@ const Find = () => {
           `)
           .or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
           .eq('status', 'upcoming')
+          .in('moderation_status', ['approved', 'auto_approved']) // CRITICAL FIX: Hide pending/flagged matches
           .order('start_time', { ascending: true });
           
         if (error) throw error;

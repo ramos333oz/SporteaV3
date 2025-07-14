@@ -78,7 +78,8 @@ import {
   getModerationStatistics,
   updateReviewStatus,
   approveMatch,
-  rejectMatch
+  rejectMatch,
+  processAdminFeedback
 } from '../services/contentModerationService';
 import EnhancedReviewModal from '../components/admin/EnhancedReviewModal';
 
@@ -92,6 +93,7 @@ const AdminDashboard = () => {
   const [error, setError] = useState('');
   const [adminUser, setAdminUser] = useState(null);
   const [analytics, setAnalytics] = useState({});
+  const [adaptiveLearningMetrics, setAdaptiveLearningMetrics] = useState(null);
   const navigate = useNavigate();
 
   // Navigation sections
@@ -167,6 +169,8 @@ const AdminDashboard = () => {
 
       // Skip analytics loading for content moderation section (it handles its own data)
       if (endpoint === 'moderation') {
+        // Load adaptive learning metrics for content moderation section
+        await loadAdaptiveLearningMetrics();
         return;
       }
 
@@ -180,6 +184,30 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error('Analytics loading error:', error);
       setError('Failed to load analytics data');
+    }
+  };
+
+  // Add function to load adaptive learning metrics
+  const loadAdaptiveLearningMetrics = async () => {
+    try {
+      const { data: metrics } = await supabase
+        .from('learning_performance_summary')
+        .select('*');
+
+      const { data: recentAdjustments } = await supabase
+        .from('adaptive_threshold_history')
+        .select('*')
+        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      setAdaptiveLearningMetrics({
+        summary: metrics,
+        recentAdjustments,
+        totalAdjustments: recentAdjustments?.length || 0
+      });
+    } catch (error) {
+      console.error('Error loading adaptive learning metrics:', error);
     }
   };
 
@@ -1676,6 +1704,7 @@ const ContentModerationTab = ({ adminUser }) => {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedQueueId, setSelectedQueueId] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, type: '', queueId: null, item: null });
+  const [adaptiveLearningMetrics, setAdaptiveLearningMetrics] = useState(null);
   const [filters, setFilters] = useState({
     status: 'all',
     priority: 'all',
@@ -1684,6 +1713,7 @@ const ContentModerationTab = ({ adminUser }) => {
 
   useEffect(() => {
     loadModerationData();
+    loadAdaptiveLearningMetrics();
   }, [filters]);
 
   const loadModerationData = async () => {
@@ -1713,6 +1743,29 @@ const ContentModerationTab = ({ adminUser }) => {
     }
   };
 
+  const loadAdaptiveLearningMetrics = async () => {
+    try {
+      const { data: metrics } = await supabase
+        .from('learning_performance_summary')
+        .select('*');
+
+      const { data: recentAdjustments } = await supabase
+        .from('adaptive_threshold_history')
+        .select('*')
+        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      setAdaptiveLearningMetrics({
+        summary: metrics,
+        recentAdjustments,
+        totalAdjustments: recentAdjustments?.length || 0
+      });
+    } catch (error) {
+      console.error('Error loading adaptive learning metrics:', error);
+    }
+  };
+
   const handleFilterChange = (filterType, value) => {
     setFilters(prev => ({
       ...prev,
@@ -1728,8 +1781,19 @@ const ContentModerationTab = ({ adminUser }) => {
       const result = await approveMatch(queueId, adminUser.id, '');
 
       if (result.success) {
+        // Process adaptive learning feedback
+        await processAdminFeedback({
+          queueItemId: queueId,
+          moderationResultId: item.moderation_result_id,
+          adminDecision: 'approve',
+          adminNotes: 'Approved by admin',
+          originalScore: item.inappropriate_score,
+          originalThreshold: item.adaptive_threshold_used
+        });
+
         setSuccessMessage(`Match "${result.matchTitle}" approved successfully`);
         await loadModerationData();
+        await loadAdaptiveLearningMetrics(); // Refresh adaptive learning metrics
 
         // Clear success message after 5 seconds
         setTimeout(() => setSuccessMessage(''), 5000);
@@ -1753,8 +1817,19 @@ const ContentModerationTab = ({ adminUser }) => {
       const result = await rejectMatch(queueId, adminUser.id, reason, '');
 
       if (result.success) {
+        // Process adaptive learning feedback
+        await processAdminFeedback({
+          queueItemId: queueId,
+          moderationResultId: item.moderation_result_id,
+          adminDecision: 'reject',
+          adminNotes: reason,
+          originalScore: item.inappropriate_score,
+          originalThreshold: item.adaptive_threshold_used
+        });
+
         setSuccessMessage(`Match "${result.matchTitle}" rejected successfully`);
         await loadModerationData();
+        await loadAdaptiveLearningMetrics(); // Refresh adaptive learning metrics
 
         // Clear success message after 5 seconds
         setTimeout(() => setSuccessMessage(''), 5000);
@@ -1824,6 +1899,44 @@ const ContentModerationTab = ({ adminUser }) => {
           {error}
         </Alert>
       )}
+
+      {/* Adaptive Learning Metrics */}
+      {adaptiveLearningMetrics && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Adaptive Learning Performance
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={4}>
+                <Typography variant="body2" color="textSecondary">
+                  Recent Adjustments (7 days)
+                </Typography>
+                <Typography variant="h4">
+                  {adaptiveLearningMetrics.totalAdjustments}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={8}>
+                <Typography variant="body2" color="textSecondary" gutterBottom>
+                  Recent Threshold Changes
+                </Typography>
+                {adaptiveLearningMetrics.recentAdjustments && adaptiveLearningMetrics.recentAdjustments.length > 0 ? (
+                  adaptiveLearningMetrics.recentAdjustments.slice(0, 3).map((adj, index) => (
+                    <Typography key={index} variant="body2" sx={{ mb: 1 }}>
+                      {adj.context_type}: {adj.threshold_type} {adj.old_value?.toFixed(3)} → {adj.new_value?.toFixed(3)}
+                    </Typography>
+                  ))
+                ) : (
+                  <Typography variant="body2" color="textSecondary">
+                    No recent threshold adjustments
+                  </Typography>
+                )}
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Statistics Cards */}
       {moderationStats && (
         <Grid container spacing={3} sx={{ mb: 3 }}>

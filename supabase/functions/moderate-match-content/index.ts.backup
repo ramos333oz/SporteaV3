@@ -68,24 +68,6 @@ interface HuggingFaceResponse {
   score: number
 }
 
-interface AdaptiveThresholds {
-  high_risk: number
-  medium_risk: number
-  low_risk: number
-  context_id: string | null
-  learning_enabled: boolean
-}
-
-interface LearningContext {
-  sport_id: string
-  user_id: string
-  title: string
-  description: string
-  content_length: number
-  language_mix: string
-  time_period: string
-}
-
 /**
  * ML-Powered Toxic Content Detection using Hugging Face API
  * Primary: unitary/toxic-bert, Fallback: martin-ha/toxic-comment-model
@@ -134,13 +116,10 @@ async function detectToxicContentML(text: string, settings: ModerationSettings):
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
-    const result = await response.json()
+    const result: HuggingFaceResponse[] = await response.json()
 
-    // Handle nested array response format from Hugging Face
-    const predictions = Array.isArray(result[0]) ? result[0] : result
-
-    // Find toxic score (label is lowercase 'toxic')
-    const toxicResult = predictions.find(r => r.label === 'toxic')
+    // Find toxic score
+    const toxicResult = result.find(r => r.label === 'TOXIC' || r.label === 'toxic')
     const toxicScore = toxicResult?.score || 0
 
     console.log(`[ML] Primary model success: ${toxicScore.toFixed(4)} toxic score`)
@@ -182,14 +161,8 @@ async function detectToxicContentML(text: string, settings: ModerationSettings):
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      const result = await response.json()
-
-      // Handle nested array response format from Hugging Face
-      const predictions = Array.isArray(result[0]) ? result[0] : result
-
-      // Find toxic score for fallback model
-      const toxicResult = predictions.find(r => r.label === 'toxic')
-      const toxicScore = toxicResult?.score || 0
+      const result: HuggingFaceResponse[] = await response.json()
+      const toxicScore = result[0]?.score || 0
 
       console.log(`[ML] Fallback model success: ${toxicScore.toFixed(4)} toxic score`)
 
@@ -217,19 +190,9 @@ async function detectToxicContentRuleBased(text: string, startTime: number, isFa
 
   const result = await detectToxicContent(text)
 
-  // CRITICAL FIX: Ensure Malay profanity like "babi" gets proper scoring
-  let adjustedScore = result.score;
-  const malayProfanity = ['babi', 'puki', 'pukimak', 'kontol', 'anjing', 'bangsat'];
-  const hasMalayProfanity = malayProfanity.some(word => text.toLowerCase().includes(word));
-
-  if (hasMalayProfanity && adjustedScore < 0.4) {
-    adjustedScore = Math.max(adjustedScore, 0.4); // Ensure minimum medium risk for Malay profanity
-    console.log(`[Rule-Based] Malay profanity detected, adjusting score from ${result.score} to ${adjustedScore}`);
-  }
-
   return {
-    score: adjustedScore,
-    confidence: adjustedScore > 0.5 ? 'medium' : 'low',
+    score: result.score,
+    confidence: result.score > 0.5 ? 'medium' : 'low',
     model_used: 'rule-based-fallback',
     processing_time_ms: Date.now() - startTime,
     fallback_used: isFallback,
@@ -596,15 +559,9 @@ async function moderateContent(
   console.log(`[Moderation] Overall risk: ${riskLevel} (${overallScore.toFixed(4)})`)
   console.log(`[Moderation] Weights - Toxic: ${settings.toxic_model_weight}, Sports: ${settings.sports_validation_weight}`)
 
-  // Determine automatic actions based on documented risk-based workflow
+  // Determine automatic actions
   const autoApproved = riskLevel === 'minimal' && settings.auto_approve_minimal_risk
-  const requiresReview = riskLevel === 'medium' || riskLevel === 'high'
-
-  // Risk-based workflow implementation:
-  // - MINIMAL (0-20%): Auto-approve, no admin review
-  // - LOW (20-50%): Auto-approve but monitor
-  // - MEDIUM (50-80%): Visible while under admin review
-  // - HIGH (80%+): Hidden from public, admin review required
+  const requiresReview = riskLevel !== 'minimal' || !settings.auto_approve_minimal_risk
 
   const processingTime = Date.now() - startTime
   
@@ -637,262 +594,6 @@ async function moderateContent(
     },
     processing_time_ms: processingTime
   }
-}
-
-/**
- * Get adaptive thresholds for a specific context
- */
-async function getAdaptiveThresholds(context: LearningContext, supabaseClient: any): Promise<AdaptiveThresholds> {
-  try {
-    console.log('[Adaptive] Getting thresholds for context:', context);
-
-    // Find best matching context
-    const contextMatch = await findBestContextMatch(context, supabaseClient);
-
-    if (contextMatch) {
-      return {
-        high_risk: contextMatch.high_risk_threshold,
-        medium_risk: contextMatch.medium_risk_threshold,
-        low_risk: contextMatch.low_risk_threshold,
-        context_id: contextMatch.id,
-        learning_enabled: contextMatch.learning_enabled
-      };
-    }
-
-    // Fallback to static thresholds
-    const { data: settings } = await supabaseClient
-      .from('content_moderation_settings')
-      .select('high_risk_threshold, medium_risk_threshold, low_risk_threshold')
-      .single();
-
-    return {
-      high_risk: settings?.high_risk_threshold || 0.8,
-      medium_risk: settings?.medium_risk_threshold || 0.5,
-      low_risk: settings?.low_risk_threshold || 0.2,
-      context_id: null,
-      learning_enabled: false
-    };
-  } catch (error) {
-    console.error('[Adaptive] Error getting thresholds:', error);
-    // Safety fallback
-    return {
-      high_risk: 0.8,
-      medium_risk: 0.5,
-      low_risk: 0.2,
-      context_id: null,
-      learning_enabled: false
-    };
-  }
-}
-
-/**
- * Find the best matching context for given parameters
- */
-async function findBestContextMatch(context: LearningContext, supabaseClient: any) {
-  const { sport_id, user_id, content_length, language_mix } = context;
-
-  // Priority: sport > user reputation > language > time
-  const contextQueries = [
-    { type: 'sport_category', identifier: sport_id },
-    { type: 'user_reputation', identifier: await getUserReputationLevel(user_id, supabaseClient) },
-    { type: 'language_mix', identifier: language_mix || detectLanguageMix(context.title, context.description) },
-    { type: 'time_period', identifier: getCurrentTimePeriod() }
-  ];
-
-  for (const query of contextQueries) {
-    if (query.identifier) {
-      const { data } = await supabaseClient
-        .from('threshold_contexts')
-        .select('*')
-        .eq('context_type', query.type)
-        .eq('context_identifier', query.identifier)
-        .eq('learning_enabled', true)
-        .single();
-
-      if (data) return data;
-    }
-  }
-
-  return null;
-}
-
-/**
- * Get user reputation level for context matching
- */
-async function getUserReputationLevel(userId: string, supabaseClient: any): Promise<string> {
-  try {
-    const { count } = await supabaseClient
-      .from('matches')
-      .select('*', { count: 'exact' })
-      .eq('host_id', userId)
-      .eq('status', 'completed');
-
-    if (count >= 10) return 'experienced_user';
-    if (count >= 5) return 'regular_user';
-    return 'new_user';
-  } catch {
-    return 'new_user';
-  }
-}
-
-/**
- * Detect language mix in content
- */
-function detectLanguageMix(title: string, description: string): string {
-  const text = `${title} ${description}`.toLowerCase();
-  const malayWords = /\b(sukan|latihan|permainan|bola|larian|badminton|futsal|sepak|takraw)\b/g;
-  const malayMatches = (text.match(malayWords) || []).length;
-  const totalWords = text.split(/\s+/).length;
-
-  if (malayMatches / totalWords > 0.3) return 'malay_primary';
-  if (malayMatches > 0) return 'mixed_language';
-  return 'english_primary';
-}
-
-/**
- * Get current time period for context
- */
-function getCurrentTimePeriod(): string {
-  const hour = new Date().getHours();
-  if (hour >= 19 && hour <= 22) return 'peak_hours';
-  if (hour >= 7 && hour <= 18) return 'day_hours';
-  return 'off_hours';
-}
-
-/**
- * Calculate risk level using adaptive thresholds
- */
-function calculateRiskLevelAdaptive(
-  toxicScore: number,
-  sportsScore: number,
-  adaptiveThresholds: AdaptiveThresholds,
-  settings: ModerationSettings
-): { riskLevel: string; overallScore: number } {
-
-  let overallScore: number;
-
-  if (settings.simplified_mode) {
-    overallScore = toxicScore * 1.0;
-  } else {
-    const toxicWeight = settings.toxic_model_weight || 1.0;
-    const sportsWeight = settings.sports_validation_weight || 0.0;
-
-    overallScore = (
-      (toxicScore * toxicWeight) +
-      ((1 - sportsScore) * sportsWeight)
-    );
-  }
-
-  // Use adaptive thresholds instead of static ones
-  const highThreshold = adaptiveThresholds.high_risk;
-  const mediumThreshold = adaptiveThresholds.medium_risk;
-  const lowThreshold = adaptiveThresholds.low_risk;
-
-  console.log(`[Adaptive Risk] Score: ${overallScore.toFixed(4)}, Thresholds: H:${highThreshold} M:${mediumThreshold} L:${lowThreshold}`);
-
-  let riskLevel: string;
-  if (overallScore >= highThreshold) {
-    riskLevel = 'high';
-  } else if (overallScore >= mediumThreshold) {
-    riskLevel = 'medium';
-  } else if (overallScore >= lowThreshold) {
-    riskLevel = 'low';
-  } else {
-    riskLevel = 'minimal';
-  }
-
-  return { riskLevel, overallScore };
-}
-
-/**
- * Enhanced moderation function with adaptive threshold support
- */
-async function moderateContentAdaptive(
-  matchData: MatchData,
-  settings: ModerationSettings,
-  adaptiveThresholds: AdaptiveThresholds,
-  supabaseClient: any
-): Promise<ModerationResult> {
-  const startTime = Date.now()
-
-  console.log(`[Adaptive Moderation] Processing match: ${matchData.id}`)
-  console.log(`[Adaptive Moderation] Using adaptive thresholds:`, adaptiveThresholds)
-
-  // Existing ML processing...
-  const mlToxicResult = await detectToxicContentML(
-    `${matchData.title} ${matchData.description || ''}`,
-    settings
-  );
-
-  let sportsScore = 0;
-  if (settings.sports_validation_weight > 0 && !settings.simplified_mode) {
-    sportsScore = await validateSportsContent(matchData.title, matchData.description || '');
-  }
-
-  // Use adaptive risk calculation
-  const { riskLevel, overallScore } = calculateRiskLevelAdaptive(
-    mlToxicResult.score,
-    sportsScore,
-    adaptiveThresholds,
-    settings
-  );
-
-  // Determine actions based on documented risk-based workflow
-  const hasToxicWords = mlToxicResult.flagged_words && mlToxicResult.flagged_words.length > 0;
-
-  // Risk-based workflow implementation:
-  // - MINIMAL (0-20%): Auto-approve, no admin review
-  // - LOW (20-50%): Auto-approve but monitor
-  // - MEDIUM (50-80%): Visible while under admin review
-  // - HIGH (80%+): Hidden from public, admin review required
-  const requiresReview = riskLevel === 'medium' || riskLevel === 'high' || hasToxicWords;
-  const autoApproved = riskLevel === 'minimal' && settings.auto_approve_minimal_risk && !hasToxicWords;
-
-  const processingTime = Date.now() - startTime;
-
-  // Store moderation result with adaptive metadata
-  const result: ModerationResult = {
-    inappropriate_score: Number(mlToxicResult.score.toFixed(4)),
-    consistency_score: null,
-    sports_validation_score: Number(sportsScore.toFixed(4)),
-    overall_risk_level: riskLevel as 'minimal' | 'low' | 'medium' | 'high',
-    auto_approved: autoApproved,
-    requires_review: requiresReview,
-    flagged_content: {
-      toxic_words: mlToxicResult.flagged_words,
-      model_used: mlToxicResult.model_used,
-      fallback_used: mlToxicResult.fallback_used,
-      adaptive_thresholds_used: adaptiveThresholds,
-      context_id: adaptiveThresholds.context_id,
-      learning_enabled: adaptiveThresholds.learning_enabled
-    },
-    model_confidence: {
-      toxic_detection: mlToxicResult.confidence,
-      ml_model_used: mlToxicResult.model_used,
-      adaptive_context: adaptiveThresholds.context_id,
-      learning_enabled: adaptiveThresholds.learning_enabled,
-      system_version: '3.0-adaptive-learning'
-    },
-    processing_time_ms: processingTime
-  };
-
-  // Store additional adaptive learning metadata if needed
-  if (adaptiveThresholds.context_id) {
-    await supabaseClient
-      .from('content_moderation_results')
-      .update({
-        threshold_context_used: adaptiveThresholds.context_id,
-        adaptive_thresholds_applied: adaptiveThresholds,
-        learning_metadata: {
-          context_type: 'adaptive',
-          learning_enabled: adaptiveThresholds.learning_enabled,
-          thresholds_used: adaptiveThresholds
-        }
-      })
-      .eq('match_id', matchData.id);
-  }
-
-  return result;
 }
 
 serve(async (req) => {
@@ -1023,22 +724,8 @@ serve(async (req) => {
       )
     }
 
-    // Build context for adaptive thresholds
-    const context: LearningContext = {
-      sport_id: matchData.sport_id,
-      user_id: matchData.host_id,
-      title: matchData.title,
-      description: matchData.description || '',
-      content_length: (matchData.title + ' ' + (matchData.description || '')).length,
-      language_mix: detectLanguageMix(matchData.title, matchData.description || ''),
-      time_period: getCurrentTimePeriod()
-    };
-
-    // Get adaptive thresholds
-    const adaptiveThresholds = await getAdaptiveThresholds(context, supabase);
-
-    // Perform content moderation with adaptive thresholds
-    const moderationResult = await moderateContentAdaptive(matchData, settings, adaptiveThresholds, supabase)
+    // Perform content moderation
+    const moderationResult = await moderateContent(matchData, settings)
 
     // Store moderation results
     const { data: storedResult, error: storeError } = await supabase
@@ -1079,64 +766,26 @@ serve(async (req) => {
       }
     }
 
-    // Handle risk-based workflow according to documentation
-    if (moderationResult.overall_risk_level === 'high') {
-      // HIGH RISK (80%+): Hide from public, send detailed notification
+    // Handle high-risk content
+    if (moderationResult.overall_risk_level === 'high' && settings.auto_reject_high_risk) {
+      // Update match status to rejected/cancelled
       await supabase
         .from('matches')
-        .update({
-          status: 'cancelled',
-          moderation_status: 'rejected',
-          rejection_reason: 'High-risk content detected: Inappropriate language or toxic behavior'
-        })
+        .update({ status: 'cancelled' })
         .eq('id', matchId)
 
-      // Send detailed notification to user explaining violation
+      // Send notification to user
       await supabase
         .from('notifications')
         .insert({
           user_id: matchData.host_id,
           type: 'content_violation',
-          title: 'Match Content Violation - High Risk',
-          content: `Your match "${matchData.title}" has been automatically hidden due to high-risk content (${(moderationResult.inappropriate_score * 100).toFixed(1)}% toxicity detected). Please review our community guidelines and create a new match with appropriate content.`,
+          title: 'Match Content Violation',
+          content: 'Your match has been automatically rejected due to content policy violations. Please review our community guidelines and try again.',
           is_read: false
         })
 
-      console.log(`[Moderation] High-risk match ${matchId} automatically hidden from public`)
-
-    } else if (moderationResult.overall_risk_level === 'medium') {
-      // MEDIUM RISK (50-80%): Keep visible while under admin review
-      await supabase
-        .from('matches')
-        .update({
-          moderation_status: 'pending_review',
-          review_reason: 'Medium-risk content requires admin review'
-        })
-        .eq('id', matchId)
-
-      console.log(`[Moderation] Medium-risk match ${matchId} kept visible pending admin review`)
-
-    } else if (moderationResult.overall_risk_level === 'low') {
-      // LOW RISK (20-50%): Auto-approve but monitor
-      await supabase
-        .from('matches')
-        .update({
-          moderation_status: 'auto_approved_monitored'
-        })
-        .eq('id', matchId)
-
-      console.log(`[Moderation] Low-risk match ${matchId} auto-approved with monitoring`)
-
-    } else {
-      // MINIMAL RISK (0-20%): Auto-approve, no intervention
-      await supabase
-        .from('matches')
-        .update({
-          moderation_status: 'auto_approved'
-        })
-        .eq('id', matchId)
-
-      console.log(`[Moderation] Minimal-risk match ${matchId} auto-approved`)
+      console.log(`[Moderation] High-risk content auto-rejected: ${matchId}`)
     }
 
     return new Response(

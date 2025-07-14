@@ -445,11 +445,13 @@ const LiveMatchBoard = () => {
           max_participants,
           status,
           host_id,
+          moderation_status,
           locations(id, name, image_url),
           sports(id, name)
         `)
         .not('status', 'eq', 'cancelled')
         .not('status', 'eq', 'completed')
+        .in('moderation_status', ['approved', 'auto_approved']) // CRITICAL FIX: Hide pending/flagged matches
         .order('start_time', { ascending: true });
         
       if (error) throw error;

@@ -1009,6 +1009,7 @@ export const matchService = {
       `)
       .eq('status', 'upcoming')
       .eq('is_private', false)
+      .in('moderation_status', ['approved', 'auto_approved']) // CRITICAL FIX: Hide pending/flagged matches
       .order('start_time', { ascending: true });
     
     // Apply filters if provided
