@@ -448,12 +448,14 @@ class AchievementService {
 
       for (const achievement of allAchievements) {
         const userProgress = userAchievements.find(ua => ua.achievement_id === achievement.id);
-        
+
         // Skip if already completed
         if (userProgress?.is_completed) continue;
 
-        const newProgress = await this.calculateProgress(achievement, actionData, userId);
-        
+        const rawProgress = await this.calculateProgress(achievement, actionData, userId);
+        // Cap progress at requirement value to prevent display issues like "4/1"
+        const newProgress = Math.min(rawProgress, achievement.requirement_value);
+
         if (newProgress >= achievement.requirement_value) {
           // Achievement unlocked!
           await this.unlockAchievement(userId, achievement.id);
@@ -462,7 +464,7 @@ class AchievementService {
           console.log(`🎉 Achievement unlocked: ${achievement.name} (${achievement.xp_reward} XP - not awarded yet)`);
           unlockedAchievements.push(achievement);
         } else if (newProgress > (userProgress?.current_progress || 0)) {
-          // Update progress
+          // Update progress (capped at requirement value)
           await this.updateProgress(userId, achievement.id, newProgress);
         }
       }
@@ -603,13 +605,22 @@ class AchievementService {
     try {
       console.log(`🔍 [DEBUG] Attempting to unlock achievement ${achievementId} for user ${userId}`);
 
+      // Get the achievement details to set correct progress
+      const { data: achievement, error: achievementError } = await supabase
+        .from('achievements')
+        .select('requirement_value')
+        .eq('id', achievementId)
+        .single();
+
+      if (achievementError) throw achievementError;
+
       // Perform UPSERT without .select() to avoid RLS issues
       const { error: upsertError } = await supabase
         .from('user_achievement_progress')
         .upsert({
           user_id: userId,
           achievement_id: achievementId,
-          current_progress: 0, // Will be updated by calculateProgress
+          current_progress: achievement.requirement_value, // Set to requirement value when unlocked
           is_completed: true,
           completed_at: new Date().toISOString(),
           notified: false
@@ -991,7 +1002,9 @@ class AchievementService {
 
       // Create initial progress records and check for immediate unlocks
       for (const achievement of missingAchievements) {
-        const currentProgress = await this.calculateProgress(achievement, {}, userId);
+        const rawProgress = await this.calculateProgress(achievement, {}, userId);
+        // Cap progress at requirement value to prevent display issues
+        const currentProgress = Math.min(rawProgress, achievement.requirement_value);
 
         if (currentProgress >= achievement.requirement_value) {
           // Achievement should be unlocked immediately
@@ -999,7 +1012,7 @@ class AchievementService {
           await this.awardXP(userId, achievement.xp_reward, `Achievement: ${achievement.name}`);
           console.log(`🎉 Immediately unlocked: ${achievement.name}`);
         } else if (currentProgress > 0) {
-          // Create progress record
+          // Create progress record (capped at requirement value)
           await this.updateProgress(userId, achievement.id, currentProgress);
           console.log(`📊 Progress created: ${achievement.name} (${currentProgress}/${achievement.requirement_value})`);
         }

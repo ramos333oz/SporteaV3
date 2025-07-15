@@ -770,11 +770,12 @@ async function approveMatch(queueId, adminId, notes = '') {
 
     if (moderationUpdateError) throw moderationUpdateError;
 
-    // Ensure match status is 'upcoming' (optimistic approval means it should already be visible)
+    // Ensure match status is 'upcoming' and moderation_status is 'approved' for public visibility
     const { error: matchUpdateError } = await supabase
       .from('matches')
       .update({
         status: 'upcoming',
+        moderation_status: 'approved', // CRITICAL FIX: Update moderation_status for frontend filtering
         updated_at: new Date().toISOString()
       })
       .eq('id', queueItem.match_id);
@@ -845,6 +846,7 @@ async function rejectMatch(queueId, adminId, actionReason, notes = '') {
       .from('matches')
       .update({
         status: 'cancelled',
+        moderation_status: 'rejected', // CONSISTENCY FIX: Update moderation_status for rejected matches
         updated_at: new Date().toISOString()
       })
       .eq('id', queueItem.match_id);

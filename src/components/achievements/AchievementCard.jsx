@@ -49,18 +49,21 @@ const AchievementCard = ({
   };
 
   return (
-    <Card 
-      sx={{ 
-        borderRadius: 3, 
-        boxShadow: isUnlocked 
-          ? '0 8px 16px rgba(138,21,56,0.15)' 
+    <Card
+      sx={{
+        borderRadius: 3,
+        boxShadow: isUnlocked
+          ? '0 8px 16px rgba(138,21,56,0.15)'
           : '0 4px 12px rgba(0,0,0,0.08)',
         transition: 'all 0.3s ease',
         opacity: isUnlocked ? 1 : 0.7,
         transform: isUnlocked ? 'scale(1.02)' : 'scale(1)',
         border: isUnlocked ? '2px solid #8A1538' : '1px solid #E0E0E0',
         position: 'relative',
-        overflow: 'visible'
+        overflow: 'visible',
+        height: 280, // Fixed height for consistency
+        display: 'flex',
+        flexDirection: 'column'
       }}
     >
 
@@ -86,11 +89,11 @@ const AchievementCard = ({
       </Box>
 
       {/* Achievement Details */}
-      <CardContent>
+      <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
           {achievement.name}
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flex: 1 }}>
           {achievement.description}
         </Typography>
 
