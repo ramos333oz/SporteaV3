@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Box, 
   Container, 
@@ -24,6 +24,23 @@ import blockingService from '../../services/blockingService';
 import { useProductionRealtime } from '../../hooks/useProductionRealtime';
 import { useAuth } from '../../hooks/useAuth';
 
+// Custom debounce hook for performance optimization
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
 const Find = () => {
   const { user } = useAuth();
   const { connectionState } = useProductionRealtime();
@@ -36,6 +53,9 @@ const Find = () => {
   const [error, setError] = useState(null);
   const [newMatchCount, setNewMatchCount] = useState(0);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
+
+  // Debounced search query for performance optimization
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   
   const fetchData = useCallback(async () => {
     try {
@@ -164,8 +184,13 @@ const Find = () => {
     setSearchQuery(event.target.value);
   };
   
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  // Optimized search function with debouncing
+  const performSearch = useCallback(async (query) => {
+    if (!query.trim()) {
+      // Reset to original data when search is cleared
+      fetchData();
+      return;
+    }
     
     try {
       setLoading(true);
@@ -180,7 +205,7 @@ const Find = () => {
             host:users!host_id(*),
             location:locations(*)
           `)
-          .or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
+          .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
           .eq('status', 'upcoming')
           .in('moderation_status', ['approved', 'auto_approved']) // CRITICAL FIX: Hide pending/flagged matches
           .order('start_time', { ascending: true });
@@ -192,7 +217,7 @@ const Find = () => {
         const { data, error } = await supabase
           .from('users')
           .select('*')
-          .or(`username.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%`)
+          .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
           .neq('id', user.id) // Exclude current user
           .limit(50); // Increase limit to account for filtering
 
@@ -211,8 +236,18 @@ const Find = () => {
     } finally {
       setLoading(false);
     }
+  }, [activeTab, user, fetchData]);
+
+  // Manual search function (for search button)
+  const handleSearch = () => {
+    performSearch(searchQuery);
   };
-  
+
+  // Automatic search with debouncing
+  useEffect(() => {
+    performSearch(debouncedSearchQuery);
+  }, [debouncedSearchQuery, performSearch]);
+
   // Apply new matches when user clicks on notification
   const applyNewMatches = () => {
     fetchData();

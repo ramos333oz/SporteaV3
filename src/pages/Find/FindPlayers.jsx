@@ -58,7 +58,7 @@ const getSportIcon = (sportName) => {
   return sportIcons[sportName] || <i className="fa-solid fa-baseball"></i>;
 };
 
-const FindPlayers = ({ players: propPlayers }) => {
+const FindPlayers = React.memo(({ players: propPlayers }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { showSuccessToast, showErrorToast } = useToast();
@@ -130,7 +130,10 @@ const FindPlayers = ({ players: propPlayers }) => {
       for (const userId of userIds) {
         if (userId !== user.id) { // Skip current user
           const { status, data: friendshipInfo } = await friendshipService.getFriendshipStatus(userId);
-          console.log(`Friendship with ${userId}: ${status}`, friendshipInfo);
+          // Production logging optimization: Temporarily disable all logging for performance testing
+          // if (import.meta.env.DEV) {
+          //   console.log(`Friendship with ${userId}: ${status}`, friendshipInfo);
+          // }
           friendshipData[userId] = { status, data: friendshipInfo };
         }
       }
@@ -369,9 +372,11 @@ const FindPlayers = ({ players: propPlayers }) => {
     
     // Get friendship status and handle missing data safely
     const friendshipStatus = friendships[userId]?.status || 'not-friends';
-    
-    // Log friendship status for debugging - can be removed after fixing the issue
-    console.log(`Rendering button for user ${userId} with status: ${friendshipStatus}`, friendships[userId]);
+
+    // Production logging optimization: Only log in development when debugging
+    if (import.meta.env.DEV && false) { // Set to true only when debugging friendship issues
+      console.log(`Rendering button for user ${userId} with status: ${friendshipStatus}`, friendships[userId]);
+    }
     
     switch (friendshipStatus) {
       case 'not-friends':
@@ -718,6 +723,13 @@ const FindPlayers = ({ players: propPlayers }) => {
       )}
     </Box>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison function for React.memo optimization
+  // Only re-render if players data actually changed
+  return prevProps.players === nextProps.players;
+});
+
+// Set display name for debugging
+FindPlayers.displayName = 'FindPlayers';
 
 export default FindPlayers;

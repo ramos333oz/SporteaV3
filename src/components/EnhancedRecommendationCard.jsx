@@ -77,7 +77,7 @@ const defaultVenueImages = {
   '0ec51cfc-f644-4057-99d8-d2c29c1b7dd0': '/images/venues/squash-court.jpg', // Squash
 };
 
-const EnhancedRecommendationCard = ({
+const EnhancedRecommendationCard = React.memo(({
   recommendation,
   isFallback = false,
   metrics = null,
@@ -525,6 +525,15 @@ const EnhancedRecommendationCard = ({
       )}
     </UnifiedCard>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison function for React.memo optimization
+  return (
+    prevProps.recommendation?.match?.id === nextProps.recommendation?.match?.id &&
+    prevProps.recommendation?.score === nextProps.recommendation?.score &&
+    prevProps.recommendation?.existingFeedback === nextProps.recommendation?.existingFeedback &&
+    prevProps.isFallback === nextProps.isFallback &&
+    prevProps.recommendationType === nextProps.recommendationType
+  );
+});
 
 export default EnhancedRecommendationCard;

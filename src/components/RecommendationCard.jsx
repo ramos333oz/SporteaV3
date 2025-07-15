@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, useMemo, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { 
   Box, 
@@ -64,7 +64,7 @@ const sportIcons = {
 /**
  * Card component for displaying a match recommendation with explanation and feedback options
  */
-const RecommendationCard = ({ 
+const RecommendationCard = memo(({
   recommendation,
   isFallback = false,
   metrics = null,
@@ -97,34 +97,37 @@ const RecommendationCard = ({
   } = recommendation || {};
 
   // Determine which score to display (prioritize simplified vector system)
-  const displayScore = similarity_score !== undefined ? similarity_score :
-                      final_score !== undefined ? final_score :
-                      match_score !== undefined ? match_score : score;
-  
+  // Memoize expensive calculations
+  const displayScore = useMemo(() => {
+    return similarity_score !== undefined ? similarity_score :
+           final_score !== undefined ? final_score :
+           match_score !== undefined ? match_score : score;
+  }, [similarity_score, final_score, match_score, score]);
+
   const [feedback, setFeedback] = useState(null);
   const [expanded, setExpanded] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(false);
 
-  // Format date and time
-  const formatDate = (dateStr) => {
+  // Memoize date formatting functions
+  const formatDate = useCallback((dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-MY', {
       weekday: 'short',
       day: 'numeric',
       month: 'short'
     });
-  };
+  }, []);
 
-  const formatTime = (dateStr) => {
+  const formatTime = useCallback((dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleTimeString('en-MY', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true
     });
-  };
+  }, []);
 
-  const handleFeedback = async (type) => {
+  const handleFeedback = useCallback(async (type) => {
     // If already selected, allow toggling off
     if (feedback === type) {
       setFeedback(null);
@@ -167,38 +170,39 @@ const RecommendationCard = ({
     if (onFeedback) {
       onFeedback(type, match.id);
     }
-  };
+  }, [feedback, match.id, onFeedback, recommendation, score_breakdown, displayScore, explanation]);
 
-  const getSportIcon = (sportId) => {
-    // Convert sport_id to sport name (assuming you have this mapping)
-    // This is a placeholder implementation
-    const sportMapping = {
-      1: 'football',
-      2: 'rugby',
-      3: 'basketball',
-      4: 'futsal',
-      5: 'volley',
-      6: 'frisbee',
-      7: 'hockey',
-      8: 'badminton'
-    };
-    const sportName = sportMapping[sportId] || 'football';
+  // Memoize sport mappings to prevent recreation
+  const sportIdMapping = useMemo(() => ({
+    1: 'football',
+    2: 'rugby',
+    3: 'basketball',
+    4: 'futsal',
+    5: 'volley',
+    6: 'frisbee',
+    7: 'hockey',
+    8: 'badminton'
+  }), []);
+
+  const sportNameMapping = useMemo(() => ({
+    1: 'Football',
+    2: 'Rugby',
+    3: 'Basketball',
+    4: 'Futsal',
+    5: 'Volleyball',
+    6: 'Frisbee',
+    7: 'Hockey',
+    8: 'Badminton'
+  }), []);
+
+  const getSportIcon = useCallback((sportId) => {
+    const sportName = sportIdMapping[sportId] || 'football';
     return sportIcons[sportName] || <SportsSoccer />;
-  };
+  }, [sportIdMapping]);
 
-  const getSportName = (sportId) => {
-    const sportMapping = {
-      1: 'Football',
-      2: 'Rugby',
-      3: 'Basketball',
-      4: 'Futsal',
-      5: 'Volleyball',
-      6: 'Frisbee',
-      7: 'Hockey',
-      8: 'Badminton'
-    };
-    return sportMapping[sportId] || 'Unknown';
-  };
+  const getSportName = useCallback((sportId) => {
+    return sportNameMapping[sportId] || 'Unknown';
+  }, [sportNameMapping]);
 
   // Extract preference factors from explanation or from match_score components
   const extractPreferenceFactors = () => {
@@ -826,5 +830,7 @@ const RecommendationCard = ({
     </Card>
   );
 };
+
+});
 
 export default RecommendationCard;

@@ -158,8 +158,9 @@ const SportIcon = ({ sportName }) => {
 /**
  * FindGames component for displaying available sport matches
  * Uses real data from Supabase passed via props
+ * Optimized with React.memo for better performance
  */
-const FindGames = ({ matches: propMatches, sports: propSports }) => {
+const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
   // State management
   const { user, supabase } = useAuth();
   const { awardXP } = useAchievements();
@@ -409,8 +410,8 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           .from('matches')
           .select(`
             *,
-            location (*),
-            sport (*)
+            locations (*),
+            sports (*)
           `)
           .eq('host_id', user.id);
           
@@ -451,7 +452,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           return isActive;
         }) || [];
         
-        console.log('Active user matches after filtering past matches:', activeMatches.length);
+        // console.log('Active user matches after filtering past matches:', activeMatches.length);
         
         // Mark these matches as user created for easier filtering
         const enhancedMatches = activeMatches.map(match => {
@@ -489,54 +490,79 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
   // Update matches when props, user matches, or filter changes
   useEffect(() => {
     if (propMatches) {
-      console.log("Running match update effect with propMatches:", propMatches.length);
+      // Production logging optimization: Temporarily disable all logging for performance testing
+      // if (import.meta.env.DEV) {
+      //   console.log("Running match update effect with propMatches:", propMatches.length);
+      // }
       setLoading(false);
 
       // Make a fresh copy of prop matches
       const allMatches = propMatches.slice();
-      console.log('Initial propMatches count:', allMatches.length);
+
+      // Production logging optimization: Temporarily disable all logging for performance testing
+      // if (import.meta.env.DEV) {
+      //   console.log('Initial propMatches count:', allMatches.length);
+      // }
 
       // Mark any matches the user has created in the prop matches
       if (user) {
         allMatches.forEach(match => {
           if (match.host_id === user.id) {
             match.isUserCreated = true;
-            console.log("Marking existing match as user created by host_id:", match.id, match.title || 'untitled');
+            // Production logging optimization: Temporarily disable all logging for performance testing
+            // if (import.meta.env.DEV) {
+            //   console.log("Marking existing match as user created by host_id:", match.id, match.title || 'untitled');
+            // }
           }
         });
       }
-      
+
       // Add any user created matches that aren't already in propMatches
       if (userCreatedMatches && userCreatedMatches.length > 0) {
-        console.log('User created matches count:', userCreatedMatches.length);
-        console.log('User matches IDs:', userCreatedMatches.map(m => m.id).join(', '));
-        
+        // Production logging optimization: Temporarily disable all logging for performance testing
+        // if (import.meta.env.DEV) {
+        //   console.log('User created matches count:', userCreatedMatches.length);
+        //   console.log('User matches IDs:', userCreatedMatches.map(m => m.id).join(', '));
+        // }
+
         userCreatedMatches.forEach(userMatch => {
           // Ensure the match has required properties
           userMatch.isUserCreated = true;
           if (!userMatch.title) userMatch.title = `Match on ${new Date(userMatch.start_time).toLocaleDateString()}`;
-          
+
           // Check if this match already exists in allMatches
           const existingIndex = allMatches.findIndex(match => match.id === userMatch.id);
-          
+
           if (existingIndex === -1) {
             // If not found, add it to allMatches
-            console.log("Adding user match to allMatches:", userMatch.id, userMatch.title);
+            // Production logging optimization: Temporarily disable all logging for performance testing
+            // if (import.meta.env.DEV) {
+            //   console.log("Adding user match to allMatches:", userMatch.id, userMatch.title);
+            // }
             allMatches.push(userMatch);
           } else {
             // If found, make sure it's marked properly
-            console.log("User match already in propMatches, ensuring it's marked:", userMatch.id);
+            // Production logging optimization: Temporarily disable all logging for performance testing
+            // if (import.meta.env.DEV) {
+            //   console.log("User match already in propMatches, ensuring it's marked:", userMatch.id);
+            // }
             allMatches[existingIndex].isUserCreated = true;
           }
         });
       } else {
-        console.log('No user created matches found');
+        // Production logging optimization: Temporarily disable all logging for performance testing
+        // if (import.meta.env.DEV) {
+        //   console.log('No user created matches found');
+        // }
       }
-      
-      console.log('Combined matches count:', allMatches.length);
-      if (allMatches.length > 0) {
-        console.log('Sample match from allMatches:', allMatches[0].id, allMatches[0].title);
-      }
+
+      // Production logging optimization: Temporarily disable all logging for performance testing
+      // if (import.meta.env.DEV) {
+      //   console.log('Combined matches count:', allMatches.length);
+      //   if (allMatches.length > 0) {
+      //     console.log('Sample match from allMatches:', allMatches[0].id, allMatches[0].title);
+      //   }
+      // }
       
       // Set this unfiltered list directly to state
       // This is a key change - no more filtering at this point!
@@ -564,7 +590,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       console.log("No propMatches available, setting loading to true");
       setLoading(true);
     }
-  }, [propMatches, userCreatedMatches, selectedSportFilter, user, applyFilters]);
+  }, [propMatches, userCreatedMatches, selectedSportFilter, user]);
 
   // View mode tab change handler
   const handleViewModeChange = (event, newValue) => {
@@ -628,9 +654,12 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
 
   // Render view based on selected view mode
   const renderViewContent = () => {
-    console.log("Current viewMode:", viewMode);
-    console.log("Available matches:", filteredMatches.length);
-    console.log("First match example:", filteredMatches[0]);
+    // Production logging optimization: Temporarily disable all logging for performance testing
+    // if (import.meta.env.DEV) {
+    //   console.log("Current viewMode:", viewMode);
+    //   console.log("Available matches:", filteredMatches.length);
+    //   console.log("First match example:", filteredMatches[0]);
+    // }
     
     switch (viewMode) {
       case 0: // List View
@@ -723,11 +752,15 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
                 </Paper>
               ) : (
                 <Grid container spacing={2}>
-                  {console.log("Preparing to render filtered matches:", filteredMatches.length)}
+                  {/* Production logging optimization: Temporarily disable all logging for performance testing */}
+                  {/* {import.meta.env.DEV && console.log("Preparing to render filtered matches:", filteredMatches.length)} */}
                   {/* Use the filteredMatches directly since it already includes user matches */}
                   {filteredMatches.map((match) => {
                     const isUserMatch = user && (match.host_id === user.id || match.isUserCreated === true);
-                    console.log("Rendering match:", match.id, match.title, isUserMatch ? "(User Match)" : "");
+                    // Production logging optimization: Temporarily disable all logging for performance testing
+                    // if (import.meta.env.DEV) {
+                    //   console.log("Rendering match:", match.id, match.title, isUserMatch ? "(User Match)" : "");
+                    // }
                     return (
                       <Grid item xs={12} sm={6} md={4} key={match.id}>
                         {renderMatchCard(match)}
@@ -809,7 +842,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
   };
 
   // Fetch user participations for all matches
-  const fetchUserParticipations = async () => {
+  const fetchUserParticipations = useCallback(async () => {
     if (!user || matches.length === 0) {
       return;
     }
@@ -840,7 +873,7 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       console.error('[fetchUserParticipations] Error fetching user participations:', error);
       // Don't clear existing participations on error
     }
-  };
+  }, [user, matches, supabase]);
 
 
 
@@ -1110,49 +1143,41 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
 
 
 
-  // Apply filters to matches
+  // Optimized match filtering with performance improvements
   const filteredMatches = React.useMemo(() => {
     if (!matches || matches.length === 0) {
-      console.log('No matches to filter');
       return [];
     }
+
+    // Performance optimization: Temporarily disable all logging for performance testing
+    // if (import.meta.env.DEV) {
+    //   console.log('Filtering', matches.length, 'matches');
+    //   console.log('Current filter settings:', {
+    //     viewMode,
+    //     listViewSportFilter: listViewSportFilter.length > 0 ? listViewSportFilter : 'all (empty array)',
+    //     selectedSportFilter,
+    //     locationFilter: locationFilter ? `${locationFilter.name} (id: ${locationFilter.id})` : 'none',
+    //     otherFilters: filters
+    //   });
+    // }
     
-    console.log('Filtering', matches.length, 'matches');
-    console.log('Current filter settings:', {
-      viewMode,
-      listViewSportFilter: listViewSportFilter.length > 0 ? listViewSportFilter : 'all (empty array)',
-      selectedSportFilter,
-      locationFilter: locationFilter ? `${locationFilter.name} (id: ${locationFilter.id})` : 'none',
-      otherFilters: filters
-    });
-    
-    // Log user created matches before filtering
-    if (user) {
-      const userMatches = matches.filter(m => m.host_id === user.id || m.isUserCreated === true);
-      console.log('User matches before filtering:', userMatches.length);
-      if (userMatches.length > 0) {
-        console.log('User matches found:');
-        userMatches.forEach(m => {
-          console.log(`User match before filtering: ${m.id} - ${m.title || 'untitled'}`);
-          console.log(`  Details: host_id: ${m.host_id}, user.id: ${user.id}, isUserCreated: ${m.isUserCreated}`);
-          console.log(`  Sport: ${m.sport?.name || m.sport_id} (ID: ${m.sport?.id || m.sport_id})`);
-          console.log(`  Location: ${m.location?.name || 'unknown'} (ID: ${m.location?.id || 'unknown'})`);
-          console.log(`  Skill level: ${m.skill_level || 'not set'}`);
-          console.log(`  Spots: ${m.current_participants || 0}/${m.max_participants || 0}`);
-          console.log(`  Private: ${m.is_private ? 'Yes' : 'No'}`);
-          console.log(`  Date/Time: ${m.start_time ? new Date(m.start_time).toLocaleString() : 'not set'}`);
-        });
-      } else {
-        console.log('No user matches found before filtering - this could be the problem');
-      }
-    }
+    // Performance optimization: Temporarily disable all logging for performance testing
+    // if (import.meta.env.DEV && user) {
+    //   const userMatches = matches.filter(m => m.host_id === user.id || m.isUserCreated === true);
+    //   if (userMatches.length > 0) {
+    //     console.log('User matches before filtering:', userMatches.length);
+    //   }
+    // }
     
     return matches.filter((match) => {
-      // Check if this is a user-created match (for debugging only)
+      // Performance optimization: Cache user-created match check
       const isUserCreatedMatch = user && (match.host_id === user.id || match.isUserCreated === true);
-      if (isUserCreatedMatch) {
-        console.log(`Processing user-created match: ${match.id} - ${match.title || 'untitled'}`);
-      }
+
+      // Production logging optimization: Reduce excessive logging
+      // Only log user-created matches in development when debugging is needed
+      // if (import.meta.env.DEV && isUserCreatedMatch) {
+      //   console.log(`Processing user-created match: ${match.id} - ${match.title || 'untitled'}`);
+      // }
       
       // Apply sport filter based on the current view mode
       if (viewMode === 0) {
@@ -1165,7 +1190,8 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           const sportMatches = listViewSportFilter.includes(matchSportId) || listViewSportFilter.includes("all");
           
           if (!sportMatches) {
-            if (isUserCreatedMatch) {
+            // Development logging only
+            if (import.meta.env.DEV && isUserCreatedMatch) {
               console.log(`User match ${match.id} filtered out - sport ${matchSportId} not in selected filters:`, listViewSportFilter);
             }
             return false;
@@ -1178,7 +1204,8 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
           match.sport_id?.toString() !== selectedSportFilter &&
           match.sport?.id?.toString() !== selectedSportFilter
         ) {
-          if (isUserCreatedMatch) {
+          // Development logging only
+          if (import.meta.env.DEV && isUserCreatedMatch) {
             console.log(`User match ${match.id} filtered out - sport doesn't match selected filter: ${selectedSportFilter}`);
           }
           return false;
@@ -1188,18 +1215,20 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       // Apply location filter (only for list view)
       if (viewMode === 0 && locationFilter) {
         // Filter by venue/location ID if available
-        if (match.location?.id && locationFilter.id && 
+        if (match.location?.id && locationFilter.id &&
             match.location.id.toString() !== locationFilter.id.toString()) {
-          if (isUserCreatedMatch) {
+          // Development logging only
+          if (import.meta.env.DEV && isUserCreatedMatch) {
             console.log(`User match ${match.id} filtered out - location ID doesn't match: ${match.location?.id} vs ${locationFilter.id}`);
           }
           return false;
         }
-        
+
         // Filter by venue/location name as fallback
-        else if (match.location?.name && locationFilter.name && 
+        else if (match.location?.name && locationFilter.name &&
                 match.location.name !== locationFilter.name) {
-          if (isUserCreatedMatch) {
+          // Development logging only
+          if (import.meta.env.DEV && isUserCreatedMatch) {
             console.log(`User match ${match.id} filtered out - location name doesn't match: ${match.location?.name} vs ${locationFilter.name}`);
           }
           return false;
@@ -1211,7 +1240,8 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
         filters.skillLevel !== "all" &&
         match.skill_level?.toLowerCase() !== filters.skillLevel.toLowerCase()
       ) {
-        if (isUserCreatedMatch) {
+        // Development logging only
+        if (import.meta.env.DEV && isUserCreatedMatch) {
           console.log(`User match ${match.id} filtered out - skill level doesn't match: ${match.skill_level} vs ${filters.skillLevel}`);
         }
         return false;
@@ -1221,7 +1251,8 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       const spotsLeft =
         (match.max_participants || 0) - (match.current_participants || 0);
       if (spotsLeft < filters.minSpots) {
-        if (isUserCreatedMatch) {
+        // Development logging only
+        if (import.meta.env.DEV && isUserCreatedMatch) {
           console.log(`User match ${match.id} filtered out - not enough spots left: ${spotsLeft} vs ${filters.minSpots}`);
         }
         return false;
@@ -1299,9 +1330,10 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       }
 
       // Match passed all filters
-      if (isUserCreatedMatch) {
-        console.log(`User-created match ${match.id} passed all filters`);
-      }
+      // Production logging optimization: Reduce excessive logging
+      // if (isUserCreatedMatch) {
+      //   console.log(`User-created match ${match.id} passed all filters`);
+      // }
       return true;
     }).map((match) => ({
       ...match,
@@ -2267,7 +2299,17 @@ const FindGames = ({ matches: propMatches, sports: propSports }) => {
       </Dialog>
     </Box>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison function for React.memo optimization
+  // Only re-render if matches or sports data actually changed
+  return (
+    prevProps.matches === nextProps.matches &&
+    prevProps.sports === nextProps.sports
+  );
+});
+
+// Set display name for debugging
+FindGames.displayName = 'FindGames';
 
 /**
  * Utility function to extract coordinates from Google Maps URLs

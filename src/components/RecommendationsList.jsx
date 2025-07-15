@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Typography, CircularProgress, Skeleton, Alert, Paper, Button, Grid, Snackbar, AlertTitle, Chip, IconButton, Tooltip } from '@mui/material';
 import EnhancedRecommendationCard from './EnhancedRecommendationCard';
 import { getRecommendations, clearCache, invalidateUserCache } from '../services/simplifiedRecommendationService';
@@ -17,8 +17,9 @@ import {
 
 /**
  * Component for displaying personalized match recommendations
+ * Optimized with React.memo for performance
  */
-const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
+const RecommendationsList = React.memo(({ limit = 5, onError = () => {} }) => {
   const { user } = useAuth();
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -215,10 +216,10 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
     }, 100); // 100ms debounce for faster UI updates
   }, [fetchRecommendations]);
 
-  // Handle manual retry
-  const handleRetry = () => {
+  // Handle manual retry - optimized with useCallback
+  const handleRetry = useCallback(() => {
     fetchRecommendations();
-  };
+  }, [fetchRecommendations]);
 
   // Handle feedback from recommendation cards
   const onFeedback = useCallback(async (feedbackType, matchId) => {
@@ -353,22 +354,26 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
     };
   }, []);
 
+  // Event handlers optimized with useCallback (moved outside useEffect to fix hook rules)
+  const handleUserPreferenceUpdate = useCallback(() => {
+    if (import.meta.env.DEV) {
+      console.log('[RecommendationsList] User preferences updated, refreshing recommendations');
+    }
+    invalidateUserCache(user.id);
+    fetchRecommendations();
+  }, [user.id, fetchRecommendations]);
+
+  const handleMatchUpdate = useCallback(() => {
+    if (import.meta.env.DEV) {
+      console.log('[RecommendationsList] Match data updated, refreshing recommendations');
+    }
+    clearCache(); // Clear all cache since any match update could affect recommendations
+    fetchRecommendations();
+  }, [fetchRecommendations]);
+
   // Real-time update listener for automatic recommendation refresh
   useEffect(() => {
     if (!user?.id) return;
-
-    // Listen for custom events that indicate data changes
-    const handleUserPreferenceUpdate = () => {
-      console.log('[RecommendationsList] User preferences updated, refreshing recommendations');
-      invalidateUserCache(user.id);
-      fetchRecommendations();
-    };
-
-    const handleMatchUpdate = () => {
-      console.log('[RecommendationsList] Match data updated, refreshing recommendations');
-      clearCache(); // Clear all cache since any match update could affect recommendations
-      fetchRecommendations();
-    };
 
     // Listen for custom events
     window.addEventListener('sportea:user-preferences-updated', handleUserPreferenceUpdate);
@@ -379,7 +384,7 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
       window.removeEventListener('sportea:user-preferences-updated', handleUserPreferenceUpdate);
       window.removeEventListener('sportea:match-updated', handleMatchUpdate);
     };
-  }, [user?.id, fetchRecommendations]);
+  }, [user?.id, handleUserPreferenceUpdate, handleMatchUpdate]);
 
   if (loading) {
     return (
@@ -625,6 +630,12 @@ const RecommendationsList = ({ limit = 5, onError = () => {} }) => {
       />
     </Box>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison function for React.memo optimization
+  return (
+    prevProps.limit === nextProps.limit &&
+    prevProps.onError === nextProps.onError
+  );
+});
 
 export default RecommendationsList;

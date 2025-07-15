@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -399,8 +399,9 @@ const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoin
  * LiveMatchBoard component
  * Displays a live-updating board of matches
  * Uses WebSocket connections to show real-time updates
+ * Optimized with React.memo for performance
  */
-const LiveMatchBoard = () => {
+const LiveMatchBoard = React.memo(() => {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -414,8 +415,22 @@ const LiveMatchBoard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Performance optimization: Memoize filtered and sorted matches
+  const processedMatches = useMemo(() => {
+    if (!matches || matches.length === 0) return [];
+
+    // Filter out matches that don't meet criteria and sort by start time
+    return matches
+      .filter(match =>
+        match.status === 'upcoming' &&
+        ['approved', 'auto_approved'].includes(match.moderation_status)
+      )
+      .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+  }, [matches]);
+
   // Define fetchMatches function at component level so it's accessible everywhere
-  const fetchMatches = async () => {
+  // Optimized with useCallback for performance
+  const fetchMatches = useCallback(async () => {
     try {
       if (process.env.NODE_ENV !== 'production') {
         console.log('Fetching live matches...');
@@ -560,7 +575,7 @@ const LiveMatchBoard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Hook into real-time updates
   useEffect(() => {
@@ -722,10 +737,10 @@ const LiveMatchBoard = () => {
     }
   };
 
-  // Mark a match as recently updated
-  const markAsRecentlyUpdated = (matchId) => {
+  // Mark a match as recently updated - optimized with useCallback
+  const markAsRecentlyUpdated = useCallback((matchId) => {
     setRecentlyUpdated(prev => ({ ...prev, [matchId]: true }));
-    
+
     // Remove the "recently updated" status after 5 seconds
     setTimeout(() => {
       setRecentlyUpdated(prev => {
@@ -734,12 +749,12 @@ const LiveMatchBoard = () => {
         return updated;
       });
     }, 5000);
-  };
+  }, []);
 
-  // Handle view match
-  const handleViewMatch = (matchId) => {
+  // Handle view match - optimized with useCallback
+  const handleViewMatch = useCallback((matchId) => {
     navigate(`/match/${matchId}`);
-  };
+  }, [navigate]);
 
   // Handle join request
   const handleJoinRequest = (match) => {
@@ -942,13 +957,13 @@ const LiveMatchBoard = () => {
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
           <CircularProgress />
         </Box>
-      ) : matches.length === 0 ? (
+      ) : processedMatches.length === 0 ? (
         <Typography variant="body1" color="text.secondary" align="center" sx={{ py: 4 }}>
           No active matches found. Check again later or create your own match!
         </Typography>
       ) : (
         <Box>
-          {matches.map((match) => (
+          {processedMatches.map((match) => (
             <MatchCardErrorBoundary key={match.id}>
               <MatchCard
                 match={match}
@@ -996,6 +1011,6 @@ const LiveMatchBoard = () => {
       </Dialog>
     </Box>
   );
-};
+});
 
 export default LiveMatchBoard;
