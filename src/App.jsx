@@ -46,6 +46,10 @@ import { ToastProvider } from './contexts/ToastContext';
 import { AchievementProvider } from './contexts/AchievementContext';
 import { LevelUpProvider } from './contexts/LevelUpContext';
 
+// Stagewise Toolbar integration
+import { StagewiseToolbar } from '@stagewise/toolbar-react';
+import ReactPlugin from '@stagewise-plugins/react';
+
 // Create a theme instance based on the Sportea style guide
 const theme = createTheme({
   palette: {
@@ -336,58 +340,61 @@ function App() {
     };
   }, []);
 
+  // Only show StagewiseToolbar in development mode
+  const isDev = process.env.NODE_ENV === 'development';
+
   return (
     <ErrorBoundary>
       <ThemeProvider theme={theme}>
         <CssBaseline />
+        {isDev && (
+          <StagewiseToolbar config={{ plugins: [ReactPlugin] }} />
+        )}
         <AuthProvider>
           <ToastProvider>
             <AchievementProvider>
               <LevelUpProvider>
                 <ErrorBoundary>
-            <Router>
-              <Routes>
-                {/* Auth routes (not requiring authentication) */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<Login />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/not-found" element={<NotFound />} />
-                <Route path="/debug" element={<ErrorDebug />} />
-                <Route path="/auth-debug" element={<AuthDebug />} />
-                <Route path="/direct-home" element={<DirectHome />} />
+                  <Router>
+                    <Routes>
+                      {/* Auth routes (not requiring authentication) */}
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/forgot-password" element={<Login />} />
+                      <Route path="/auth/callback" element={<AuthCallback />} />
+                      <Route path="/not-found" element={<NotFound />} />
+                      <Route path="/debug" element={<ErrorDebug />} />
+                      <Route path="/auth-debug" element={<AuthDebug />} />
+                      <Route path="/direct-home" element={<DirectHome />} />
 
-                {/* Admin routes (separate authentication) */}
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
-                
-                {/* Root route with conditional redirect */}
-                <Route path="/" element={
-                  <ErrorBoundary>
-                    <RootRedirect />
-                  </ErrorBoundary>
-                } />
-                
-                {/* Protected routes that require authentication */}
-                <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-                  <Route path="/home" element={<Home />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/profile/:userId" element={<Profile />} />
-                  <Route path="/profile/edit" element={<ProfileEdit />} />
-                  <Route path="/find" element={<Find />} />
-                  <Route path="/find/players" element={<FindPlayers />} />
-                  <Route path="/host" element={<Host />} />
-                  <Route path="/match/:matchId" element={<MatchDetail />} />
-                  <Route path="/edit-match/:matchId" element={<EditMatch />} />
-                  <Route path="/friends" element={<Friends />} />
-                  <Route path="/leaderboard" element={<Leaderboard />} />
-                </Route>
-                
-                {/* Fallback for undefined routes */}
-                <Route path="*" element={<Navigate to="/not-found" replace />} />
-              </Routes>
-            </Router>
+                      {/* Admin routes (separate authentication) */}
+                      <Route path="/admin/login" element={<AdminLogin />} />
+                      <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                      <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+                      {/* Root route with conditional redirect */}
+                      <Route path="/" element={
+                        <ErrorBoundary>
+                          <RootRedirect />
+                        </ErrorBoundary>
+                      } />
+                      {/* Protected routes that require authentication */}
+                      <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+                        <Route path="/home" element={<Home />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/profile/:userId" element={<Profile />} />
+                        <Route path="/profile/edit" element={<ProfileEdit />} />
+                        <Route path="/find" element={<Find />} />
+                        <Route path="/find/players" element={<FindPlayers />} />
+                        <Route path="/host" element={<Host />} />
+                        <Route path="/match/:matchId" element={<MatchDetail />} />
+                        <Route path="/edit-match/:matchId" element={<EditMatch />} />
+                        <Route path="/friends" element={<Friends />} />
+                        <Route path="/leaderboard" element={<Leaderboard />} />
+                      </Route>
+                      {/* Fallback for undefined routes */}
+                      <Route path="*" element={<Navigate to="/not-found" replace />} />
+                    </Routes>
+                  </Router>
                 </ErrorBoundary>
               </LevelUpProvider>
             </AchievementProvider>

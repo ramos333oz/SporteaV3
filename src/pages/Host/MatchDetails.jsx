@@ -37,11 +37,32 @@ const MatchDetails = ({ matchData, onUpdateMatchData }) => {
   }, [matchData.date, matchData.time, onUpdateMatchData]);
   
   const handleTitleChange = (event) => {
-    onUpdateMatchData({ title: event.target.value });
+    // Clean the title to remove any unwanted placeholder text or IDs
+    let cleanTitle = event.target.value;
+
+    // Remove UUID patterns that might appear in the title
+    cleanTitle = cleanTitle.replace(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/gi, '');
+
+    // Remove "Court A1" or similar court references if they appear
+    cleanTitle = cleanTitle.replace(/\s*\(?\s*Court\s+[A-Z]\d+\s*\)?\s*/gi, '');
+
+    // Clean up extra spaces
+    cleanTitle = cleanTitle.replace(/\s+/g, ' ').trim();
+
+    onUpdateMatchData({ title: cleanTitle });
   };
   
   const handleDescriptionChange = (event) => {
-    onUpdateMatchData({ description: event.target.value });
+    // Clean the description to remove any unwanted court references
+    let cleanDescription = event.target.value;
+
+    // Remove "Court A1" or similar court references if they appear
+    cleanDescription = cleanDescription.replace(/\s*\(?\s*Court\s+[A-Z]\d+\s*\)?\s*/gi, '');
+
+    // Clean up extra spaces but preserve line breaks
+    cleanDescription = cleanDescription.replace(/[ \t]+/g, ' ').replace(/^\s+|\s+$/gm, '');
+
+    onUpdateMatchData({ description: cleanDescription });
   };
   
   const handleDateChange = (newDate) => {
@@ -124,7 +145,7 @@ const MatchDetails = ({ matchData, onUpdateMatchData }) => {
           Match Details
         </Typography>
         <Typography variant="body1" color="text.secondary" paragraph>
-          Provide essential information about your {matchData.sport} match to help potential participants decide if they want to join.
+          Provide essential information about your {matchData.sportName || matchData.sportDisplayName || 'sport'} match to help potential participants decide if they want to join.
         </Typography>
         
         <Grid container spacing={3} sx={{ mt: 1 }}>
@@ -137,7 +158,7 @@ const MatchDetails = ({ matchData, onUpdateMatchData }) => {
               label="Match Title"
               value={matchData.title}
               onChange={handleTitleChange}
-              placeholder={`${matchData.sport.charAt(0).toUpperCase() + matchData.sport.slice(1)} match at UiTM`}
+              placeholder={`${(matchData.sportName || matchData.sportDisplayName || 'Sport')} match at UiTM`}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -154,11 +175,26 @@ const MatchDetails = ({ matchData, onUpdateMatchData }) => {
               fullWidth
               id="match-description"
               label="Description"
-              value={matchData.description}
+              value={matchData.description || ''}
               onChange={handleDescriptionChange}
               placeholder="Provide details about your match, rules, equipment needed, etc."
               multiline
               rows={4}
+              sx={{
+                '& .MuiInputBase-root': {
+                  alignItems: 'flex-start',
+                },
+                '& .MuiInputAdornment-root': {
+                  alignSelf: 'flex-start',
+                  marginTop: '14px',
+                },
+                '& .MuiInputBase-input': {
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  wordWrap: 'break-word',
+                  whiteSpace: 'pre-wrap',
+                }
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -280,7 +316,7 @@ const MatchDetails = ({ matchData, onUpdateMatchData }) => {
                   </InputAdornment>
                 ),
               }}
-              helperText={`Minimum ${matchData.minParticipants} participants required for ${matchData.sport}`}
+              helperText={`Minimum ${matchData.minParticipants} participants required for ${matchData.sportName || matchData.sportDisplayName || 'this sport'}`}
             />
           </Grid>
           

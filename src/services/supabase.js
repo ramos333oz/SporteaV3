@@ -508,11 +508,9 @@ export const matchService = {
         ...dataWithoutExtraFields 
       } = matchData;
       
-      // If there is a court_name, add it to the description field
+      // Keep the original description without automatically appending court name
+      // Court information is already stored separately in the location data
       let description = matchData.description || '';
-      if (court_name) {
-        description = description ? `${description} (${court_name})` : `Court: ${court_name}`;
-      }
       
       // Log the sport information for debugging
       console.log('Sport information being used:', {

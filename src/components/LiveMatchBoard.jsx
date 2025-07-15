@@ -248,30 +248,31 @@ const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoin
   const spotsRemaining = match.max_participants - (match.current_participants || 0);
 
   return (
-    <Box sx={{ mb: 2 }}>
-      <UnifiedCard
-        image={venueImage}
-        imageAlt={`${sportInfo.name} venue`}
-        imageHeight={140}
-        imagePosition="top"
-        title={match.title || `${sportInfo.name} Match`}
-        subtitle={`Live match • ${spotsRemaining} spots left`}
-        onClick={handleCardClick}
-        variant={isRecentlyUpdated ? 'elevated' : 'default'}
-        ariaLabel={`View ${match.title || 'match'} details`}
-        sx={{
-          minHeight: 240, // Same as SportCard (non-compact)
+    <UnifiedCard
+      image={venueImage}
+      imageAlt={`${sportInfo.name} venue`}
+      imageHeight={200}
+      imagePosition="top"
+      title={match.title || `${sportInfo.name} Match`}
+      subtitle={`Live match • ${spotsRemaining} spots left`}
+      onClick={handleCardClick}
+      variant={isRecentlyUpdated ? 'elevated' : 'default'}
+      ariaLabel={`View ${match.title || 'match'} details`}
+      sx={{
+        height: '100%', // Fill the grid item height
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: 'white',
+        border: isRecentlyUpdated ? `2px solid ${sportInfo.color}` : '1px solid rgba(0, 0, 0, 0.12)',
+        transition: 'all 0.3s ease',
+        '&:hover': {
           backgroundColor: 'white',
-          border: isRecentlyUpdated ? `2px solid ${sportInfo.color}` : '1px solid rgba(0, 0, 0, 0.12)',
-          transition: 'all 0.3s ease',
-          '&:hover': {
-            backgroundColor: 'white',
-            borderColor: sportInfo.color,
-            transform: 'translateY(-2px)',
-            boxShadow: '0px 8px 24px rgba(0, 0, 0, 0.15)',
-          }
-        }}
-      >
+          borderColor: sportInfo.color,
+          transform: 'translateY(-2px)',
+          boxShadow: '0px 8px 24px rgba(0, 0, 0, 0.15)',
+        }
+      }}
+    >
         {/* Sport and Match Info - Following recommendation design */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           {React.cloneElement(sportInfo.icon, { sx: { color: sportInfo.color, fontSize: 28 } })}
@@ -391,7 +392,6 @@ const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoin
           </Button>
         </Box>
       </UnifiedCard>
-    </Box>
   );
 };
 
@@ -962,22 +962,24 @@ const LiveMatchBoard = React.memo(() => {
           No active matches found. Check again later or create your own match!
         </Typography>
       ) : (
-        <Box>
+        <Grid container spacing={2}>
           {processedMatches.map((match) => (
-            <MatchCardErrorBoundary key={match.id}>
-              <MatchCard
-                match={match}
-                isRecentlyUpdated={!!recentlyUpdated[match.id]}
-                onView={handleViewMatch}
-                userParticipation={userParticipations[match.id]}
-                onJoinRequest={handleJoinRequest}
-                onLeaveRequest={handleLeaveRequest}
-                currentUserId={user?.id}
-                hasInvitation={!!directInvitations[match.id]}
-              />
-            </MatchCardErrorBoundary>
+            <Grid item xs={12} sm={6} md={4} key={match.id}>
+              <MatchCardErrorBoundary>
+                <MatchCard
+                  match={match}
+                  isRecentlyUpdated={!!recentlyUpdated[match.id]}
+                  onView={handleViewMatch}
+                  userParticipation={userParticipations[match.id]}
+                  onJoinRequest={handleJoinRequest}
+                  onLeaveRequest={handleLeaveRequest}
+                  currentUserId={user?.id}
+                  hasInvitation={!!directInvitations[match.id]}
+                />
+              </MatchCardErrorBoundary>
+            </Grid>
           ))}
-        </Box>
+        </Grid>
       )}
 
       {/* Join Match Confirmation Dialog */}

@@ -611,11 +611,17 @@ class AchievementService {
         .select('*')
         .eq('user_id', userId)
         .eq('achievement_id', achievementId)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single() to avoid errors when no record exists
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        // PGRST116 is "not found" error, which is expected for new achievements
+      if (checkError) {
         console.log(`🔍 [DEBUG] Error checking existing progress:`, checkError);
+        throw checkError;
+      }
+
+      // If achievement is already unlocked, return the existing record
+      if (existingProgress && existingProgress.is_completed) {
+        console.log(`🔍 [DEBUG] Achievement already unlocked:`, existingProgress);
+        return existingProgress;
       }
 
       if (existingProgress && existingProgress.is_completed) {
@@ -632,8 +638,8 @@ class AchievementService {
 
       if (achievementError) throw achievementError;
 
-      // Perform UPSERT with better error handling for duplicates
-      const { error: upsertError } = await supabase
+      // Use upsert with proper conflict resolution to prevent duplicate key errors
+      const { data: upsertData, error: upsertError } = await supabase
         .from('user_achievement_progress')
         .upsert({
           user_id: userId,
@@ -641,15 +647,20 @@ class AchievementService {
           current_progress: achievement.requirement_value, // Set to requirement value when unlocked
           is_completed: true,
           completed_at: new Date().toISOString(),
-          notified: false
-        });
+          notified: false,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,achievement_id', // Specify the conflict columns
+          ignoreDuplicates: false // Update existing records instead of ignoring
+        })
+        .select()
+        .single();
 
-      console.log(`🔍 [DEBUG] Achievement upsert error:`, upsertError);
+      console.log(`🔍 [DEBUG] Achievement upsert result:`, { data: upsertData, error: upsertError });
 
-      // Handle duplicate key constraint gracefully
-      if (upsertError && upsertError.message && upsertError.message.includes('duplicate key')) {
-        console.log(`🔍 [DEBUG] Duplicate key constraint detected - achievement may already be unlocked`);
-        // Try to fetch the existing record instead of failing
+      if (upsertError) {
+        console.log(`🔍 [DEBUG] Upsert failed, attempting to fetch existing record`);
+        // If upsert fails, try to fetch the existing record
         const { data: existingRecord, error: fetchError } = await supabase
           .from('user_achievement_progress')
           .select('*')
@@ -660,29 +671,18 @@ class AchievementService {
         if (!fetchError && existingRecord) {
           console.log(`🔍 [DEBUG] Found existing achievement record:`, existingRecord);
           return existingRecord;
+        } else {
+          throw upsertError;
         }
-      } else if (upsertError) {
-        throw upsertError;
       }
 
-      // Fetch the updated record separately
-      console.log(`🔍 [DEBUG] Fetching achievement progress record after successful upsert`);
-      const { data: achievementData, error: fetchError } = await supabase
-        .from('user_achievement_progress')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('achievement_id', achievementId)
-        .single();
-
-      console.log(`🔍 [DEBUG] Fetch achievement record result - Data:`, achievementData, `Error:`, fetchError);
-      if (fetchError) throw fetchError;
-
-      if (!achievementData) {
-        throw new Error(`Failed to fetch achievement progress record for user ${userId}, achievement ${achievementId}`);
+      if (upsertData) {
+        console.log(`🎉 Achievement unlocked for user ${userId}: ${achievementId}`);
+        return upsertData;
       }
 
-      console.log(`🎉 Achievement unlocked for user ${userId}: ${achievementId}`);
-      return achievementData;
+      // This should not happen if upsert was successful
+      throw new Error(`Failed to unlock achievement for user ${userId}, achievement ${achievementId}`);
     } catch (error) {
       console.error('Error unlocking achievement:', error);
       throw error;
@@ -694,22 +694,27 @@ class AchievementService {
     try {
       console.log(`🔍 [DEBUG] Updating progress for achievement ${achievementId}, user ${userId}, progress: ${progress}`);
 
-      // Perform UPSERT with better error handling for duplicates
-      const { error: upsertError } = await supabase
+      // Use upsert with proper conflict resolution to prevent duplicate key errors
+      const { data: upsertData, error: upsertError } = await supabase
         .from('user_achievement_progress')
         .upsert({
           user_id: userId,
           achievement_id: achievementId,
           current_progress: progress,
-          is_completed: false
-        });
+          is_completed: false,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,achievement_id', // Specify the conflict columns
+          ignoreDuplicates: false // Update existing records instead of ignoring
+        })
+        .select()
+        .single();
 
-      console.log(`🔍 [DEBUG] Progress upsert error:`, upsertError);
+      console.log(`🔍 [DEBUG] Progress upsert result:`, { data: upsertData, error: upsertError });
 
-      // Handle duplicate key constraint gracefully
-      if (upsertError && upsertError.message && upsertError.message.includes('duplicate key')) {
-        console.log(`🔍 [DEBUG] Duplicate key constraint detected - progress record may already exist`);
-        // Try to fetch the existing record instead of failing
+      if (upsertError) {
+        console.log(`🔍 [DEBUG] Progress upsert failed, attempting to fetch existing record`);
+        // If upsert fails, try to fetch the existing record
         const { data: existingRecord, error: fetchError } = await supabase
           .from('user_achievement_progress')
           .select('*')
@@ -720,23 +725,18 @@ class AchievementService {
         if (!fetchError && existingRecord) {
           console.log(`🔍 [DEBUG] Found existing progress record:`, existingRecord);
           return existingRecord;
+        } else {
+          throw upsertError;
         }
-      } else if (upsertError) {
-        throw upsertError;
       }
 
-      // Fetch the updated record separately
-      const { data: progressData, error: fetchError } = await supabase
-        .from('user_achievement_progress')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('achievement_id', achievementId)
-        .single();
+      if (upsertData) {
+        console.log(`📊 Progress updated for user ${userId}, achievement ${achievementId}: ${progress}`);
+        return upsertData;
+      }
 
-      console.log(`🔍 [DEBUG] Fetch progress record result - Data:`, progressData, `Error:`, fetchError);
-      if (fetchError) throw fetchError;
-
-      return progressData;
+      // This should not happen if upsert was successful
+      throw new Error(`Failed to update progress for user ${userId}, achievement ${achievementId}`);
     } catch (error) {
       console.error('Error updating progress:', error);
       throw error;

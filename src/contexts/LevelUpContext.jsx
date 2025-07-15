@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { LevelUpCelebration } from '../components/achievements';
+import React, { createContext, useContext, useState, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from '../hooks/useAuth';
+
+// Lazy load the LevelUpCelebration component for better performance
+const LevelUpCelebration = lazy(() => import('../components/achievements/LevelUpCelebration'));
 
 const LevelUpContext = createContext();
 
@@ -55,14 +57,16 @@ export const LevelUpProvider = ({ children }) => {
     <LevelUpContext.Provider value={value}>
       {children}
       
-      {/* Global Level Up Celebration */}
+      {/* Global Level Up Celebration with Suspense for lazy loading */}
       {levelUpData && (
-        <LevelUpCelebration
-          open={showCelebration}
-          onClose={closeCelebration}
-          newLevel={levelUpData.newLevel}
-          oldLevel={levelUpData.oldLevel}
-        />
+        <Suspense fallback={<div>Loading celebration...</div>}>
+          <LevelUpCelebration
+            open={showCelebration}
+            onClose={closeCelebration}
+            newLevel={levelUpData.newLevel}
+            oldLevel={levelUpData.oldLevel}
+          />
+        </Suspense>
       )}
     </LevelUpContext.Provider>
   );

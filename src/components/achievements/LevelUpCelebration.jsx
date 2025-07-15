@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,9 +15,13 @@ import { getLevelColor } from '../../services/achievementService';
 /**
  * Level Up Celebration Component
  * Shows a celebration modal when user levels up
+ * Optimized with React.memo, useCallback, and useMemo for better performance
  */
-const LevelUpCelebration = ({ open, onClose, newLevel, oldLevel }) => {
+const LevelUpCelebration = memo(({ open, onClose, newLevel, oldLevel }) => {
   const [showContent, setShowContent] = useState(false);
+
+  // Memoize the level color calculation to prevent unnecessary recalculations
+  const levelColor = useMemo(() => getLevelColor(newLevel), [newLevel]);
 
   useEffect(() => {
     if (open) {
@@ -29,10 +33,83 @@ const LevelUpCelebration = ({ open, onClose, newLevel, oldLevel }) => {
     }
   }, [open]);
 
-  const handleClose = () => {
+  // Use useCallback to prevent function recreation on every render
+  const handleClose = useCallback(() => {
     setShowContent(false);
     setTimeout(onClose, 200);
-  };
+  }, [onClose]);
+
+  // Memoize icon styles to prevent object recreation
+  const iconStyles = useMemo(() => ({
+    fontSize: 100,
+    color: '#FFD700',
+    filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
+    animation: 'bounce 2s infinite'
+  }), []);
+
+  // Memoize sparkle styles to prevent object recreation
+  const sparkleStyles = useMemo(() => ({
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    '&::before, &::after': {
+      content: '""',
+      position: 'absolute',
+      width: '6px',
+      height: '6px',
+      backgroundColor: '#FFD700',
+      borderRadius: '50%',
+      animation: 'sparkle 1.5s infinite'
+    },
+    '&::before': {
+      top: '10%',
+      left: '20%',
+      animationDelay: '0s'
+    },
+    '&::after': {
+      top: '20%',
+      right: '15%',
+      animationDelay: '0.5s'
+    }
+  }), []);
+
+  // Memoize the paper props to prevent object recreation on every render
+  const paperProps = useMemo(() => ({
+    sx: {
+      borderRadius: 3,
+      background: `linear-gradient(135deg, ${levelColor} 0%, #764ba2 100%)`,
+      color: 'white',
+      textAlign: 'center',
+      p: 2,
+      overflow: 'visible'
+    }
+  }), [levelColor]);
+
+  // Memoize the backdrop props to prevent object recreation
+  const backdropProps = useMemo(() => ({
+    sx: {
+      backgroundColor: 'rgba(0, 0, 0, 0.8)'
+    }
+  }), []);
+
+  // Memoize button styles to prevent object recreation
+  const buttonStyles = useMemo(() => ({
+    bgcolor: 'rgba(255,255,255,0.2)',
+    color: 'white',
+    px: 4,
+    py: 1.5,
+    borderRadius: 2,
+    backdropFilter: 'blur(10px)',
+    border: '1px solid rgba(255,255,255,0.3)',
+    '&:hover': {
+      bgcolor: 'rgba(255,255,255,0.3)',
+      transform: 'translateY(-2px)',
+      boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
+    },
+    transition: 'all 0.3s ease'
+  }), []);
 
   return (
     <Dialog
@@ -40,21 +117,8 @@ const LevelUpCelebration = ({ open, onClose, newLevel, oldLevel }) => {
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          background: `linear-gradient(135deg, ${getLevelColor(newLevel)} 0%, #764ba2 100%)`,
-          color: 'white',
-          textAlign: 'center',
-          p: 2,
-          overflow: 'visible'
-        }
-      }}
-      BackdropProps={{
-        sx: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)'
-        }
-      }}
+      PaperProps={paperProps}
+      BackdropProps={backdropProps}
     >
       <DialogContent sx={{ py: 4 }}>
         <Fade in={showContent} timeout={800}>
@@ -62,44 +126,12 @@ const LevelUpCelebration = ({ open, onClose, newLevel, oldLevel }) => {
             {/* Celebration Icon */}
             <Zoom in={showContent} timeout={1000}>
               <Box sx={{ mb: 3, position: 'relative' }}>
-                <EmojiEventsIcon 
-                  sx={{ 
-                    fontSize: 100, 
-                    color: '#FFD700',
-                    filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
-                    animation: 'bounce 2s infinite'
-                  }} 
+                <EmojiEventsIcon
+                  sx={iconStyles}
                 />
-                
+
                 {/* Sparkle effects */}
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    '&::before, &::after': {
-                      content: '""',
-                      position: 'absolute',
-                      width: '6px',
-                      height: '6px',
-                      backgroundColor: '#FFD700',
-                      borderRadius: '50%',
-                      animation: 'sparkle 1.5s infinite'
-                    },
-                    '&::before': {
-                      top: '10%',
-                      left: '20%',
-                      animationDelay: '0s'
-                    },
-                    '&::after': {
-                      top: '20%',
-                      right: '15%',
-                      animationDelay: '0.5s'
-                    }
-                  }}
-                />
+                <Box sx={sparkleStyles} />
               </Box>
             </Zoom>
             
@@ -174,21 +206,7 @@ const LevelUpCelebration = ({ open, onClose, newLevel, oldLevel }) => {
           variant="contained"
           onClick={handleClose}
           size="large"
-          sx={{
-            bgcolor: 'rgba(255,255,255,0.2)',
-            color: 'white',
-            px: 4,
-            py: 1.5,
-            borderRadius: 2,
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.3)',
-            '&:hover': { 
-              bgcolor: 'rgba(255,255,255,0.3)',
-              transform: 'translateY(-2px)',
-              boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
-            },
-            transition: 'all 0.3s ease'
-          }}
+          sx={buttonStyles}
         >
           Continue
         </Button>
@@ -221,6 +239,9 @@ const LevelUpCelebration = ({ open, onClose, newLevel, oldLevel }) => {
       `}</style>
     </Dialog>
   );
-};
+});
+
+// Add display name for better debugging
+LevelUpCelebration.displayName = 'LevelUpCelebration';
 
 export default LevelUpCelebration;

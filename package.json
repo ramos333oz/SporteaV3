@@ -39,6 +39,8 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@stagewise-plugins/react": "^0.6.0",
+    "@stagewise/toolbar-react": "^0.6.0",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.21",
     "chalk": "^5.4.1",
