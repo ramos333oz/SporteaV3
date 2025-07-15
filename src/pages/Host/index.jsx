@@ -239,14 +239,30 @@ const Host = () => {
       // 🎯 ACHIEVEMENT TRACKING: Award XP and check for achievements (simplified - no streak handling)
       try {
         console.log('🎯 Triggering achievement check for match hosting...');
-        await awardXP(XP_VALUES.MATCH_HOSTED, 'Hosted a match', {
+        console.log('🔍 [DEBUG] awardXP function available:', typeof awardXP);
+        console.log('🔍 [DEBUG] XP_VALUES.MATCH_HOSTED:', XP_VALUES.MATCH_HOSTED);
+        console.log('🔍 [DEBUG] User ID:', user?.id);
+
+        if (!awardXP) {
+          console.error('❌ awardXP function is undefined!');
+          throw new Error('awardXP function is not available');
+        }
+
+        if (!user?.id) {
+          console.error('❌ User ID is not available!');
+          throw new Error('User ID is required for XP awarding');
+        }
+
+        const result = await awardXP(XP_VALUES.MATCH_HOSTED, 'Hosted a match', {
           actionType: 'MATCH_HOSTED',
           matchId: matchId,
           sport: matchData.sport
         });
-        console.log('✅ Achievement check completed for match hosting');
+
+        console.log('✅ Achievement check completed for match hosting:', result);
       } catch (achievementError) {
         console.error('❌ Error checking achievements after match creation:', achievementError);
+        console.error('❌ Achievement error stack:', achievementError.stack);
         // Don't fail the match creation if achievement tracking fails
       }
 

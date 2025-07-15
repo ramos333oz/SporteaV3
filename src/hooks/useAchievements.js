@@ -43,9 +43,16 @@ export const useAchievements = () => {
 
   // Award XP and check for achievements (simplified - no streak handling)
   const awardXP = useCallback(async (amount, reason, actionData = {}) => {
-    if (!user?.id) return;
+    console.log('🔍 [useAchievements] awardXP called with:', { amount, reason, actionData, userId: user?.id });
+
+    if (!user?.id) {
+      console.error('❌ [useAchievements] No user ID available for XP awarding');
+      return;
+    }
 
     try {
+      console.log('🔍 [useAchievements] Calling achievementService.awardXP...');
+
       // Award XP (simplified - no streak handling)
       const updatedGamification = await achievementService.awardXP(
         user.id,
@@ -53,9 +60,12 @@ export const useAchievements = () => {
         reason,
         true // broadcastUpdate
       );
+
+      console.log('🔍 [useAchievements] XP awarded successfully:', updatedGamification);
       setGamificationData(updatedGamification);
 
       // Check for new achievements
+      console.log('🔍 [useAchievements] Checking for achievements...');
       const unlockedAchievements = await achievementService.checkAchievements(
         user.id,
         actionData.actionType || 'general',
@@ -63,19 +73,32 @@ export const useAchievements = () => {
       );
 
       if (unlockedAchievements.length > 0) {
+        console.log('🎉 [useAchievements] New achievements unlocked:', unlockedAchievements);
         setNewAchievements(prev => [...prev, ...unlockedAchievements]);
         // Reload user achievements to get updated progress
         const updatedUserAchievements = await achievementService.getUserAchievements(user.id);
         setUserAchievements(updatedUserAchievements);
+      } else {
+        console.log('🔍 [useAchievements] No new achievements unlocked');
       }
 
-      return {
+      const result = {
         xpAwarded: amount,
         newLevel: updatedGamification.current_level,
         unlockedAchievements
       };
+
+      console.log('✅ [useAchievements] awardXP completed successfully:', result);
+      return result;
     } catch (error) {
-      console.error('Error awarding XP:', error);
+      console.error('❌ [useAchievements] Error awarding XP:', error);
+      console.error('❌ [useAchievements] Error stack:', error.stack);
+      console.error('❌ [useAchievements] Error details:', {
+        userId: user?.id,
+        amount,
+        reason,
+        actionData
+      });
       return null;
     }
   }, [user?.id]);

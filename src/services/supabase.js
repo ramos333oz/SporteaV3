@@ -879,7 +879,7 @@ export const matchService = {
       .update(updates)
       .eq('id', matchId)
       .select();
-    
+
     if (error) throw error;
     return data;
   },
