@@ -35,17 +35,18 @@ const MatchDetails = ({ matchData, onUpdateMatchData }) => {
   }, [matchData.date, matchData.time, onUpdateMatchData]);
   
   const handleTitleChange = (event) => {
-    // Clean the title to remove any unwanted placeholder text or IDs
+    // Get the raw input value without aggressive cleaning
     let cleanTitle = event.target.value;
 
-    // Remove UUID patterns that might appear in the title
+    // Only remove UUID patterns that might appear in the title (keep this for safety)
     cleanTitle = cleanTitle.replace(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/gi, '');
 
-    // Remove "Court A1" or similar court references if they appear
+    // Remove "Court A1" or similar court references if they appear (keep this for safety)
     cleanTitle = cleanTitle.replace(/\s*\(?\s*Court\s+[A-Z]\d+\s*\)?\s*/gi, '');
 
-    // Clean up excessive spaces (3 or more consecutive spaces) but preserve normal spacing
-    cleanTitle = cleanTitle.replace(/\s{3,}/g, ' ').trim();
+    // Only clean up excessive spaces (4 or more consecutive spaces) to allow normal spacing
+    // Remove the .trim() to allow spaces at the beginning and end during typing
+    cleanTitle = cleanTitle.replace(/\s{4,}/g, ' ');
 
     onUpdateMatchData({ title: cleanTitle });
   };
