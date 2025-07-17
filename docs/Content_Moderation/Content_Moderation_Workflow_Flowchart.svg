@@ -1,0 +1,204 @@
+<svg width="1200" height="1400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Title -->
+  <text x="600" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="black">
+    Multilingual Content Moderation Workflow
+  </text>
+  <text x="600" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="black">
+    SporteaV3 - Mixed English-Malay Content Processing
+  </text>
+
+  <!-- Start Node -->
+  <rect x="525" y="80" width="150" height="60" rx="30" fill="white" stroke="black" stroke-width="2"/>
+  <text x="600" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    User Submits
+  </text>
+  <text x="600" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    Match Content
+  </text>
+
+  <!-- Arrow 1 -->
+  <path d="M 600 140 L 600 180" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Content Analysis Node -->
+  <rect x="475" y="180" width="250" height="80" rx="10" fill="white" stroke="black" stroke-width="2"/>
+  <text x="600" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    Content Analysis Triggered
+  </text>
+  <text x="600" y="225" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    contentModerationService.js
+  </text>
+  <text x="600" y="245" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Edge Function: moderate-match-content
+  </text>
+
+  <!-- Arrow 2 -->
+  <path d="M 600 260 L 600 300" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- ML Processing Node -->
+  <rect x="450" y="300" width="300" height="100" rx="10" fill="white" stroke="black" stroke-width="2"/>
+  <text x="600" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    ML Model Processing
+  </text>
+  <text x="600" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Primary: unitary/toxic-bert
+  </text>
+  <text x="600" y="365" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Fallback: Enhanced Malay Lexicon
+  </text>
+  <text x="600" y="385" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Adaptive Learning: Context-aware thresholds
+  </text>
+
+  <!-- Arrow 3 -->
+  <path d="M 600 400 L 600 440" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Risk Score Calculation -->
+  <rect x="475" y="440" width="250" height="80" rx="10" fill="white" stroke="black" stroke-width="2"/>
+  <text x="600" y="465" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    Risk Score Calculation
+  </text>
+  <text x="600" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Inappropriate Score: 0-100%
+  </text>
+  <text x="600" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Language Detection: English + Malay
+  </text>
+
+  <!-- Arrow 4 -->
+  <path d="M 600 520 L 600 560" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Decision Diamond -->
+  <polygon points="600,560 700,610 600,660 500,610" fill="white" stroke="black" stroke-width="2"/>
+  <text x="600" y="605" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="black">
+    Risk Level
+  </text>
+  <text x="600" y="625" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="black">
+    Classification
+  </text>
+
+  <!-- Low Risk Path (Left) -->
+  <path d="M 500 610 L 300 610" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="400" y="605" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    LOW RISK
+  </text>
+  <text x="400" y="620" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    (0-20%)
+  </text>
+
+  <!-- Medium Risk Path (Down) -->
+  <path d="M 600 660 L 600 720" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="650" y="690" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    MEDIUM RISK
+  </text>
+  <text x="650" y="705" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    (20-80%)
+  </text>
+
+  <!-- High Risk Path (Right) -->
+  <path d="M 700 610 L 900 610" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="800" y="605" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    HIGH RISK
+  </text>
+  <text x="800" y="620" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    (80-100%)
+  </text>
+
+  <!-- Low Risk Action -->
+  <rect x="175" y="580" width="250" height="60" rx="10" fill="#90EE90" stroke="black" stroke-width="2"/>
+  <text x="300" y="605" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    AUTO-APPROVE
+  </text>
+  <text x="300" y="625" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Content Published Immediately
+  </text>
+
+  <!-- Medium Risk Action -->
+  <rect x="475" y="720" width="250" height="80" rx="10" fill="#FFD700" stroke="black" stroke-width="2"/>
+  <text x="600" y="745" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    MANUAL REVIEW
+  </text>
+  <text x="600" y="765" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Added to Admin Queue
+  </text>
+  <text x="600" y="785" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Content Remains Visible
+  </text>
+
+  <!-- High Risk Action -->
+  <rect x="775" y="580" width="250" height="60" rx="10" fill="#FF6B6B" stroke="black" stroke-width="2"/>
+  <text x="900" y="605" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    AUTO-REJECT
+  </text>
+  <text x="900" y="625" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Content Blocked Immediately
+  </text>
+
+  <!-- Database Storage -->
+  <rect x="475" y="860" width="250" height="80" rx="10" fill="white" stroke="black" stroke-width="2"/>
+  <text x="600" y="885" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    Database Storage
+  </text>
+  <text x="600" y="905" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    content_moderation_results
+  </text>
+  <text x="600" y="925" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    admin_review_queue (if needed)
+  </text>
+
+  <!-- Admin Review Process -->
+  <rect x="475" y="980" width="250" height="100" rx="10" fill="white" stroke="black" stroke-width="2"/>
+  <text x="600" y="1005" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    Admin Review Process
+  </text>
+  <text x="600" y="1025" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    • Approve Button
+  </text>
+  <text x="600" y="1045" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    • Reject Button (with notification)
+  </text>
+  <text x="600" y="1065" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    • Review Button (detailed modal)
+  </text>
+
+  <!-- Adaptive Learning Feedback -->
+  <rect x="475" y="1120" width="250" height="80" rx="10" fill="white" stroke="black" stroke-width="2"/>
+  <text x="600" y="1145" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    Adaptive Learning
+  </text>
+  <text x="600" y="1165" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Threshold Adjustment
+  </text>
+  <text x="600" y="1185" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Pattern Recognition Update
+  </text>
+
+  <!-- Arrows for database and admin flow -->
+  <path d="M 600 800 L 600 860" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 600 940 L 600 980" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 600 1080 L 600 1120" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Test Results Box -->
+  <rect x="50" y="1250" width="1100" height="120" rx="10" fill="#F0F8FF" stroke="black" stroke-width="2"/>
+  <text x="600" y="1275" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="black">
+    Test Results: Mixed-Language Explicit Content (July 16, 2025)
+  </text>
+  <text x="150" y="1300" font-family="Arial, sans-serif" font-size="12" fill="black">
+    • Input: "TEST 1 - Bodoh betul puki babi sial" + "This shit is so fucking stupid. Sial punya game, all bodoh players..."
+  </text>
+  <text x="150" y="1320" font-family="Arial, sans-serif" font-size="12" fill="black">
+    • Result: HIGH RISK (98.72%) → AUTO-REJECTED → Added to Admin Queue (Priority: Urgent)
+  </text>
+  <text x="150" y="1340" font-family="Arial, sans-serif" font-size="12" fill="black">
+    • Detection: 6/6 explicit terms detected (100% accuracy) | Processing Time: 13.5 seconds
+  </text>
+  <text x="150" y="1360" font-family="Arial, sans-serif" font-size="12" fill="black">
+    • Languages: English + Malay profanity successfully identified | Match Status: "rejected"
+  </text>
+
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="black"/>
+    </marker>
+  </defs>
+</svg>

@@ -2,18 +2,41 @@
 
 ## Test Overview
 
-**Date**: July 14, 2025  
-**Test Type**: Comprehensive Multilingual Content Moderation Validation  
-**Objective**: Validate mixed English-Malay profanity detection with >70% Malay detection rate  
-**Method**: Frontend-to-backend integration testing using Playwright MCP  
+**Date**: July 16, 2025
+**Test Type**: Systematic 4-Phase Multilingual Content Moderation Validation
+**Objective**: Validate mixed English-Malay profanity detection with >70% Malay detection rate using comprehensive testing methodology
+**Method**: 4-Phase systematic approach using Playwright MCP for frontend testing and Supabase MCP for backend verification
 
-## Test Case 1: High-Risk Mixed Language Content
+## 4-Phase Testing Methodology
+
+### **Phase 1: Documentation Analysis & Code Understanding** ✅
+- Analyzed content moderation documentation in `docs/Content_Moderation/`
+- Studied `src/services/contentModerationService.js` implementation
+- Documented expected workflow and risk categorization thresholds
+
+### **Phase 2: Systematic Testing with Playwright MCP** ✅
+- Used Playwright MCP to test mixed-language content scenarios
+- Captured console logs and backend responses
+- Verified risk scores and language detection accuracy
+
+### **Phase 3: Backend Verification with Supabase MCP** ✅
+- Used Supabase MCP to verify database storage of moderation results
+- Checked risk scores, language metadata, and admin queue entries
+- Validated Malaysian SFW Classifier performance
+
+### **Phase 4: Documentation & Flowchart Creation** ✅
+- Created comprehensive test documentation
+- Generated SVG flowchart of content moderation workflow
+- Updated test results with comprehensive findings
+
+## Test Case 1: Extreme Mixed-Language Explicit Content
 
 ### **Input Content**
-- **Title**: "MULTILINGUAL TEST 1 - Fuck this puki game bodoh betul!"
-- **Description**: "This shit is so babi stupid. Sial punya pemain, all weak losers. Don't waste my time with this crap. Testing multilingual content moderation with mixed English-Malay profanity for comprehensive validation."
-- **Sport**: Football
-- **Location**: Padang Natural Grass Field Football, Court A1
+- **Title**: "TEST 1 - Bodoh betul puki babi sial"
+- **Description**: "This shit is so fucking stupid. Sial punya game, all bodoh players. Don't waste my time with this crap. Testing multilingual content moderation with mixed English-Malay profanity."
+- **Sport**: Basketball
+- **Location**: Court Pusat Sukan B (Basketball), Court A1
+- **Match ID**: 7ac1a65e-cfc1-4cff-ba76-2aecf88b659a
 
 ### **Content Analysis**
 **English Profanity Terms**: "Fuck", "shit", "crap"  

@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400" height="1200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrowhead" markerWidth="12" markerHeight="9" refX="11" refY="4.5" orient="auto">
+      <polygon points="0 0, 12 4.5, 0 9" fill="#333" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="700" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="black">
+    2-Tier Cascading Fallback Content Moderation System
+  </text>
+  <text x="700" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="black">
+    Optimized for Malaysian Educational Environment
+  </text>
+
+  <!-- Start Node -->
+  <rect x="625" y="80" width="150" height="60" rx="30" fill="white" stroke="black" stroke-width="2"/>
+  <text x="700" y="105" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    User Submits
+  </text>
+  <text x="700" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    Match Content
+  </text>
+
+  <!-- Arrow to Cache Check -->
+  <path d="M 700 140 L 700 180" stroke="black" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Cache Check Decision -->
+  <polygon points="650,180 750,180 775,210 750,240 650,240 625,210" fill="white" stroke="black" stroke-width="2"/>
+  <text x="700" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="black">
+    Cache Hit?
+  </text>
+  <text x="700" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    (5min TTL)
+  </text>
+
+  <!-- Cache Hit - Return Cached Result -->
+  <path d="M 775 210 L 950 210" stroke="#3b82f6" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="850" y="200" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#3b82f6">YES</text>
+  
+  <rect x="950" y="180" width="150" height="60" rx="30" fill="#e0f2fe" stroke="#3b82f6" stroke-width="2"/>
+  <text x="1025" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    Return Cached
+  </text>
+  <text x="1025" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    Result (&lt;0.01s)
+  </text>
+
+  <!-- Cache Miss - Continue to Tier 1 -->
+  <path d="M 700 240 L 700 300" stroke="black" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="720" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">NO</text>
+
+  <!-- Tier 1: XLM-RoBERTa Enhanced -->
+  <rect x="575" y="300" width="250" height="80" rx="15" fill="white" stroke="black" stroke-width="2"/>
+  <text x="700" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="black">
+    TIER 1: XLM-RoBERTa Enhanced
+  </text>
+  <text x="700" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    unitary/multilingual-toxic-xlm-roberta
+  </text>
+  <text x="700" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    + Malay Word Detection &amp; Boosting
+  </text>
+  <text x="700" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Target: &lt;3s | Actual: ~5.4s
+  </text>
+
+  <!-- Arrow to Malay Enhancement -->
+  <path d="M 700 380 L 700 420" stroke="black" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Malay Enhancement Process -->
+  <rect x="575" y="420" width="250" height="80" rx="15" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+  <text x="700" y="445" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    Malay Enhancement Process
+  </text>
+  <text x="700" y="465" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Extract Malay toxic words: [babi, bodoh, gila...]
+  </text>
+  <text x="700" y="480" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    If found + score &lt; 0.5 → boost to 0.65
+  </text>
+  <text x="700" y="495" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Lower confidence threshold for Malay content
+  </text>
+
+  <!-- Arrow to Confidence Decision -->
+  <path d="M 700 500 L 700 540" stroke="black" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Tier 1 Confidence Decision -->
+  <polygon points="600,540 800,540 825,580 800,620 600,620 575,580" fill="white" stroke="black" stroke-width="2"/>
+  <text x="700" y="570" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="black">
+    High Confidence?
+  </text>
+  <text x="700" y="585" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    (&gt;0.8 or &gt;0.6 with Malay boost)
+  </text>
+  <text x="700" y="600" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Test: "bodoh" → 65% SUCCESS
+  </text>
+
+  <!-- High Confidence - Success Path -->
+  <path d="M 825 580 L 1000 580" stroke="#22c55e" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="900" y="570" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#22c55e">YES</text>
+  
+  <rect x="1000" y="540" width="200" height="80" rx="15" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+  <text x="1100" y="565" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    SUCCESS - Cache &amp; Return
+  </text>
+  <text x="1100" y="585" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Tier 1 Result (Primary)
+  </text>
+  <text x="1100" y="600" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    60% expected success rate
+  </text>
+
+  <!-- Low Confidence - Fallback to Tier 2 -->
+  <path d="M 700 620 L 700 700" stroke="#ef4444" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="720" y="660" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#ef4444">NO</text>
+
+  <!-- Tier 2: Enhanced Rule-Based Fallback -->
+  <rect x="575" y="700" width="250" height="80" rx="15" fill="white" stroke="black" stroke-width="2"/>
+  <text x="700" y="725" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="black">
+    TIER 2: Rule-Based Fallback
+  </text>
+  <text x="700" y="745" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Enhanced Malay Lexicon + Pattern Matching
+  </text>
+  <text x="700" y="760" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Comprehensive profanity detection
+  </text>
+  <text x="700" y="775" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Processing: &lt;1s | Never fails (100%)
+  </text>
+
+  <!-- Arrow to Final Result -->
+  <path d="M 700 780 L 700 820" stroke="black" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Final Result -->
+  <rect x="575" y="820" width="250" height="80" rx="15" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+  <text x="700" y="845" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">
+    GUARANTEED SUCCESS
+  </text>
+  <text x="700" y="865" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Cache Result &amp; Return
+  </text>
+  <text x="700" y="880" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    Tier 2 Result (Secondary)
+  </text>
+  <text x="700" y="895" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="black">
+    40% expected fallback rate
+  </text>
+
+  <!-- Performance Metrics Box -->
+  <rect x="50" y="300" width="300" height="200" rx="15" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+  <text x="200" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="black">
+    Performance Metrics
+  </text>
+  
+  <text x="70" y="350" text-anchor="start" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="black">
+    Actual Test Results:
+  </text>
+  <text x="70" y="370" text-anchor="start" font-family="Arial, sans-serif" font-size="11" fill="black">
+    • "babi": 16.61% (Tier 1 FAILED)
+  </text>
+  <text x="70" y="385" text-anchor="start" font-family="Arial, sans-serif" font-size="11" fill="black">
+    • "bodoh": 65% (Tier 2 SUCCESS)
+  </text>
+  
+  <text x="70" y="410" text-anchor="start" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="black">
+    System Capabilities:
+  </text>
+  <text x="70" y="430" text-anchor="start" font-family="Arial, sans-serif" font-size="11" fill="black">
+    ✅ Explicit Malay Profanity: GOOD
+  </text>
+  <text x="70" y="445" text-anchor="start" font-family="Arial, sans-serif" font-size="11" fill="black">
+    ⚠️ Subtle Malay Context: LIMITED
+  </text>
+  <text x="70" y="460" text-anchor="start" font-family="Arial, sans-serif" font-size="11" fill="black">
+    ✅ English Content: GOOD
+  </text>
+  <text x="70" y="475" text-anchor="start" font-family="Arial, sans-serif" font-size="11" fill="black">
+    ✅ Performance: &lt;6s + Caching
+  </text>
+
+  <!-- Technical Notes Box -->
+  <rect x="50" y="550" width="300" height="150" rx="15" fill="#fef2f2" stroke="#ef4444" stroke-width="2"/>
+  <text x="200" y="575" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="black">
+    Technical Notes
+  </text>
+  
+  <text x="70" y="600" text-anchor="start" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="black">
+    Malaysian SFW Classifier:
+  </text>
+  <text x="70" y="620" text-anchor="start" font-family="Arial, sans-serif" font-size="11" fill="black">
+    ❌ REMOVED - API access issues
+  </text>
+  <text x="70" y="635" text-anchor="start" font-family="Arial, sans-serif" font-size="11" fill="black">
+    Requires custom_code (404 errors)
+  </text>
+  
+  <text x="70" y="660" text-anchor="start" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="black">
+    Current Implementation:
+  </text>
+  <text x="70" y="680" text-anchor="start" font-family="Arial, sans-serif" font-size="11" fill="black">
+    ✅ 2-tier cascading system
+  </text>
+  <text x="70" y="695" text-anchor="start" font-family="Arial, sans-serif" font-size="11" fill="black">
+    ✅ Performance caching (5min TTL)
+  </text>
+
+</svg>

@@ -1,0 +1,56 @@
+{
+  "mcpServers": {
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": []
+    }
+  },
+  "Playwright": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "@playwright/mcp@latest"
+    ]
+  },
+  "supabase": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@supabase/mcp-server-supabase@latest",
+          "--access-token",
+          "sbp_3dcf4162ab78c38d655a2e832ea72a4f7919690b"
+        ]
+      },
+      "Sequential thinking": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-sequential-thinking"
+        ]
+      },
+      "exa": {
+            "command": "cmd",
+            "args": [
+              "/c",
+              "npx",
+              "-y",
+              "@smithery/cli@latest",
+              "run",
+              "exa",
+              "--profile",
+              "ok-spider-OZ4efQ",
+              "--key",
+              "e1fe3fce-a1bb-4049-9562-92a0e47f6596"
+            ]
+          },
+          "Context 7": {
+                "command": "npx",
+                "args": [
+                  "-y",
+                  "@upstash/context7-mcp@latest"
+                ]
+              }
+}
