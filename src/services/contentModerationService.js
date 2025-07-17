@@ -602,50 +602,117 @@ async function processAdminDecision(reviewId, decision, adminId, notes = '') {
 
 /**
  * Get moderation queue with filters for admin dashboard
+ * Enhanced to show all matches for comprehensive oversight
  */
 async function getModerationQueue(filters = {}) {
   try {
     log(`=== FETCHING MODERATION QUEUE ===`);
     log(`Filters:`, JSON.stringify(filters, null, 2));
 
+    // Enhanced query to show ALL matches with moderation results, not just those in admin queue
     let query = supabase
-      .from('admin_moderation_dashboard')
-      .select('*')
-      .order('queued_at', { ascending: false });
+      .from('matches')
+      .select(`
+        id,
+        title,
+        description,
+        status,
+        moderation_status,
+        host_id,
+        created_at,
+        users!matches_host_id_fkey(username, full_name),
+        content_moderation_results(
+          id,
+          overall_risk_level,
+          inappropriate_score,
+          consistency_score,
+          sports_validation_score,
+          auto_approved,
+          requires_review,
+          flagged_content,
+          created_at
+        ),
+        admin_review_queue(
+          id,
+          priority,
+          status,
+          assigned_admin_id,
+          created_at,
+          admin_notes
+        )
+      `)
+      .not('content_moderation_results', 'is', null) // Only matches that have been moderated
+      .order('created_at', { ascending: false });
 
     // Apply filters
     if (filters.status && filters.status !== 'all') {
-      query = query.eq('status', filters.status);
-    } else {
-      // By default, exclude completed items (approved/rejected) unless specifically requested
-      if (!filters.includeCompleted) {
-        query = query.not('status', 'in', '(approved,rejected)');
-        log('Filtering out completed items (approved/rejected)');
-      }
+      // Filter by admin queue status if specified
+      query = query.eq('admin_review_queue.status', filters.status);
     }
 
     if (filters.priority && filters.priority !== 'all') {
-      query = query.eq('priority', filters.priority);
+      query = query.eq('admin_review_queue.priority', filters.priority);
     }
     if (filters.risk_level && filters.risk_level !== 'all') {
-      query = query.eq('overall_risk_level', filters.risk_level);
+      query = query.eq('content_moderation_results.overall_risk_level', filters.risk_level);
     }
     if (filters.assigned_admin) {
-      query = query.eq('assigned_admin_id', filters.assigned_admin);
-    }
-    if (filters.limit) {
-      query = query.limit(filters.limit);
+      query = query.eq('admin_review_queue.assigned_admin_id', filters.assigned_admin);
     }
 
-    const { data, error } = await query;
+    const { data, error } = await query.limit(50);
 
     if (error) {
       logError('Error fetching moderation queue:', error);
       return { success: false, error: error.message };
     }
 
-    log(`Fetched ${data?.length || 0} items from moderation queue`);
-    return { success: true, data: data || [] };
+    // Transform data to match expected format for admin dashboard
+    const transformedData = data?.map(match => {
+      const moderationResult = match.content_moderation_results?.[0];
+      const queueItem = match.admin_review_queue?.[0];
+
+      return {
+        // Queue information (may be null for matches not in queue)
+        queue_id: queueItem?.id || null,
+        priority: queueItem?.priority || (moderationResult?.overall_risk_level === 'high' ? 'urgent' :
+                 moderationResult?.overall_risk_level === 'medium' ? 'high' : 'low'),
+        status: queueItem?.status || (moderationResult?.requires_review ? 'pending' : 'auto_approved'),
+        assigned_admin_id: queueItem?.assigned_admin_id || null,
+        queued_at: queueItem?.created_at || match.created_at,
+        admin_notes: queueItem?.admin_notes || null,
+
+        // Match information
+        match_id: match.id,
+        match_title: match.title,
+        match_description: match.description,
+        host_id: match.host_id,
+        match_moderation_status: match.moderation_status,
+        host_username: match.users?.username,
+        host_full_name: match.users?.full_name,
+
+        // Moderation information
+        overall_risk_level: moderationResult?.overall_risk_level,
+        inappropriate_score: moderationResult?.inappropriate_score,
+        consistency_score: moderationResult?.consistency_score,
+        sports_validation_score: moderationResult?.sports_validation_score,
+        flagged_content: moderationResult?.flagged_content,
+        auto_approved: moderationResult?.auto_approved,
+        requires_review: moderationResult?.requires_review,
+        moderation_analyzed_at: moderationResult?.created_at
+      };
+    }) || [];
+
+    log(`Fetched ${transformedData.length} items from enhanced moderation queue`);
+    log(`Items by risk level:`, transformedData.reduce((acc, item) => {
+      acc[item.overall_risk_level] = (acc[item.overall_risk_level] || 0) + 1;
+      return acc;
+    }, {}));
+
+    return {
+      success: true,
+      data: transformedData
+    };
   } catch (error) {
     logError('Error in getModerationQueue:', error);
     return { success: false, error: error.message };

@@ -149,7 +149,7 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
     try {
       // Fetch all users except current user
       const { data, error } = await supabase
-        .from('profiles')  // Using the correct table name 'profiles'
+        .from('users')  // Using the correct table name 'users'
         .select(`
           id,
           username,
@@ -194,17 +194,17 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
   const handleSendFriendRequest = async (userId) => {
     setActionInProgress(userId);
     try {
-      const { success, message, error } = await friendshipService.sendFriendRequest(userId);
-      
+      const { success, message, data, error } = await friendshipService.sendFriendRequest(userId);
+
       if (success) {
         showSuccessToast('Friend request sent');
-        
-        // Update local friendship status
+
+        // Update local friendship status with the actual data returned from the service
         setFriendships(prev => ({
           ...prev,
-          [userId]: { 
+          [userId]: {
             status: 'request-sent',
-            data: { requester_id: user.id, addressee_id: userId, status: 'pending' }
+            data: data // Use the actual friendship data which includes the ID
           }
         }));
       } else {

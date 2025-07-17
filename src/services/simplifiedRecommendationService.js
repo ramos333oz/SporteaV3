@@ -462,6 +462,8 @@ async function getAvailableMatches(userId) {
       .neq('host_id', userId) // Exclude user's own matches
       .gte('start_time', nowString) // Only future matches (with 5-minute buffer)
       .eq('status', 'upcoming') // Changed from 'active' to 'upcoming'
+      // CRITICAL SECURITY FIX: Exclude flagged, rejected, and pending review matches
+      .not('moderation_status', 'in', '(flagged,rejected,pending_review)')
       .order('start_time', { ascending: true });
 
     if (error) throw error;

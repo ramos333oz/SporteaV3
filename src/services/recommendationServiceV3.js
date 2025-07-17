@@ -103,6 +103,8 @@ async function getRecommendations(userId, options = {}) {
       .eq('status', 'upcoming')
       .not('host_id', 'eq', userId)
       .gte('start_time', new Date().toISOString())
+      // CRITICAL SECURITY FIX: Exclude flagged, rejected, and pending review matches
+      .not('moderation_status', 'in', '(flagged,rejected,pending_review)')
       .in('sport_id', userSportIds.length > 0 ? userSportIds : [])
       .limit(50);
 

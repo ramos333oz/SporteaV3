@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { notificationService } from './notifications';
 
 /**
  * Report Service
@@ -150,6 +151,15 @@ class ReportService {
   // Update report status (admin only)
   async updateReportStatus(reportId, status, adminNotes = '', resolvedBy = null) {
     try {
+      // First, get the current report data to access user_id and title
+      const { data: currentReport, error: fetchError } = await supabase
+        .from('user_reports')
+        .select('user_id, title, status')
+        .eq('id', reportId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
       const updateData = {
         status,
         admin_notes: adminNotes,
@@ -170,11 +180,56 @@ class ReportService {
 
       if (error) throw error;
 
+      // Send notification to user when status changes
+      await this.sendStatusUpdateNotification(currentReport, status, adminNotes);
+
       console.log(`Report ${reportId} status updated to ${status} by ${resolvedBy}`);
       return { success: true, data };
     } catch (error) {
       console.error('Error updating report status:', error);
       return { success: false, error: error.message };
+    }
+  }
+
+  // Send notification to user when inquiry status changes
+  async sendStatusUpdateNotification(report, newStatus, adminNotes = '') {
+    try {
+      let notificationData = null;
+
+      // Send notification for specific status transitions
+      if (newStatus === 'in_progress') {
+        notificationData = {
+          user_id: report.user_id,
+          type: 'inquiry_processing',
+          title: 'Inquiry Being Processed',
+          content: `Your inquiry "${report.title}" is now being reviewed by our admin team. We'll update you once it's resolved.`
+        };
+      } else if (newStatus === 'resolved') {
+        let content = `Your inquiry "${report.title}" has been resolved.`;
+        if (adminNotes && adminNotes.trim()) {
+          content += ` Admin note: ${adminNotes.trim()}`;
+        }
+
+        notificationData = {
+          user_id: report.user_id,
+          type: 'inquiry_resolved',
+          title: 'Inquiry Resolved',
+          content: content
+        };
+      }
+
+      // Send the notification if we have data
+      if (notificationData) {
+        const result = await notificationService.createNotification(notificationData);
+        if (result.success) {
+          console.log(`Notification sent to user ${report.user_id} for status change to ${newStatus}`);
+        } else {
+          console.error('Failed to send notification:', result.error);
+        }
+      }
+    } catch (error) {
+      console.error('Error sending status update notification:', error);
+      // Don't throw here - notification failure shouldn't prevent status update
     }
   }
 

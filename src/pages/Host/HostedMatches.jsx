@@ -464,16 +464,7 @@ const HostedMatches = () => {
               Match Summary
             </Button>
           )}
-          {match.status === 'cancelled' && (
-            <Button 
-              size="small" 
-              variant="outlined"
-              color="primary"
-              onClick={() => handleRestoreMatch(match)}
-            >
-              Restore Match
-            </Button>
-          )}
+          {/* Removed Restore Match button for cancelled matches */}
         </CardActions>
       </Card>
     );
@@ -551,15 +542,16 @@ const HostedMatches = () => {
         {selectedMatch?.status === 'upcoming' && (
           <MenuItem onClick={() => handleCancelMatch(selectedMatch)}>Cancel Match</MenuItem>
         )}
-        {selectedMatch?.status === 'cancelled' && (
-          <MenuItem onClick={() => handleRestoreMatch(selectedMatch)}>Restore Match</MenuItem>
-        )}
+        {/* Removed Restore Match option from dropdown menu for cancelled matches */}
         {(selectedMatch?.status === 'cancelled' || selectedMatch?.status === 'completed') && (
           <MenuItem onClick={() => handleDeleteMatch(selectedMatch)}>Delete Match</MenuItem>
         )}
-        <MenuItem onClick={() => handleViewParticipants(selectedMatch)}>
-          {selectedMatch?.status === 'completed' ? 'View Summary' : 'View Participants'}
-        </MenuItem>
+        {/* Only show View Participants/Summary for upcoming and completed matches, not cancelled */}
+        {selectedMatch?.status !== 'cancelled' && (
+          <MenuItem onClick={() => handleViewParticipants(selectedMatch)}>
+            {selectedMatch?.status === 'completed' ? 'View Summary' : 'View Participants'}
+          </MenuItem>
+        )}
       </Menu>
     </Box>
   );

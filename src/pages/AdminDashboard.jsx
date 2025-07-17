@@ -779,6 +779,20 @@ const MatchesTab = ({ data }) => {
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
+    // Filter sports to only show available sports from SportSelection.jsx
+    const allowedSportIds = [
+      '4746e9c1-f772-4515-8d08-6c28563fbfc9', // Football
+      'd662bc78-9e50-4785-ac71-d1e591e4a9ce', // Futsal
+      'dd400853-7ce6-47bc-aee6-2ee241530f79', // Basketball
+      'fb575fc1-2eac-4142-898a-2f7dae107844', // Badminton
+      '66e9893a-2be7-47f0-b7d3-d7191901dd77', // Volleyball
+      '9a304214-6c57-4c33-8c5f-3f1955b63caf', // Tennis
+      'dcedf87a-13aa-4c2f-979f-6b71d457f531', // Frisbee
+      '3aba0f36-38bf-4ca2-b713-3dabd9f993f1', // Hockey
+      '13e32815-8a3b-48f7-8cc9-5fdad873b851'  // Rugby
+    ];
+    const filteredSports = sports.filter(sport => allowedSportIds.includes(sport.id));
+
     // Overall statistics
     const totalMatches = matches.length;
     const activeMatches = matches.filter(m => m.status === 'active' || m.status === 'upcoming' || m.status === 'scheduled').length;
@@ -787,7 +801,7 @@ const MatchesTab = ({ data }) => {
     const recentMatches = matches.filter(m => new Date(m.created_at) > thirtyDaysAgo).length;
 
     // Sport-wise breakdown
-    const sportStats = sports.map(sport => {
+    const sportStats = filteredSports.map(sport => {
       const sportMatches = matches.filter(m => m.sport_id === sport.id);
       const activeCount = sportMatches.filter(m => m.status === 'active' || m.status === 'upcoming' || m.status === 'scheduled').length;
       const totalCount = sportMatches.filter(m => m.status !== 'cancelled').length;
@@ -1159,36 +1173,7 @@ const FeedbackTab = ({ data }) => {
             </Card>
           </Grid>
 
-          {/* Algorithm Performance */}
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Algorithm Performance
-                </Typography>
-                {Object.entries(feedback.algorithmStats || {}).map(([algorithm, stats]) => (
-                  <Box key={algorithm} sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="subtitle2" sx={{ textTransform: 'capitalize' }}>
-                        {algorithm.replace('_', ' ')}
-                      </Typography>
-                      <Typography variant="body2">
-                        {Math.round((stats.satisfactionRate || 0) * 100)}%
-                      </Typography>
-                    </Box>
-                    <LinearProgress
-                      variant="determinate"
-                      value={(stats.satisfactionRate || 0) * 100}
-                      sx={{ mb: 1 }}
-                    />
-                    <Typography variant="caption" color="textSecondary">
-                      {stats.positive}/{stats.total} positive • Avg Score: {(stats.avgScore || 0).toFixed(2)}
-                    </Typography>
-                  </Box>
-                ))}
-              </CardContent>
-            </Card>
-          </Grid>
+
 
           {/* Feedback Trend */}
           <Grid item xs={12} md={6}>
@@ -1707,7 +1692,6 @@ const ContentModerationTab = ({ adminUser }) => {
   const [adaptiveLearningMetrics, setAdaptiveLearningMetrics] = useState(null);
   const [filters, setFilters] = useState({
     status: 'all',
-    priority: 'all',
     risk_level: 'all'
   });
 
@@ -2010,7 +1994,7 @@ const ContentModerationTab = ({ adminUser }) => {
             Filter Moderation Queue
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
                 <InputLabel>Status</InputLabel>
                 <Select
@@ -2019,29 +2003,12 @@ const ContentModerationTab = ({ adminUser }) => {
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                 >
                   <MenuItem value="all">All Status</MenuItem>
-                  <MenuItem value="pending">Pending</MenuItem>
                   <MenuItem value="in_review">In Review</MenuItem>
                   <MenuItem value="completed">Completed</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth>
-                <InputLabel>Priority</InputLabel>
-                <Select
-                  value={filters.priority}
-                  label="Priority"
-                  onChange={(e) => handleFilterChange('priority', e.target.value)}
-                >
-                  <MenuItem value="all">All Priorities</MenuItem>
-                  <MenuItem value="urgent">Urgent</MenuItem>
-                  <MenuItem value="high">High</MenuItem>
-                  <MenuItem value="medium">Medium</MenuItem>
-                  <MenuItem value="low">Low</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
                 <InputLabel>Risk Level</InputLabel>
                 <Select

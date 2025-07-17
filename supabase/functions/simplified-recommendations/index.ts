@@ -306,7 +306,7 @@ async function getUserProfile(userId: string) {
 }
 
 /**
- * Get available matches (excluding user's own matches and past matches)
+ * Get available matches (excluding user's own matches, past matches, and flagged content)
  */
 async function getAvailableMatches(userId: string) {
   try {
@@ -323,6 +323,8 @@ async function getAvailableMatches(userId: string) {
       .neq('host_id', userId) // Exclude user's own matches
       .gte('start_time', now) // Only future matches
       .eq('status', 'active')
+      // CRITICAL SECURITY FIX: Exclude flagged, rejected, and pending review matches
+      .not('moderation_status', 'in', '(flagged,rejected,pending_review)')
       .order('start_time', { ascending: true })
 
     if (error) throw error

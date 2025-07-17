@@ -209,14 +209,27 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [selectedMatchToJoin, setSelectedMatchToJoin] = useState(null);
 
-  // Generate sport filters from real data
+  // List of supported sports that align with SportSelection.jsx
+  const supportedSports = [
+    'Football',
+    'Futsal',
+    'Basketball',
+    'Badminton',
+    'Volleyball',
+    'Tennis',
+    'Squash'
+  ];
+
+  // Generate sport filters from real data, filtered to only supported sports
   const sportFilters = [
     { id: "all", name: "All Sports", icon: <SportsIcon /> },
     ...(propSports || [])
       .filter(sport => {
-        // Filter out table tennis since it's not available yet
         const sportName = (sport.name || "").toLowerCase();
-        return !sportName.includes("table tennis") && !sportName.includes("ping pong");
+        // Only include sports that are in our supported list
+        return supportedSports.some(supportedSport =>
+          supportedSport.toLowerCase() === sportName
+        );
       })
       .map((sport) => {
         // Map sport names to appropriate icons using the SportIcon component

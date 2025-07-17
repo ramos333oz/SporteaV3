@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Input Reset Test</title>
+</head>
+<body>
+    <h1>File Input Reset Test</h1>
+    
+    <input type="file" id="fileInput" accept="image/*" />
+    <button onclick="resetFileInput()">Reset File Input</button>
+    <button onclick="triggerFileInput()">Trigger File Input</button>
+    
+    <div id="status"></div>
+    
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const status = document.getElementById('status');
+        
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                status.innerHTML = `File selected: ${file.name}`;
+            } else {
+                status.innerHTML = 'No file selected';
+            }
+        });
+        
+        function resetFileInput() {
+            fileInput.value = '';
+            status.innerHTML = 'File input reset';
+        }
+        
+        function triggerFileInput() {
+            fileInput.click();
+        }
+    </script>
+</body>
+</html>

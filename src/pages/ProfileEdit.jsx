@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -30,6 +30,7 @@ import recommendationServiceV3 from '../services/recommendationServiceV3';
 import { useToast } from '../contexts/ToastContext';
 import PhotoCamera from '@mui/icons-material/PhotoCamera';
 import DeleteIcon from '@mui/icons-material/Delete';
+import RestoreIcon from '@mui/icons-material/Restore';
 import AddIcon from '@mui/icons-material/Add';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import SportsBasketballIcon from '@mui/icons-material/SportsBasketball';
@@ -128,7 +129,10 @@ const ProfileEdit = () => {
   // File upload state
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [originalAvatarUrl, setOriginalAvatarUrl] = useState(null); // Store original avatar URL
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef(null); // Ref for file input
   
   // Faculty options
   const facultyOptions = [
@@ -275,6 +279,7 @@ const ProfileEdit = () => {
         
         if (profileData.avatar_url) {
           setAvatarPreview(profileData.avatar_url);
+          setOriginalAvatarUrl(profileData.avatar_url); // Store original for restore functionality
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -307,25 +312,30 @@ const ProfileEdit = () => {
   };
   
   // Handle avatar file selection
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
+  // Validate image file
+  const validateImageFile = (file) => {
     // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-      showErrorToast('Invalid file type', 'Please upload a JPEG, PNG, or GIF image.');
-      return;
+      showErrorToast('Invalid file type', 'Please upload a JPEG, PNG, GIF, or WebP image.');
+      return false;
     }
-    
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      showErrorToast('File too large', 'Please upload an image smaller than 2MB.');
-      return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showErrorToast('File too large', 'Please upload an image smaller than 5MB.');
+      return false;
     }
-    
+
+    return true;
+  };
+
+  // Process selected file
+  const processSelectedFile = (file) => {
+    if (!validateImageFile(file)) return;
+
     setAvatarFile(file);
-    
+
     // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -333,17 +343,71 @@ const ProfileEdit = () => {
     };
     reader.readAsDataURL(file);
   };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    processSelectedFile(file);
+  };
+
+  // Handle drag and drop
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      processSelectedFile(files[0]);
+    }
+  };
   
   // Remove avatar
   const handleRemoveAvatar = () => {
     setAvatarFile(null);
     setAvatarPreview(null);
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
+    // Mark avatar for deletion by setting a flag
     setFormData(prev => ({
       ...prev,
-      avatarUrl: null
+      avatarUrl: null,
+      removeAvatar: true // Flag to indicate avatar should be removed
     }));
   };
-  
+
+  // Restore avatar (undo removal)
+  const handleRestoreAvatar = () => {
+    // Reset file input and avatar file state
+    setAvatarFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      removeAvatar: false
+    }));
+
+    // If there was an original avatar, restore the preview
+    if (formData.avatarUrl) {
+      setAvatarPreview(formData.avatarUrl);
+    }
+  };
+
   // Upload avatar to storage
   const uploadAvatar = async () => {
     if (!avatarFile) return null;
@@ -574,9 +638,17 @@ const ProfileEdit = () => {
             .from('users')
             .update({ avatar_url: avatarUrl })
             .eq('id', user.id);
-            
+
           if (avatarUpdateError) throw new Error(avatarUpdateError.message);
         }
+      } else if (formData.removeAvatar) {
+        // Remove avatar from database if user requested removal
+        const { error: avatarRemoveError } = await supabase
+          .from('users')
+          .update({ avatar_url: null })
+          .eq('id', user.id);
+
+        if (avatarRemoveError) throw new Error(avatarRemoveError.message);
       }
       
       // Invalidate recommendation cache since user preferences changed
@@ -631,56 +703,106 @@ const ProfileEdit = () => {
           <Grid container spacing={3}>
             {/* Avatar Upload */}
             <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-              <Box sx={{ position: 'relative' }}>
-                <Avatar 
-                  src={avatarPreview} 
-                  sx={{ 
-                    width: 100, 
+              <Box
+                sx={{
+                  position: 'relative',
+                  p: 2,
+                  border: isDragOver ? '2px dashed #1976d2' : '2px dashed transparent',
+                  borderRadius: 2,
+                  transition: 'border-color 0.2s',
+                  bgcolor: isDragOver ? 'action.hover' : 'transparent'
+                }}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <Avatar
+                  src={avatarPreview}
+                  sx={{
+                    width: 100,
                     height: 100,
-                    fontSize: '2.5rem'
+                    fontSize: '2.5rem',
+                    opacity: formData.removeAvatar ? 0.5 : 1,
+                    filter: formData.removeAvatar ? 'grayscale(100%)' : 'none',
+                    transition: 'opacity 0.3s, filter 0.3s'
                   }}
                 >
                   {formData.fullName?.charAt(0) || formData.username?.charAt(0) || 'U'}
                 </Avatar>
-                <Box sx={{ 
-                  position: 'absolute', 
-                  bottom: -10, 
-                  right: -10, 
-                  display: 'flex', 
-                  gap: 1 
+                {formData.removeAvatar && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      bgcolor: 'error.main',
+                      color: 'white',
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Will be removed
+                  </Box>
+                )}
+                <Box sx={{
+                  position: 'absolute',
+                  bottom: -10,
+                  right: -10,
+                  display: 'flex',
+                  gap: 1
                 }}>
                   <input
                     accept="image/*"
                     style={{ display: 'none' }}
                     id="avatar-upload"
                     type="file"
+                    ref={fileInputRef}
                     onChange={handleAvatarChange}
                   />
-                  <label htmlFor="avatar-upload">
-                    <IconButton 
-                      color="primary" 
-                      component="span" 
-                      sx={{ 
+                  <IconButton
+                    color="primary"
+                    onClick={() => fileInputRef.current?.click()}
+                    sx={{
+                      bgcolor: 'background.paper',
+                      boxShadow: 1
+                    }}
+                    title="Upload profile picture"
+                  >
+                    <PhotoCamera />
+                  </IconButton>
+                  {(avatarPreview || formData.removeAvatar) && (
+                    <IconButton
+                      color={formData.removeAvatar ? "primary" : "error"}
+                      onClick={formData.removeAvatar ? handleRestoreAvatar : handleRemoveAvatar}
+                      sx={{
                         bgcolor: 'background.paper',
                         boxShadow: 1
                       }}
+                      title={formData.removeAvatar ? "Restore avatar" : "Remove avatar"}
                     >
-                      <PhotoCamera />
-                    </IconButton>
-                  </label>
-                  {avatarPreview && (
-                    <IconButton 
-                      color="error" 
-                      onClick={handleRemoveAvatar}
-                      sx={{ 
-                        bgcolor: 'background.paper',
-                        boxShadow: 1
-                      }}
-                    >
-                      <DeleteIcon />
+                      {formData.removeAvatar ? <RestoreIcon /> : <DeleteIcon />}
                     </IconButton>
                   )}
                 </Box>
+                {isDragOver && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      position: 'absolute',
+                      bottom: -30,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      color: 'primary.main',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Drop image here
+                  </Typography>
+                )}
               </Box>
             </Grid>
             

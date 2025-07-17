@@ -1,15 +1,13 @@
 import React from 'react';
-import { 
-  Box, 
-  Typography, 
-  TextField, 
+import {
+  Box,
+  Typography,
+  TextField,
   Grid,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  FormControlLabel,
-  Switch,
   Slider,
   InputAdornment
 } from '@mui/material';
@@ -46,8 +44,8 @@ const MatchDetails = ({ matchData, onUpdateMatchData }) => {
     // Remove "Court A1" or similar court references if they appear
     cleanTitle = cleanTitle.replace(/\s*\(?\s*Court\s+[A-Z]\d+\s*\)?\s*/gi, '');
 
-    // Clean up extra spaces
-    cleanTitle = cleanTitle.replace(/\s+/g, ' ').trim();
+    // Clean up excessive spaces (3 or more consecutive spaces) but preserve normal spacing
+    cleanTitle = cleanTitle.replace(/\s{3,}/g, ' ').trim();
 
     onUpdateMatchData({ title: cleanTitle });
   };
@@ -59,8 +57,8 @@ const MatchDetails = ({ matchData, onUpdateMatchData }) => {
     // Remove "Court A1" or similar court references if they appear
     cleanDescription = cleanDescription.replace(/\s*\(?\s*Court\s+[A-Z]\d+\s*\)?\s*/gi, '');
 
-    // Clean up extra spaces but preserve line breaks
-    cleanDescription = cleanDescription.replace(/[ \t]+/g, ' ').replace(/^\s+|\s+$/gm, '');
+    // Clean up excessive spaces (3 or more consecutive spaces) but preserve normal spacing and line breaks
+    cleanDescription = cleanDescription.replace(/[ \t]{3,}/g, ' ').replace(/^\s{3,}|\s{3,}$/gm, '');
 
     onUpdateMatchData({ description: cleanDescription });
   };
@@ -88,9 +86,7 @@ const MatchDetails = ({ matchData, onUpdateMatchData }) => {
     }
   };
   
-  const handlePrivateChange = (event) => {
-    onUpdateMatchData({ isPrivate: event.target.checked });
-  };
+
   
   // Format the value for the duration slider
   const valueLabelFormat = (value) => {
@@ -320,24 +316,7 @@ const MatchDetails = ({ matchData, onUpdateMatchData }) => {
             />
           </Grid>
           
-          {/* Private Match Switch */}
-          <Grid item xs={12}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={matchData.isPrivate}
-                  onChange={handlePrivateChange}
-                  color="primary"
-                />
-              }
-              label="Private Match (invitation only)"
-            />
-            {matchData.isPrivate && (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Private matches will not appear in search results. You'll need to invite participants directly.
-              </Typography>
-            )}
-          </Grid>
+
         </Grid>
       </Box>
     </LocalizationProvider>

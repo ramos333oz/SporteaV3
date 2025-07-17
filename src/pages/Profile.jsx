@@ -303,6 +303,58 @@ const Profile = () => {
     }
   }, [profileId, user, supabase]);
 
+  // Set up real-time subscriptions for activity updates
+  useEffect(() => {
+    if (!profileId) return;
+
+    // Handle match updates (status changes, cancellations, etc.)
+    const handleMatchUpdate = (event) => {
+      const { matchId, status, data } = event.detail;
+      console.log('[Profile] Match update received:', { matchId, status, data });
+
+      // Update hosted matches
+      setHostedMatches(prev => prev.map(match =>
+        match.id === matchId ? { ...match, ...data } : match
+      ));
+
+      // Update joined matches
+      setJoinedMatches(prev => prev.map(participation =>
+        participation.match?.id === matchId
+          ? { ...participation, match: { ...participation.match, ...data } }
+          : participation
+      ));
+    };
+
+    // Handle participation updates (joins, leaves, status changes)
+    const handleParticipationUpdate = (event) => {
+      const { matchId, userId: participantUserId, action, data } = event.detail;
+      console.log('[Profile] Participation update received:', { matchId, participantUserId, action, data });
+
+      // Only update if it affects the profile being viewed
+      if (participantUserId === profileId) {
+        if (action === 'joined' || action === 'confirmed') {
+          // Refetch joined matches to get the latest data
+          participantService.getUserParticipations(profileId)
+            .then(participants => setJoinedMatches(participants || []))
+            .catch(error => console.error('Error refreshing joined matches:', error));
+        } else if (action === 'left' || action === 'removed') {
+          // Remove the participation from joined matches
+          setJoinedMatches(prev => prev.filter(p => p.match?.id !== matchId));
+        }
+      }
+    };
+
+    // Subscribe to real-time events
+    window.addEventListener('sportea:match-update', handleMatchUpdate);
+    window.addEventListener('sportea:participation', handleParticipationUpdate);
+
+    // Cleanup subscriptions
+    return () => {
+      window.removeEventListener('sportea:match-update', handleMatchUpdate);
+      window.removeEventListener('sportea:participation', handleParticipationUpdate);
+    };
+  }, [profileId]);
+
   // Fetch achievement data
   useEffect(() => {
     const fetchAchievements = async () => {
@@ -335,8 +387,34 @@ const Profile = () => {
 
 
 
+  // Function to refresh activity data
+  const refreshActivityData = async () => {
+    if (!profileId) return;
+
+    try {
+      console.log('[Profile] Refreshing activity data...');
+
+      // Fetch latest hosted matches
+      const hosted = await matchService.getHostedMatches(profileId);
+      setHostedMatches(hosted || []);
+
+      // Fetch latest joined matches
+      const participants = await participantService.getUserParticipations(profileId);
+      setJoinedMatches(participants || []);
+
+      console.log('[Profile] Activity data refreshed successfully');
+    } catch (error) {
+      console.error('[Profile] Error refreshing activity data:', error);
+    }
+  };
+
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
+
+    // Refresh activity data when Activity tab is selected
+    if (newValue === 2) {
+      refreshActivityData();
+    }
   };
   
   // Handle navigating to match details for summary
@@ -689,25 +767,6 @@ const Profile = () => {
                 fontSize: '2.5rem'
               }}
             />
-            {isOwnProfile && (
-            <IconButton
-              size="small"
-              sx={{
-                position: 'absolute',
-                bottom: -2,
-                right: 32, // Adjust to avoid level badge
-                bgcolor: 'background.paper',
-                border: '1px solid',
-                borderColor: 'divider',
-                '&:hover': {
-                  bgcolor: 'background.paper',
-                }
-              }}
-                onClick={() => navigate('/profile/edit')}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-            )}
           </Box>
           
           <Box>
@@ -726,8 +785,8 @@ const Profile = () => {
               {profile?.bio}
             </Typography>
 
-            {/* XP Progress Bar */}
-            {gamificationData && (
+            {/* XP Progress Bar - Only show on own profile */}
+            {isOwnProfile && gamificationData && (
               <Box sx={{ mt: 2, maxWidth: 300 }}>
                 <XPProgressBar
                   userId={profile?.id || user?.id}

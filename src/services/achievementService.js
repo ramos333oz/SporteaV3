@@ -500,6 +500,27 @@ class AchievementService {
   // Calculate participation-based progress
   async calculateParticipationProgress(achievement, userId) {
     try {
+      // Handle specific achievements by name for accuracy
+      if (achievement.name === 'First Steps') {
+        // Count matches joined (for "Join your first match")
+        const { count } = await supabase
+          .from('participants')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId);
+        return count || 0;
+      }
+
+      if (achievement.name === 'Getting Started') {
+        // Count completed matches (for "Complete 5 matches")
+        const { count } = await supabase
+          .from('participants')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('status', 'confirmed'); // Only count confirmed participations
+        return count || 0;
+      }
+
+      // Legacy logic for other achievements (if any are re-enabled later)
       if (achievement.name.includes('Join') || achievement.name.includes('Player')) {
         // Count matches joined
         const { count } = await supabase
@@ -508,7 +529,7 @@ class AchievementService {
           .eq('user_id', userId);
         return count || 0;
       }
-      
+
       if (achievement.name.includes('Host') || achievement.name.includes('Organizer') || achievement.name.includes('Master')) {
         // Count matches hosted
         const { count } = await supabase
@@ -517,21 +538,21 @@ class AchievementService {
           .eq('host_id', userId);
         return count || 0;
       }
-      
+
       if (achievement.name.includes('Sport') || achievement.name.includes('Multi')) {
         // Count unique sports tried
         const { data } = await supabase
           .from('participants')
           .select('match:matches(sport_id)')
           .eq('user_id', userId);
-        
+
         const uniqueSports = new Set();
         data?.forEach(p => {
           if (p.match?.sport_id) uniqueSports.add(p.match.sport_id);
         });
         return uniqueSports.size;
       }
-      
+
       return 0;
     } catch (error) {
       console.error('Error calculating participation progress:', error);

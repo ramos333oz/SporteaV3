@@ -25,10 +25,14 @@ const UserAvatarWithLevel = ({
 
   const finalBadgeSize = badgeSize === 'auto' ? determineBadgeSize() : badgeSize;
 
+  const avatarSrc = user?.avatar_url || user?.avatarUrl;
+
   return (
     <Box sx={{ position: 'relative', display: 'inline-block' }}>
       <Avatar
-        src={user?.avatar_url || user?.avatarUrl}
+        key={avatarSrc || 'no-avatar'} // Force re-render when src changes
+        src={avatarSrc}
+        alt={user?.fullName || user?.username || 'User Avatar'}
         onClick={onClick}
         sx={{
           width: size,
