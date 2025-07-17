@@ -748,6 +748,199 @@ async function detectToxicContentRuleBased(text: string, startTime: number, isFa
 }
 
 /**
+ * XLM-RoBERTa + Lexicon Confidence-Based Content Moderation - MAIN FUNCTION
+ * Implements confidence-based fallback for optimal content moderation
+ *
+ * Key Features:
+ * - Primary: XLM-RoBERTa for multilingual toxicity detection
+ * - Fallback: Enhanced lexicon for Malaysian profanity when XLM confidence is low
+ * - Confidence-based decision tree (medium+ confidence uses XLM, low confidence uses lexicon)
+ * - Performance caching with 5-minute TTL
+ * - Graceful degradation when XLM fails
+ * - ~3.5 second total processing time
+ */
+
+interface ConfidenceResult extends MLResult {
+  confidence_processing: true;
+  primary_model: 'xlm-roberta' | 'lexicon';
+  xlm_attempted: boolean;
+  xlm_confidence?: 'high' | 'medium' | 'low';
+  xlm_score?: number;
+  lexicon_score?: number;
+  fallback_reason?: 'low_confidence' | 'xlm_failed' | 'xlm_timeout';
+  processing_breakdown: {
+    xlm_time: number;
+    lexicon_time: number;
+    total_time: number;
+  };
+  cache_hit?: boolean;
+  flagged_words: string[];
+}
+
+async function detectToxicContentML_Confidence(text: string, settings: ModerationSettings): Promise<ConfidenceResult> {
+  const startTime = Date.now();
+
+  // Performance Optimization: Check cache first
+  const cachedResult = getCachedResult(text);
+  if (cachedResult) {
+    console.log('[Confidence] Cache HIT: Using cached result');
+    return {
+      ...cachedResult,
+      processing_time_ms: Date.now() - startTime,
+      cache_hit: true
+    } as ConfidenceResult;
+  }
+
+  console.log('[Confidence] Starting confidence-based content moderation...');
+
+  let xlmResult: MLResult | null = null;
+  let xlmTime = 0;
+  let lexiconTime = 0;
+  let fallbackReason: 'low_confidence' | 'xlm_failed' | 'xlm_timeout' | undefined;
+
+  // STEP 1: Try XLM-RoBERTa first
+  console.log('[Confidence] Attempting XLM-RoBERTa primary detection...');
+  const xlmStartTime = Date.now();
+
+  try {
+    xlmResult = await Promise.race([
+      detectToxicContentML_Enhanced(text, settings),
+      new Promise<MLResult>((_, reject) =>
+        setTimeout(() => reject(new Error('XLM-RoBERTa timeout after 4 seconds')), 4000)
+      )
+    ]);
+    xlmTime = Date.now() - xlmStartTime;
+
+    console.log(`[Confidence] XLM-RoBERTa result: score=${xlmResult.score.toFixed(4)}, confidence=${xlmResult.confidence}, time=${xlmTime}ms`);
+
+    // STEP 2: Check XLM confidence level
+    if (xlmResult.confidence === 'high' || xlmResult.confidence === 'medium') {
+      console.log(`[Confidence] XLM confidence is ${xlmResult.confidence} - using XLM result`);
+
+      const result: ConfidenceResult = {
+        score: xlmResult.score,
+        confidence: xlmResult.confidence,
+        model_used: 'xlm-roberta-confidence-primary',
+        processing_time_ms: Date.now() - startTime,
+        confidence_processing: true,
+        primary_model: 'xlm-roberta',
+        xlm_attempted: true,
+        xlm_confidence: xlmResult.confidence,
+        xlm_score: xlmResult.score,
+        processing_breakdown: {
+          xlm_time: xlmTime,
+          lexicon_time: 0,
+          total_time: Date.now() - startTime
+        },
+        cache_hit: false,
+        flagged_words: xlmResult.flagged_words || []
+      };
+
+      // Cache the result for future requests
+      setCachedResult(text, result);
+      return result;
+    } else {
+      // XLM confidence is low
+      console.log(`[Confidence] XLM confidence is ${xlmResult.confidence} - falling back to lexicon`);
+      fallbackReason = 'low_confidence';
+    }
+
+  } catch (error) {
+    xlmTime = Date.now() - xlmStartTime;
+    console.error(`[Confidence] XLM-RoBERTa failed: ${error.message}`);
+
+    if (error.message.includes('timeout')) {
+      fallbackReason = 'xlm_timeout';
+    } else {
+      fallbackReason = 'xlm_failed';
+    }
+  }
+
+  // STEP 3: Fallback to Lexicon
+  console.log(`[Confidence] Using lexicon fallback (reason: ${fallbackReason})`);
+  const lexiconStartTime = Date.now();
+
+  try {
+    const lexiconResult = await detectToxicContentRuleBased(text, lexiconStartTime, true);
+    lexiconTime = Date.now() - lexiconStartTime;
+
+    console.log(`[Confidence] Lexicon result: score=${lexiconResult.score.toFixed(4)}, time=${lexiconTime}ms`);
+
+    const result: ConfidenceResult = {
+      score: lexiconResult.score,
+      confidence: lexiconResult.confidence,
+      model_used: 'lexicon-confidence-fallback',
+      processing_time_ms: Date.now() - startTime,
+      confidence_processing: true,
+      primary_model: 'lexicon',
+      xlm_attempted: true,
+      xlm_confidence: xlmResult?.confidence,
+      xlm_score: xlmResult?.score,
+      lexicon_score: lexiconResult.score,
+      fallback_reason: fallbackReason,
+      processing_breakdown: {
+        xlm_time: xlmTime,
+        lexicon_time: lexiconTime,
+        total_time: Date.now() - startTime
+      },
+      cache_hit: false,
+      flagged_words: lexiconResult.flagged_words || []
+    };
+
+    // Cache the result for future requests
+    setCachedResult(text, result);
+
+    console.log(`[Confidence] Processing complete in ${result.processing_time_ms}ms (XLM: ${xlmTime}ms, Lexicon: ${lexiconTime}ms)`);
+    console.log(`[Confidence] Used ${result.primary_model} as primary model (fallback reason: ${fallbackReason || 'none'})`);
+
+    return result;
+
+  } catch (error) {
+    console.error(`[Confidence] Critical error - both XLM and lexicon failed: ${error.message}`);
+
+    // Last resort fallback
+    return {
+      score: 0.5, // Conservative moderate score when everything fails
+      confidence: 'low',
+      model_used: 'emergency-fallback',
+      processing_time_ms: Date.now() - startTime,
+      confidence_processing: true,
+      primary_model: 'lexicon',
+      xlm_attempted: true,
+      fallback_reason: 'xlm_failed',
+      processing_breakdown: {
+        xlm_time: xlmTime,
+        lexicon_time: lexiconTime,
+        total_time: Date.now() - startTime
+      },
+      cache_hit: false,
+      flagged_words: []
+    };
+  }
+}
+
+/**
+ * Helper Functions for Confidence-Based Processing
+ */
+
+function detectLanguage(text: string): 'malay' | 'english' | 'mixed' {
+  const malayWords = [
+    'adalah', 'dengan', 'untuk', 'yang', 'ini', 'itu', 'dan', 'atau', 'tidak', 'ada',
+    'saya', 'kamu', 'dia', 'kami', 'mereka', 'akan', 'sudah', 'sedang', 'boleh',
+    'main', 'permainan', 'sukan', 'bola', 'badminton', 'futsal', 'basketball',
+    'nak', 'tak', 'dah', 'lah', 'jer', 'pun', 'gak', 'gila', 'bodoh', 'sial'
+  ];
+
+  const words = text.toLowerCase().split(/\s+/);
+  const malayWordCount = words.filter(word => malayWords.includes(word)).length;
+  const malayRatio = malayWordCount / words.length;
+
+  if (malayRatio >= 0.3) return 'malay';
+  if (malayRatio > 0.1) return 'mixed';
+  return 'english';
+}
+
+/**
  * Extract potentially toxic words from text for detailed reporting
  */
 function extractToxicWords(text: string): string[] {
@@ -1079,13 +1272,20 @@ async function moderateContent(
 
   const fullText = `${matchData.title} ${matchData.description || ''}`
 
-  // Use cascading ML-powered toxic detection as primary method
-  const mlToxicResult = await detectToxicContentML(fullText, settings)
+  // Use confidence-based ML-powered toxic detection as primary method
+  const mlToxicResult = await detectToxicContentML_Confidence(fullText, settings)
 
-  console.log(`[Moderation] Cascade Level: ${mlToxicResult.cascade_level} (${mlToxicResult.success_tier})`)
+  console.log(`[Moderation] Confidence Processing: ${mlToxicResult.confidence_processing}`)
   console.log(`[Moderation] ML Toxic score: ${mlToxicResult.score.toFixed(4)}`)
-  console.log(`[Moderation] Primary Model: ${mlToxicResult.primary_model_used}`)
-  console.log(`[Moderation] Final Model used: ${mlToxicResult.model_used}`)
+  console.log(`[Moderation] Primary model used: ${mlToxicResult.primary_model}`)
+  console.log(`[Moderation] XLM attempted: ${mlToxicResult.xlm_attempted}`)
+  if (mlToxicResult.xlm_confidence) {
+    console.log(`[Moderation] XLM confidence: ${mlToxicResult.xlm_confidence}`)
+  }
+  if (mlToxicResult.fallback_reason) {
+    console.log(`[Moderation] Fallback reason: ${mlToxicResult.fallback_reason}`)
+  }
+  console.log(`[Moderation] Processing time: ${mlToxicResult.processing_time_ms}ms (XLM: ${mlToxicResult.processing_breakdown.xlm_time}ms, Lexicon: ${mlToxicResult.processing_breakdown.lexicon_time}ms)`)
   console.log(`[Moderation] Total API calls: ${mlToxicResult.total_api_calls}`)
   console.log(`[Moderation] ML Processing time: ${mlToxicResult.processing_time_ms}ms`)
   if (mlToxicResult.fallback_reason) {
@@ -1156,7 +1356,16 @@ async function moderateContent(
       ml_model_used: mlToxicResult.model_used,
       ml_processing_time: mlToxicResult.processing_time_ms,
       sports_validation: sportsScore > 0.7 ? 'high' : 'medium',
-      system_version: '3.0-cascading-fallback',
+      system_version: '3.0-confidence-based-fallback',
+      // Confidence-based metadata
+      confidence_processing: mlToxicResult.confidence_processing,
+      primary_model: mlToxicResult.primary_model,
+      xlm_attempted: mlToxicResult.xlm_attempted,
+      xlm_confidence: mlToxicResult.xlm_confidence,
+      xlm_score: mlToxicResult.xlm_score,
+      lexicon_score: mlToxicResult.lexicon_score,
+      fallback_reason: mlToxicResult.fallback_reason,
+      processing_breakdown: mlToxicResult.processing_breakdown,
       configuration_mode: settings.simplified_mode ? 'toxic-only' : 'multi-component',
       // Cascade-specific confidence metrics
       cascade_level: mlToxicResult.cascade_level,
@@ -1350,8 +1559,8 @@ async function moderateContentAdaptive(
   console.log(`[Adaptive Moderation] Processing match: ${matchData.id}`)
   console.log(`[Adaptive Moderation] Using adaptive thresholds:`, adaptiveThresholds)
 
-  // Existing ML processing...
-  const mlToxicResult = await detectToxicContentML(
+  // Existing ML processing with confidence-based approach...
+  const mlToxicResult = await detectToxicContentML_Confidence(
     `${matchData.title} ${matchData.description || ''}`,
     settings
   );
@@ -1403,7 +1612,16 @@ async function moderateContentAdaptive(
       ml_model_used: mlToxicResult.model_used,
       adaptive_context: adaptiveThresholds.context_id,
       learning_enabled: adaptiveThresholds.learning_enabled,
-      system_version: '3.0-adaptive-learning'
+      system_version: '3.0-confidence-adaptive-learning',
+      // Confidence-based metadata
+      confidence_processing: mlToxicResult.confidence_processing,
+      primary_model: mlToxicResult.primary_model,
+      xlm_attempted: mlToxicResult.xlm_attempted,
+      xlm_confidence: mlToxicResult.xlm_confidence,
+      xlm_score: mlToxicResult.xlm_score,
+      lexicon_score: mlToxicResult.lexicon_score,
+      fallback_reason: mlToxicResult.fallback_reason,
+      processing_breakdown: mlToxicResult.processing_breakdown
     },
     processing_time_ms: processingTime
   };

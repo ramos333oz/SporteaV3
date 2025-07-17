@@ -36,18 +36,29 @@ Based on the AI analysis, the system automatically decides:
 
 ## 🧠 **The AI Brain - How It Actually Works**
 
-### **Primary AI Model: Toxic-BERT**
-We use a sophisticated AI model called "toxic-bert" from Hugging Face:
-- **What it does**: Analyzes text to detect toxic, harmful, or inappropriate language
-- **How smart is it**: Trained on millions of text examples to recognize patterns
-- **Languages**: Works with English and some Malay terms
-- **Speed**: Analyzes content in under 2 seconds
+### **Confidence-Based AI System: XLM-RoBERTa Primary + Lexicon Fallback**
+We use an intelligent confidence-based approach with clear decision logic:
 
-### **Backup Systems (Safety Net)**
-If the main AI fails, we have backups:
-1. **Secondary AI Model**: Another toxic detection model
-2. **Rule-Based Detection**: Traditional keyword filtering
-3. **Manual Review**: Human admin makes the final decision
+#### **Primary: XLM-RoBERTa (Multilingual AI)**
+- **What it does**: Advanced multilingual AI that detects toxic content across languages
+- **How smart is it**: Trained on massive multilingual datasets with 270M parameters
+- **Languages**: Excellent with English, good with Malay and other languages
+- **Speed**: ~3 seconds processing time
+- **Decision Logic**: If confidence is medium or high → Use this result
+
+#### **Fallback: Enhanced Lexicon (Malaysian Specialist)**
+- **What it does**: Rule-based system specialized for Malaysian profanity and context
+- **How smart is it**: Hand-crafted rules with deep understanding of Malaysian slang
+- **Languages**: Excellent with Malay, Bahasa Malaysia, and local slang
+- **Speed**: <1 second processing time
+- **When used**: When XLM confidence is low OR XLM fails
+
+### **Intelligent Decision Process**
+The system uses a clear confidence-based decision tree:
+1. **Step 1**: Try XLM-RoBERTa first and evaluate its confidence level
+2. **Step 2**: If XLM confidence is medium/high → Use XLM result (best for English)
+3. **Step 3**: If XLM confidence is low OR XLM fails → Use Lexicon result (best for Malay)
+4. **Final Decision**: Single clear result from the most confident component
 
 ## 📊 **Current Configuration (Toxic-Only Focus)**
 

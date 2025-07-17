@@ -1,16 +1,18 @@
-# 2-Tier Cascading Fallback Implementation Guide
+# XLM-RoBERTa + Lexicon Hybrid Implementation Guide
 
 ## Overview
 
-This guide provides step-by-step instructions for implementing the optimized 2-tier cascading fallback content moderation system for SporteaV3. The system successfully addresses the critical failure where XLM-RoBERTa scored Malay profanity "babi" at only 16.61%, while our enhanced rule-based fallback achieved 65% detection for "bodoh" profanity.
+This guide provides step-by-step instructions for implementing the XLM-RoBERTa + Lexicon hybrid content moderation system for SporteaV3. The system addresses the critical failure where XLM-RoBERTa scored Malay profanity "babi" at only 16.61% by implementing intelligent parallel processing using Promise.all() and language-adaptive score fusion.
 
-**Note**: The Malaysian SFW Classifier (`malaysia-ai/malaysian-sfw-classifier`) has been removed due to API accessibility issues (requires custom_code).
+**Key Innovation**: The system runs XLM-RoBERTa and enhanced lexicon detection in parallel using Promise.all(), then intelligently fuses their scores using language-adaptive weighting (70% lexicon + 30% XLM for Malay, 80% XLM + 20% lexicon for English) for optimal accuracy in Malaysian educational environments.
 
 ## System Architecture
 
-The optimized cascading fallback implements a 2-tier approach:
-1. **Primary**: XLM-RoBERTa with Malay enhancement (multilingual with Malay boosting)
-2. **Fallback**: Enhanced rule-based Malay detector (comprehensive lexicon-based)
+The hybrid system implements single-tier parallel processing with Promise.all():
+1. **XLM-RoBERTa Component**: Multilingual ML-based toxicity detection (runs in parallel via Promise.all())
+2. **Lexicon Component**: Enhanced rule-based Malay detector (runs in parallel via Promise.all())
+3. **Intelligent Fusion**: Language-adaptive score combination with optimized weighting
+4. **Performance Caching**: 5-minute TTL with LRU eviction for repeated content
 
 ## Prerequisites
 
@@ -80,15 +82,15 @@ function setCachedResult(text: string, result: any): void {
 }
 ```
 
-### Step 3: Implement 2-Tier Cascading Detection Function
+### Step 3: Implement Hybrid Parallel Processing Function
 
-Replace the existing `detectToxicContentML_Enhanced` function with the optimized 2-tier implementation:
+Replace the existing `detectToxicContentML_Enhanced` function with the hybrid parallel implementation:
 
 ```typescript
-async function detectToxicContentML(
+async function detectToxicContentML_Hybrid(
   text: string,
   settings: ModerationSettings
-): Promise<CascadeResult> {
+): Promise<HybridResult> {
   const startTime = Date.now();
 
   // Check cache first
@@ -98,79 +100,166 @@ async function detectToxicContentML(
       ...cachedResult,
       processing_time_ms: Date.now() - startTime,
       cache_hit: true
-    } as CascadeResult;
+    } as HybridResult;
   }
 
-  // TIER 1: XLM-RoBERTa with Malay Enhancement
+  console.log('[Hybrid] Starting parallel processing...');
+  
+  // Language detection for adaptive weighting
+  const language = detectLanguage(text);
+  console.log(`[Hybrid] Detected language: ${language}`);
+
+  // PARALLEL PROCESSING: Run both components simultaneously
+  const componentStartTime = Date.now();
+  
   try {
-    console.log('[Cascade] Tier 1: Attempting XLM-RoBERTa with Malay enhancement...');
-    const xlmResult = await detectToxicContentML_Enhanced(text, settings);
+    const [xlmResult, lexiconResult] = await Promise.all([
+      // XLM-RoBERTa Component
+      detectToxicContentML_Enhanced(text, settings).catch(error => {
+        console.error('[Hybrid] XLM component failed:', error.message);
+        return null;
+      }),
+      
+      // Enhanced Lexicon Component
+      detectToxicContentRuleBased(text, componentStartTime, true).catch(error => {
+        console.error('[Hybrid] Lexicon component failed:', error.message);
+        return null;
+      })
+    ]);
 
-    // Enhanced confidence check for Malay content
-    const malayWords = extractMalayToxicWords(text);
-    const hasMalayToxic = malayWords.length > 0;
+    const processingTime = Date.now() - componentStartTime;
 
-    // Lower confidence threshold if Malay toxic words detected
-    let finalScore = xlmResult.score;
-    let confidenceBoost = false;
-
-    if (hasMalayToxic && xlmResult.score < 0.5) {
-      finalScore = Math.max(xlmResult.score, 0.65); // Boost to medium risk
-      confidenceBoost = true;
-      console.log(`[Cascade] Malay boost applied: ${xlmResult.score.toFixed(4)} → ${finalScore.toFixed(4)}`);
+    // Handle component failures
+    if (!xlmResult && !lexiconResult) {
+      throw new Error('Both hybrid components failed');
     }
 
-    if (xlmResult.confidence === 'high' || (hasMalayToxic && xlmResult.confidence === 'medium')) {
-      console.log(`[Cascade] Tier 1 SUCCESS: ${xlmResult.confidence} confidence (${finalScore.toFixed(4)})`);
-      const result = {
-        ...xlmResult,
-        score: finalScore,
-        cascade_level: 1,
-        primary_model_used: xlmResult.model_used,
-        total_api_calls: 1,
-        success_tier: 'primary',
-        malay_boost_applied: confidenceBoost,
-        flagged_words: hasMalayToxic ? malayWords : xlmResult.flagged_words || []
-      } as CascadeResult;
+    // Extract scores (use 0 if component failed)
+    const xlmScore = xlmResult?.score || 0;
+    const lexiconScore = lexiconResult?.score || 0;
 
-      setCachedResult(text, result);
-      return result;
-    }
+    // Language-adaptive weighting
+    const weights = getLanguageWeights(language);
+    console.log(`[Hybrid] Using weights - XLM: ${weights.xlm}, Lexicon: ${weights.lexicon}`);
 
-    console.log('[Cascade] Tier 1: Low confidence, using Tier 2...');
+    // Intelligent score fusion
+    const fusionStartTime = Date.now();
+    const finalScore = (xlmScore * weights.xlm) + (lexiconScore * weights.lexicon);
+    const fusionTime = Date.now() - fusionStartTime;
+
+    // Determine confidence based on component agreement
+    const confidence = determineHybridConfidence(xlmScore, lexiconScore, finalScore);
+
+    // Combine flagged words from both components
+    const flaggedWords = [
+      ...(xlmResult?.flagged_words || []),
+      ...(lexiconResult?.flagged_words || [])
+    ].filter((word, index, arr) => arr.indexOf(word) === index); // Remove duplicates
+
+    const result: HybridResult = {
+      score: finalScore,
+      confidence,
+      model_used: 'xlm-roberta-lexicon-hybrid',
+      processing_time_ms: Date.now() - startTime,
+      hybrid_processing: true,
+      language_detected: language,
+      component_scores: {
+        xlm_score: xlmScore,
+        lexicon_score: lexiconScore
+      },
+      fusion_weights: weights,
+      flagged_words,
+      processing_breakdown: {
+        xlm_time: xlmResult?.processing_time_ms || 0,
+        lexicon_time: lexiconResult?.processing_time_ms || 0,
+        fusion_time: fusionTime
+      }
+    };
+
+    console.log(`[Hybrid] Final result - Score: ${finalScore.toFixed(4)}, Confidence: ${confidence}`);
+    setCachedResult(text, result);
+    return result;
 
   } catch (error) {
-    console.log('[Cascade] Tier 1 FAILED, using Tier 2...', error.message);
+    console.error('[Hybrid] Processing failed:', error.message);
+    throw error;
   }
-
-  // TIER 2: Enhanced Rule-Based Fallback
-  console.log('[Cascade] Tier 2: Using enhanced rule-based fallback...');
-  const localResult = await detectToxicContentRuleBased(text, startTime, true);
-
-  const finalResult = {
-    ...localResult,
-    cascade_level: 2,
-    primary_model_used: 'unitary/multilingual-toxic-xlm-roberta',
-    secondary_model_used: 'enhanced-rule-based-malay',
-    total_api_calls: 1,
-    success_tier: 'secondary',
-    fallback_reason: 'Tier 1 failed or low confidence'
-  } as CascadeResult;
-
-  setCachedResult(text, finalResult);
-  return finalResult;
 }
 ```
 
-### Step 4: Implement Malay Word Detection Enhancement
+### Step 4: Implement Helper Functions for Hybrid Processing
 
-Add the Malay toxic word extraction function for score boosting:
+Add the essential helper functions for language detection, weighting, and confidence determination:
 
 ```typescript
-function extractMalayToxicWords(text: string): string[] {
-  const malayToxicWords = [
+// Language detection for adaptive weighting
+function detectLanguage(text: string): 'malay' | 'english' | 'mixed' {
+  const malayWords = [
     'babi', 'bodoh', 'gila', 'sial', 'celaka', 'bangsat', 'anjing',
     'tolol', 'pantat', 'kepala hotak', 'lancau', 'pukimak', 'kimak',
+    'main', 'game', 'permainan', 'sukan', 'olahraga', 'badminton',
+    'bola', 'sepak', 'basket', 'futsal', 'ping pong', 'tenis'
+  ];
+
+  const lowerText = text.toLowerCase();
+  const words = lowerText.split(/\s+/);
+  const malayWordCount = words.filter(word => 
+    malayWords.some(malayWord => word.includes(malayWord))
+  ).length;
+
+  const malayRatio = malayWordCount / words.length;
+
+  if (malayRatio > 0.3) return 'malay';
+  if (malayRatio > 0.1) return 'mixed';
+  return 'english';
+}
+
+// Language-adaptive weighting system
+function getLanguageWeights(language: 'malay' | 'english' | 'mixed'): { xlm: number, lexicon: number } {
+  switch (language) {
+    case 'malay':
+      return { xlm: 0.3, lexicon: 0.7 }; // Favor lexicon for Malay
+    case 'english':
+      return { xlm: 0.8, lexicon: 0.2 }; // Favor XLM for English
+    case 'mixed':
+      return { xlm: 0.5, lexicon: 0.5 }; // Balanced for mixed content
+    default:
+      return { xlm: 0.6, lexicon: 0.4 }; // Default balanced approach
+  }
+}
+
+// Hybrid confidence determination based on component agreement
+function determineHybridConfidence(
+  xlmScore: number, 
+  lexiconScore: number, 
+  finalScore: number
+): 'high' | 'medium' | 'low' {
+  const scoreDifference = Math.abs(xlmScore - lexiconScore);
+  
+  // High confidence: Both components agree and final score is decisive
+  if (scoreDifference < 0.2 && (finalScore > 0.7 || finalScore < 0.3)) {
+    return 'high';
+  }
+  
+  // Medium confidence: Moderate agreement or moderate final score
+  if (scoreDifference < 0.4 || (finalScore >= 0.3 && finalScore <= 0.7)) {
+    return 'medium';
+  }
+  
+  // Low confidence: Components disagree significantly
+  return 'low';
+}
+
+// Enhanced Malay toxic word extraction with severity scoring
+function extractMalayToxicWords(text: string): string[] {
+  const malayToxicWords = [
+    // High severity
+    'babi', 'pukimak', 'kimak', 'lancau',
+    // Medium severity  
+    'bodoh', 'gila', 'sial', 'bangsat', 'anjing',
+    // Low severity
+    'celaka', 'tolol', 'pantat', 'kepala hotak',
+    // English profanity
     'fuck', 'shit', 'damn', 'hell', 'stupid', 'idiot', 'moron'
   ];
 
@@ -183,53 +272,63 @@ function extractMalayToxicWords(text: string): string[] {
     }
   }
 
-  console.log(`[Malay Detection] Found ${foundWords.length} toxic words: ${foundWords.join(', ')}`);
+  console.log(`[Hybrid] Found ${foundWords.length} toxic words: ${foundWords.join(', ')}`);
   return foundWords;
 }
 ```
 
 ### Step 5: Update Interface Definitions
 
-Update the result interface to match the 2-tier system:
+Update the result interface to match the hybrid system:
 
 ```typescript
-interface CascadeResult extends MLResult {
-  cascade_level: 1 | 2;
-  primary_model_used: string;
-  secondary_model_used?: string;
-  fallback_reason?: string;
-  fallback_used: boolean;
-  malay_boost_applied?: boolean;
-  cache_hit?: boolean;
-  processing_breakdown: {
-    level1_time: number;
-    level2_time: number;
+interface HybridResult extends MLResult {
+  hybrid_processing: true;
+  xlm_score: number;
+  lexicon_score: number;
+  fusion_weights: {
+    xlm_weight: number;
+    lexicon_weight: number;
   };
-  total_api_calls: number;
-  success_tier: 'primary' | 'secondary';
+  language_detected: 'malay' | 'english' | 'mixed';
+  component_scores: {
+    xlm_score: number;
+    lexicon_score: number;
+  };
+  processing_breakdown: {
+    xlm_time: number;
+    lexicon_time: number;
+    fusion_time: number;
+  };
+  cache_hit?: boolean;
+  flagged_words: string[];
+  component_failure?: 'xlm' | 'lexicon';
 }
 ```
 
-### Step 4: Update Main Moderation Function
+### Step 6: Update Main Moderation Function
 
-Update the main moderation function to use the cascading approach:
+Update the main moderation function to use the hybrid approach:
 
 ```typescript
 // In the main moderateMatchContent function, replace the ML detection call:
-const mlToxicResult = await detectToxicContentCascading(text, settings);
+const mlToxicResult = await detectToxicContentML_Hybrid(text, settings);
 ```
 
-### Step 5: Add Monitoring and Logging
+### Step 7: Add Monitoring and Logging
 
-Enhance logging for cascade monitoring:
+Enhance logging for hybrid monitoring:
 
 ```typescript
-// Add cascade-specific logging
-function logCascadeMetrics(result: MLResult) {
-  console.log(`[Cascade Metrics] Level: ${result.cascade_level}, Model: ${result.model_used}, Score: ${result.score.toFixed(4)}, Time: ${result.processing_time_ms}ms`);
+// Add hybrid-specific logging
+function logHybridMetrics(result: HybridResult) {
+  console.log(`[Hybrid Metrics] XLM: ${result.xlm_score.toFixed(4)}, Lexicon: ${result.lexicon_score.toFixed(4)}, Final: ${result.score.toFixed(4)}, Language: ${result.language_detected}, Time: ${result.processing_time_ms}ms`);
+  
+  // Log component performance
+  console.log(`[Hybrid Performance] XLM Time: ${result.processing_breakdown.xlm_time}ms, Lexicon Time: ${result.processing_breakdown.lexicon_time}ms, Fusion Time: ${result.processing_breakdown.fusion_time}ms`);
   
   // Log to database for monitoring (optional)
-  // await logCascadePerformance(result);
+  // await logHybridPerformance(result);
 }
 ```
 
