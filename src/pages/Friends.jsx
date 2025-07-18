@@ -48,7 +48,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../contexts/ToastContext';
-import UserRecommendationTrigger from '../components/UserRecommendations/UserRecommendationTrigger';
+import UserRecommendationSection from '../components/UserRecommendationSection';
 import { friendshipService, supabase } from '../services/supabase';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -593,6 +593,18 @@ const Friends = () => {
     setInputMethod('student_id');
   };
 
+  const renderDiscoverTab = () => {
+    return (
+      <Box sx={{ mt: 2 }}>
+        <UserRecommendationSection
+          title="People You May Know"
+          showRefresh={true}
+          maxUsers={10}
+        />
+      </Box>
+    );
+  };
+
   const renderBlockedUsers = () => {
     if (blockedUsers.length === 0) {
       return (
@@ -751,14 +763,7 @@ const Friends = () => {
         </Alert>
       )}
 
-      {/* User Recommendation System - Instagram-style user discovery */}
-      <Box sx={{ mb: 4 }}>
-        <UserRecommendationTrigger
-          variant="card"
-          className="w-full"
-          showBadge={true}
-        />
-      </Box>
+
 
       <Paper sx={{ mb: 4 }}>
         <Tabs
@@ -769,20 +774,21 @@ const Friends = () => {
           textColor="primary"
         >
           <Tab label="Friends" />
-          <Tab 
+          <Tab
             label={
               <Badge badgeContent={pendingRequests.length} color="error" showZero={false}>
                 Requests
               </Badge>
-            } 
+            }
           />
-          <Tab 
+          <Tab
             label={
               <Badge badgeContent={sentRequests.length} color="primary" showZero={false}>
                 Sent
               </Badge>
-            } 
+            }
           />
+          <Tab label="Discover" />
           <Tab label="Blocked" />
         </Tabs>
       </Paper>
@@ -796,7 +802,8 @@ const Friends = () => {
           {activeTab === 0 && renderFriendsList()}
           {activeTab === 1 && renderPendingRequests()}
           {activeTab === 2 && renderSentRequests()}
-          {activeTab === 3 && renderBlockedUsers()}
+          {activeTab === 3 && renderDiscoverTab()}
+          {activeTab === 4 && renderBlockedUsers()}
         </>
       )}
 

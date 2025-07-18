@@ -10,9 +10,9 @@ This document outlines the implementation approach for a **K-Nearest Neighbors (
 
 ### What is KNN for User Matching?
 
-KNN (K-Nearest Neighbors) is a similarity-based algorithm that finds users with the most similar profiles. Instead of complex machine learning, it uses **distance calculations** between user attribute vectors to determine compatibility.
+KNN (K-Nearest Neighbors) is a similarity-based algorithm that finds users with the most similar profiles. Instead of complex machine learning, it uses **Jaccard similarity calculations** between user attribute vectors to determine compatibility.
 
-**Key Principle:** Users with smaller distances between their profile vectors are more similar and likely to be compatible matches.
+**Key Principle:** Users with higher Jaccard similarity scores between their profile vectors are more similar and likely to be compatible matches.
 
 ## Implementation Approach
 
@@ -54,19 +54,20 @@ User Profile → [Gender, Faculty, Age_Range, Sports, Days, Hours, Facilities, S
 ```
 
 
-### Phase 3: Distance Calculation
+### Phase 3: Jaccard Similarity Calculation
 
 **Mathematical Foundation:**
 
 ```
-Euclidean Distance = √[(x₁-y₁)² + (x₂-y₂)² + ... + (xₙ-yₙ)²]
+Jaccard Similarity = |Intersection| / |Union| = |A ∩ B| / |A ∪ B|
 ```
 
 **Implementation Notes:**
 
-- Lower distance = Higher similarity
-- Distance of 0 = Perfect match on that attribute
-- Distance of √2 ≈ 1.41 = Complete opposite for binary attributes
+- Higher similarity = Better match (0.0 to 1.0 scale)
+- Similarity of 1.0 = Perfect match (identical preferences)
+- Similarity of 0.0 = No shared preferences
+- Ideal for binary preference vectors where 1 = has preference, 0 = no preference
 
 
 ### Phase 4: KNN Algorithm Logic
@@ -75,10 +76,10 @@ Euclidean Distance = √[(x₁-y₁)² + (x₂-y₂)² + ... + (xₙ-yₙ)²]
 
 1. Convert target user profile to vector
 2. Convert all other users to vectors
-3. Calculate distances between target and all others
-4. Sort by distance (ascending)
-5. Return top K closest matches
-6. Convert distances to similarity percentages
+3. Calculate Jaccard similarity between target and all others
+4. Sort by similarity (descending)
+5. Return top K most similar matches
+6. Display similarity percentages directly (no conversion needed)
 
 ### Phase 5: Instagram-Style UI Implementation
 
@@ -182,7 +183,7 @@ AND is_active = true;
 **Modular Architecture:**
 
 - **UserVector.js:** Handle profile vectorization
-- **DistanceCalculator.js:** Euclidean distance logic
+- **JaccardCalculator.js:** Jaccard similarity logic
 - **KNNEngine.js:** Main recommendation algorithm
 - **RecommendationUI.js:** Instagram-style interface components
 - **DatabaseAdapter.js:** Handle data fetching and storage
@@ -193,7 +194,7 @@ AND is_active = true;
 **Validation Points:**
 
 - Vector creation accuracy
-- Distance calculation correctness
+- Jaccard similarity calculation correctness
 - KNN algorithm performance
 - UI responsiveness and interaction
 - Edge cases and error scenarios

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document defines the comprehensive user attribute vector specification for the KNN recommendation system. The vector is based on **actual user preference data available in the current database schema** and uses the day-specific time slot encoding from TEMPLATE_2.md and sport-specific skill level encoding from the Sport-Specific Skill Level Encoding document to create a precise vector for user similarity calculations.
+This document defines the comprehensive user attribute vector specification for the KNN recommendation system. The vector is based on **actual user preference data available in the current database schema** and uses the day-specific time slot encoding from TEMPLATE_2.md and sport-specific skill level encoding from the Sport-Specific Skill Level Encoding document to create a precise vector for user Jaccard similarity calculations.
 
 ## Database Schema Verification
 
@@ -421,7 +421,7 @@ function getFacilityNameById(facilityId) {
 
 ### Vector Normalization
 
-All vector elements are normalized to [0.0, 1.0] range for consistent distance calculations:
+All vector elements are normalized to [0.0, 1.0] range for consistent Jaccard similarity calculations:
 
 ```javascript
 function normalizeVector(vector) {
@@ -429,48 +429,57 @@ function normalizeVector(vector) {
 }
 ```
 
-## Distance Calculation
+## Jaccard Similarity Calculation
 
-### Unweighted Euclidean Distance
+### Binary Vector Jaccard Similarity
 
-Following the foundational methodology outlined in TEMPLATE.md, the KNN algorithm uses pure Euclidean distance calculation for user similarity:
+Following the foundational methodology outlined in TEMPLATE.md, the KNN algorithm uses Jaccard similarity calculation optimized for binary preference vectors:
 
 **Mathematical Foundation** (as specified in TEMPLATE.md lines 61-63):
 ```
-Euclidean Distance = √[(x₁-y₁)² + (x₂-y₂)² + ... + (xₙ-yₙ)²]
+Jaccard Similarity = |Intersection| / |Union| = |A ∩ B| / |A ∪ B|
 ```
 
 **Implementation Notes from TEMPLATE.md**:
-- Lower distance = Higher similarity
-- Distance of 0 = Perfect match on that attribute
-- Distance of √2 ≈ 1.41 = Complete opposite for binary attributes
+- Higher similarity = Better match (0.0 to 1.0 scale)
+- Similarity of 1.0 = Perfect match (identical preferences)
+- Similarity of 0.0 = No shared preferences
+- Ideal for binary preference vectors where 1 = has preference, 0 = no preference
 
 ```javascript
-function calculateEuclideanDistance(vector1, vector2) {
+function calculateJaccardSimilarity(vector1, vector2) {
   if (vector1.length !== vector2.length || vector1.length !== 142) {
     throw new Error('Vectors must be 142-dimensional');
   }
 
-  let sum = 0;
+  let intersection = 0;
+  let union = 0;
 
-  // Calculate sum of squared differences for all 142 elements
-  for (let i = 0; i < 142; i++) {
-    const diff = vector1[i] - vector2[i];
-    sum += diff * diff;
+  // Only calculate over meaningful elements (0-136), excluding padding (137-141)
+  for (let i = 0; i < 137; i++) {
+    const hasData1 = vector1[i] > 0;
+    const hasData2 = vector2[i] > 0;
+
+    if (hasData1 && hasData2) {
+      intersection++;
+    }
+    if (hasData1 || hasData2) {
+      union++;
+    }
   }
 
-  return Math.sqrt(sum);
+  return union > 0 ? intersection / union : 0;
 }
 ```
 
-**Phase 1: Unweighted Implementation**
+**Phase 1: Direct Jaccard Implementation**
 
-This unweighted approach follows TEMPLATE.md's incremental development philosophy: "Start with basic matching, then enhance" (TEMPLATE.md line 167). This ensures:
+This Jaccard similarity approach follows TEMPLATE.md's incremental development philosophy: "Start with basic matching, then enhance" (TEMPLATE.md line 167). This ensures:
 
-1. **Calculation Precision**: Easy to validate mathematical correctness
-2. **Debugging Simplicity**: Simpler to identify issues in vector encoding
-3. **Performance Baseline**: Establishes baseline for future enhancements
-4. **Thorough Validation**: Follows TEMPLATE.md's emphasis on testing calculations with sample data
+1. **Natural Handling**: Perfect for sparse binary data without normalization
+2. **Intuitive Results**: Similarity percentages directly interpretable
+3. **Performance**: No square root calculations needed
+4. **Validation**: Easy to verify with manual intersection/union counts
 
 ## Vector Update Strategy
 

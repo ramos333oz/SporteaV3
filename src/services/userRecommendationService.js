@@ -95,8 +95,57 @@ async function getUserRecommendations(userId, options = {}) {
 
     log(`Found ${similarUsers.length} similar users for potential connection`);
 
-    // Step 3: Get detailed user information for similar users
+    // Step 3: Filter out users who are already friends or have pending requests
     const similarUserIds = similarUsers.map(user => user.userId);
+
+    // Get existing friendships and pending requests for the current user
+    const { data: existingFriendships, error: friendshipError } = await supabase
+      .from('friendships')
+      .select('user_id, friend_id, status')
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
+
+    if (friendshipError) {
+      logError('Error fetching existing friendships:', friendshipError);
+      // Continue without filtering if there's an error
+    }
+
+    // Create a set of user IDs that should be excluded (friends and pending requests)
+    const excludedUserIds = new Set();
+    if (existingFriendships) {
+      existingFriendships.forEach(friendship => {
+        // Add the other user in the friendship to the excluded set
+        const otherUserId = friendship.user_id === userId ? friendship.friend_id : friendship.user_id;
+        excludedUserIds.add(otherUserId);
+      });
+    }
+
+    // Filter out excluded users
+    const filteredUserIds = similarUserIds.filter(id => !excludedUserIds.has(id));
+
+    log(`Filtered out ${similarUserIds.length - filteredUserIds.length} users who are already friends or have pending requests`);
+    log(`Remaining ${filteredUserIds.length} users for recommendations`);
+
+    if (filteredUserIds.length === 0) {
+      log('No users remaining after friendship filtering');
+      return {
+        recommendations: [],
+        metadata: {
+          count: 0,
+          total_available: 0,
+          type: 'user_similarity_recommendations',
+          algorithm: 'K-Nearest Neighbors User Discovery',
+          k_value: k,
+          users_analyzed: nearestNeighbors.length,
+          similar_users_found: similarUsers.length,
+          filtered_out_friends: similarUserIds.length - filteredUserIds.length,
+          min_similarity_threshold: minSimilarity,
+          purpose: 'Find users for connection and friendship'
+        },
+        type: 'user_similarity_recommendations'
+      };
+    }
+
+    // Step 4: Get detailed user information for filtered similar users
     
     const { data: userProfiles, error: profilesError } = await supabase
       .from('users')
@@ -114,7 +163,7 @@ async function getUserRecommendations(userId, options = {}) {
         preferred_facilities,
         created_at
       `)
-      .in('id', similarUserIds)
+      .in('id', filteredUserIds)
       .neq('id', userId); // Exclude the requesting user
 
     if (profilesError) throw profilesError;
@@ -140,7 +189,7 @@ async function getUserRecommendations(userId, options = {}) {
 
     log(`Retrieved ${userProfiles.length} user profiles`);
 
-    // Step 4: Combine user profiles with similarity data
+    // Step 5: Combine user profiles with similarity data
     const recommendedUsers = userProfiles.map(profile => {
       // Find the similarity data for this user
       const similarityData = similarUsers.find(user => user.userId === profile.id);
@@ -175,6 +224,7 @@ async function getUserRecommendations(userId, options = {}) {
         k_value: k,
         users_analyzed: nearestNeighbors.length,
         similar_users_found: similarUsers.length,
+        filtered_out_friends: similarUserIds.length - filteredUserIds.length,
         profiles_retrieved: userProfiles.length,
         min_similarity_threshold: minSimilarity,
         purpose: 'Find users for connection and friendship'

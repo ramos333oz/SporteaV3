@@ -13,47 +13,59 @@ class KNNRecommendationEngine {
   constructor(options = {}) {
     this.k = options.k || 10; // Number of nearest neighbors
     this.minSimilarity = options.minSimilarity || 0.3;
-    this.distanceMetric = options.distanceMetric || 'euclidean';
+    this.similarityMetric = options.similarityMetric || 'jaccard';
   }
 }
 ```
 
-### Distance Metrics
+### Similarity Metrics
 
-#### 1. Unweighted Euclidean Distance (Phase 1 Implementation)
+#### 1. Jaccard Similarity (Primary Implementation)
 
-Following TEMPLATE.md's incremental development approach ("Start with basic matching, then enhance"), we implement pure Euclidean distance calculation:
+Following TEMPLATE.md's incremental development approach ("Start with basic matching, then enhance"), we implement Jaccard similarity calculation optimized for binary preference vectors:
 
 **Mathematical Foundation** (TEMPLATE.md lines 61-63):
 ```
-Euclidean Distance = √[(x₁-y₁)² + (x₂-y₂)² + ... + (xₙ-yₙ)²]
+Jaccard Similarity = |Intersection| / |Union| = |A ∩ B| / |A ∪ B|
 ```
 
 ```javascript
-function euclideanDistance(vector1, vector2) {
+function calculateJaccardSimilarity(vector1, vector2) {
   if (vector1.length !== vector2.length || vector1.length !== 142) {
     throw new Error('Vectors must be 142-dimensional');
   }
 
-  let sum = 0;
-  for (let i = 0; i < vector1.length; i++) {
-    const diff = vector1[i] - vector2[i];
-    sum += diff * diff;
+  let intersection = 0;
+  let union = 0;
+
+  // Only calculate over meaningful elements (0-136), excluding padding (137-141)
+  for (let i = 0; i < 137; i++) {
+    const hasData1 = vector1[i] > 0;
+    const hasData2 = vector2[i] > 0;
+
+    if (hasData1 && hasData2) {
+      intersection++;
+    }
+    if (hasData1 || hasData2) {
+      union++;
+    }
   }
-  return Math.sqrt(sum);
+
+  return union > 0 ? intersection / union : 0;
 }
 ```
 
 **Implementation Notes from TEMPLATE.md**:
-- Lower distance = Higher similarity
-- Distance of 0 = Perfect match on that attribute
-- Distance of √2 ≈ 1.41 = Complete opposite for binary attributes
+- Higher similarity = Better match (0.0 to 1.0 scale)
+- Similarity of 1.0 = Perfect match (identical preferences)
+- Similarity of 0.0 = No shared preferences
+- Ideal for binary preference vectors where 1 = has preference, 0 = no preference
 
 **Phase 1 Benefits**:
-- **Validation**: Easy to verify calculations are mathematically correct
-- **Debugging**: Simpler to identify issues in vector encoding
-- **Baseline**: Establishes performance baseline for future enhancements
-- **Testing**: Follows TEMPLATE.md's emphasis on thorough validation
+- **Natural Handling**: Perfect for sparse binary data without normalization
+- **Intuitive Results**: Similarity percentages directly interpretable
+- **Performance**: No square root calculations needed
+- **Validation**: Easy to verify with manual intersection/union counts
 
 #### 2. Cosine Similarity (Secondary)
 
@@ -67,28 +79,30 @@ function cosineSimilarity(vector1, vector2) {
 }
 ```
 
-#### 3. Distance-to-Similarity Conversion
+#### 3. Direct Similarity Calculation
 
-Following TEMPLATE.md methodology, convert Euclidean distance to similarity score:
+Following TEMPLATE.md methodology, Jaccard similarity provides direct similarity scores without conversion:
 
 ```javascript
-function distanceToSimilarity(distance) {
-  // Convert distance to similarity (0-1 scale)
-  // Lower distance = Higher similarity
-  return 1 / (1 + distance);
+function calculateUserSimilarity(vector1, vector2) {
+  return calculateJaccardSimilarity(vector1, vector2);
 }
 
-function calculateUserSimilarity(vector1, vector2) {
-  const distance = euclideanDistance(vector1, vector2);
-  return distanceToSimilarity(distance);
+function interpretSimilarity(similarity) {
+  if (similarity >= 0.7) return "Very High Similarity";
+  if (similarity >= 0.5) return "High Similarity";
+  if (similarity >= 0.3) return "Moderate Similarity";
+  if (similarity >= 0.1) return "Low Similarity";
+  return "Very Low Similarity";
 }
 ```
 
 **Similarity Interpretation** (based on TEMPLATE.md):
-- Similarity = 1.0: Perfect match (distance = 0)
-- Similarity > 0.7: High compatibility
-- Similarity 0.4-0.7: Moderate compatibility
-- Similarity < 0.4: Low compatibility
+- Similarity = 1.0: Perfect match (100% shared preferences)
+- Similarity ≥ 0.7: Very high compatibility (70%+ shared)
+- Similarity 0.5-0.7: High compatibility (50-70% shared)
+- Similarity 0.3-0.5: Moderate compatibility (30-50% shared)
+- Similarity < 0.3: Low compatibility (<30% shared)
 
 ## KNN Query Algorithm
 
@@ -127,13 +141,13 @@ async function calculateSimilarities(targetVector, candidates) {
       similarities.push({
         userId: candidate.user_id,
         similarity: similarity,
-        distance: euclideanDistance(targetVector, candidate.vector_data),
+        jaccardScore: similarity, // Direct Jaccard similarity score
         sportsHash: candidate.sports_hash
       });
     }
   }
 
-  // Sort by similarity (descending) or distance (ascending)
+  // Sort by similarity (descending)
   return similarities.sort((a, b) => b.similarity - a.similarity);
 }
 ```
@@ -319,9 +333,10 @@ async function batchUpdateSimilarities() {
 ## Performance Considerations
 
 ### Computational Complexity
-- **Vector Comparison**: O(d) where d = 142 (vector dimensions)
+- **Jaccard Calculation**: O(d) where d = 137 (meaningful vector dimensions, excluding padding)
 - **KNN Search**: O(n*d) where n = number of users
 - **With Indexing**: O(log n * d) using approximate methods
+- **Performance Advantage**: No square root calculations needed compared to Euclidean distance
 
 ### Memory Usage
 - **Vector Storage**: 142 * 8 bytes = 1,136 bytes per user

@@ -28,6 +28,7 @@ import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import EventIcon from '@mui/icons-material/Event';
 import LiveMatchBoard from '../components/LiveMatchBoard';
 import RecommendationsList from '../components/RecommendationsList';
+import UserRecommendationSection from '../components/UserRecommendationSection';
 
 import EnhancedMatchCard from '../components/EnhancedMatchCard';
 import SportCard from '../components/SportCard';
@@ -298,11 +299,20 @@ const Home = () => {
       </Box>
       
       {/* Personalized match recommendations */}
-      <RecommendationsList 
+      <RecommendationsList
         limit={3}
         onError={(err) => console.error('Recommendation error:', err)}
       />
-      
+
+      {/* User recommendations section */}
+      <Box sx={{ mb: 4, mt: 6 }}>
+        <UserRecommendationSection
+          title="Connect with Fellow Athletes"
+          showRefresh={true}
+          maxUsers={10}
+        />
+      </Box>
+
       {/* Popular sports section */}
       <Box sx={{ mb: 4, mt: 6 }}>
         <Typography variant="h2" gutterBottom>

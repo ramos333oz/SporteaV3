@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the comprehensive implementation strategy for a K-Nearest Neighbors (KNN) recommendation system in the Sportea app, following TEMPLATE.md's incremental development methodology ("Start with basic matching, then enhance"). The system will leverage the existing 49-element day-specific time slot encoding and enhance it with additional verified user attributes for precise user matching and match recommendations using unweighted Euclidean distance calculations.
+This document outlines the comprehensive implementation strategy for a K-Nearest Neighbors (KNN) recommendation system in the Sportea app, following TEMPLATE.md's incremental development methodology ("Start with basic matching, then enhance"). The system will leverage the existing 49-element day-specific time slot encoding and enhance it with additional verified user attributes for precise user matching and match recommendations using Jaccard similarity calculations.
 
 ## Current System Analysis
 
@@ -26,7 +26,7 @@ This document outlines the comprehensive implementation strategy for a K-Nearest
 ## KNN Implementation Strategy
 
 ### Phase 1: Foundational Implementation (TEMPLATE.md Methodology)
-**Objective**: Create comprehensive user attribute vectors and implement basic KNN with unweighted Euclidean distance
+**Objective**: Create comprehensive user attribute vectors and implement basic KNN with Jaccard similarity
 
 **Components** (based on actual database schema):
 - **Sport-Skill Combinations** (33 elements): 11 verified sports × 3 skill levels
@@ -40,22 +40,22 @@ This document outlines the comprehensive implementation strategy for a K-Nearest
 
 **Total Vector Size**: 142 elements for optimal performance and interpretability
 
-**Distance Calculation**: Pure Euclidean distance following TEMPLATE.md (lines 61-63)
+**Similarity Calculation**: Jaccard similarity following TEMPLATE.md (lines 61-63)
 ```
-Euclidean Distance = √[(x₁-y₁)² + (x₂-y₂)² + ... + (xₙ-yₙ)²]
+Jaccard Similarity = |Intersection| / |Union| = |A ∩ B| / |A ∪ B|
 ```
 
 **Phase 1 Benefits** (TEMPLATE.md approach):
-- **Validation**: Easy to verify calculations are mathematically correct
-- **Debugging**: Simpler to identify issues in vector encoding
-- **Baseline**: Establishes performance baseline for future enhancements
-- **Testing**: Follows TEMPLATE.md's emphasis on thorough validation
+- **Natural Handling**: Perfect for sparse binary data without normalization
+- **Intuitive Results**: Similarity percentages directly interpretable
+- **Performance**: No square root calculations needed
+- **Validation**: Easy to verify with manual intersection/union counts
 
 ### Phase 2: Algorithm Enhancement (Future)
 **Objective**: Enhance KNN with advanced features after Phase 1 validation
 
 **Potential Enhancements**:
-- **Weighted Distance**: Add component weighting based on empirical evidence
+- **Weighted Jaccard**: Add component weighting based on empirical evidence
 - **Alternative Metrics**: Cosine similarity for preference alignment
 - **Dynamic K Selection**: Adaptive K based on user activity and data density
 - **Sport Isolation**: Maintain separate KNN models per sport category
@@ -117,7 +117,7 @@ Euclidean Distance = √[(x₁-y₁)² + (x₂-y₂)² + ... + (xₙ-yₙ)²]
 - [ ] Implement vector building service
 
 ### Phase 2: Core Algorithm (Week 3-4)
-- [ ] Implement KNN distance calculations
+- [ ] Implement KNN Jaccard similarity calculations
 - [ ] Build similarity scoring system
 - [ ] Create caching mechanisms
 - [ ] Develop edge function for KNN computation

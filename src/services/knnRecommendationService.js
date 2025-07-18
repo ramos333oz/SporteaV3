@@ -108,21 +108,24 @@ function displayUserVector(vector, userId, userProfile = null) {
 }
 
 /**
- * Calculate unweighted Euclidean distance between two 142-element vectors with detailed logging
- * Following TEMPLATE.md methodology (lines 61-63): √[(x₁-y₁)² + (x₂-y₂)² + ... + (x₁₃₇-y₁₃₇)²]
+ * Calculate Jaccard similarity between two user vectors with detailed component-by-component logging
+ * Jaccard similarity = |Intersection| / |Union| = |A ∩ B| / |A ∪ B|
+ *
+ * Perfect for binary preference vectors where 1 = has preference, 0 = no preference
+ * Handles sparse data naturally without requiring distance-to-similarity conversion
  *
  * NOTE: Only calculates over meaningful vector elements (0-136), excluding padding elements (137-141)
  * This ensures similarity scores reflect actual user preferences, not unused padding positions.
  */
-function calculateEuclideanDistance(vector1, vector2, userId1 = 'User1', userId2 = 'User2', enableDetailedLogging = true) {
+function calculateJaccardSimilarity(vector1, vector2, userId1 = 'User1', userId2 = 'User2', enableDetailedLogging = true) {
   if (vector1.length !== vector2.length || vector1.length !== 142) {
     throw new Error('Vectors must be 142-dimensional');
   }
 
   if (enableDetailedLogging) {
-    log(`\n🔍 === DETAILED EUCLIDEAN DISTANCE CALCULATION ===`);
+    log(`\n🔍 === DETAILED JACCARD SIMILARITY CALCULATION ===`);
     log(`📊 Comparing ${userId1} vs ${userId2}`);
-    log(`📐 Formula: √[(x₁-y₁)² + (x₂-y₂)² + ... + (x₁₄₂-y₁₄₂)²]`);
+    log(`📐 Formula: Jaccard = |Intersection| / |Union| = |A ∩ B| / |A ∪ B|`);
     log(`\n📋 Vector Structure (142 elements):`);
     log(`   • Sport-Skills: positions 0-32 (33 elements)`);
     log(`   • Faculty: positions 33-39 (7 elements)`);
@@ -134,36 +137,49 @@ function calculateEuclideanDistance(vector1, vector2, userId1 = 'User1', userId2
     log(`   • Padding: positions 137-141 (5 elements)`);
   }
 
-  let sum = 0;
+  let intersection = 0;
+  let union = 0;
   const componentBreakdown = {
-    sportSkills: { start: 0, end: 32, sum: 0, differences: [] },
-    faculty: { start: 33, end: 39, sum: 0, differences: [] },
-    campus: { start: 40, end: 52, sum: 0, differences: [] },
-    gender: { start: 53, end: 56, sum: 0, differences: [] },
-    playStyle: { start: 57, end: 58, sum: 0, differences: [] },
-    timeSlots: { start: 59, end: 107, sum: 0, differences: [] },
-    facilities: { start: 108, end: 136, sum: 0, differences: [] },
-    padding: { start: 137, end: 141, sum: 0, differences: [] }
+    sportSkills: { start: 0, end: 32, intersection: 0, union: 0, details: [] },
+    faculty: { start: 33, end: 39, intersection: 0, union: 0, details: [] },
+    campus: { start: 40, end: 52, intersection: 0, union: 0, details: [] },
+    gender: { start: 53, end: 56, intersection: 0, union: 0, details: [] },
+    playStyle: { start: 57, end: 58, intersection: 0, union: 0, details: [] },
+    timeSlots: { start: 59, end: 107, intersection: 0, union: 0, details: [] },
+    facilities: { start: 108, end: 136, intersection: 0, union: 0, details: [] },
+    padding: { start: 137, end: 141, intersection: 0, union: 0, details: [] }
   };
 
-  // Calculate sum of squared differences for meaningful elements only (0-136)
+  // Calculate intersection and union for meaningful elements only (0-136)
   // Exclude padding elements (137-141) from similarity calculation
   for (let i = 0; i < 137; i++) {
-    const diff = vector1[i] - vector2[i];
-    const squaredDiff = diff * diff;
-    sum += squaredDiff;
+    const hasData1 = vector1[i] > 0;
+    const hasData2 = vector2[i] > 0;
 
-    // Categorize the difference by component
+    // Count intersection (both users have this preference)
+    if (hasData1 && hasData2) {
+      intersection++;
+    }
+
+    // Count union (either user has this preference)
+    if (hasData1 || hasData2) {
+      union++;
+    }
+
+    // Categorize by component for detailed logging
     for (const [componentName, component] of Object.entries(componentBreakdown)) {
       if (i >= component.start && i <= component.end) {
-        component.sum += squaredDiff;
-        if (squaredDiff > 0) { // Only log non-zero differences
-          component.differences.push({
+        if (hasData1 && hasData2) {
+          component.intersection++;
+        }
+        if (hasData1 || hasData2) {
+          component.union++;
+          component.details.push({
             position: i,
             user1Value: vector1[i],
             user2Value: vector2[i],
-            difference: diff,
-            squaredDiff: squaredDiff
+            inIntersection: hasData1 && hasData2,
+            inUnion: hasData1 || hasData2
           });
         }
         break;
@@ -171,13 +187,13 @@ function calculateEuclideanDistance(vector1, vector2, userId1 = 'User1', userId2
     }
   }
 
-  const distance = Math.sqrt(sum);
+  const jaccardSimilarity = union > 0 ? intersection / union : 0;
 
   if (enableDetailedLogging) {
     log(`\n📊 COMPONENT-BY-COMPONENT BREAKDOWN:`);
 
     for (const [componentName, component] of Object.entries(componentBreakdown)) {
-      const componentDistance = Math.sqrt(component.sum);
+      const componentJaccard = component.union > 0 ? component.intersection / component.union : 0;
       const isExcluded = componentName === 'padding';
       const statusIcon = isExcluded ? '🚫' : '🔸';
       const statusText = isExcluded ? ' (EXCLUDED FROM CALCULATION)' : '';
@@ -188,96 +204,151 @@ function calculateEuclideanDistance(vector1, vector2, userId1 = 'User1', userId2
         log(`   ⚠️  Padding elements excluded from similarity calculation`);
         log(`   ℹ️  These positions don't represent actual user preferences`);
       } else {
-        log(`   Sum of squared differences: ${component.sum.toFixed(6)}`);
-        log(`   Component distance: ${componentDistance.toFixed(6)}`);
+        log(`   Intersection: ${component.intersection} (shared preferences)`);
+        log(`   Union: ${component.union} (total unique preferences)`);
+        log(`   Component Jaccard: ${componentJaccard.toFixed(6)} (${(componentJaccard * 100).toFixed(1)}%)`);
 
-        if (component.differences.length > 0) {
-          log(`   Non-zero differences (${component.differences.length}):`);
-          component.differences.forEach(diff => {
-            log(`     Position ${diff.position}: ${diff.user1Value} - ${diff.user2Value} = ${diff.difference} → (${diff.difference})² = ${diff.squaredDiff}`);
+        if (component.details.length > 0) {
+          log(`   Preference details (${component.details.length}):`);
+          component.details.forEach(detail => {
+            const status = detail.inIntersection ? '✅ SHARED' : '🔸 UNIQUE';
+            log(`     Position ${detail.position}: User1=${detail.user1Value}, User2=${detail.user2Value} → ${status}`);
           });
         } else {
-          log(`   ✅ Perfect match - no differences`);
+          log(`   ✅ No preferences in this component`);
         }
       }
     }
 
-    log(`\n🧮 FINAL CALCULATION:`);
-    log(`   Total sum of squared differences: ${sum.toFixed(6)} (meaningful elements only)`);
-    log(`   Euclidean distance: √${sum.toFixed(6)} = ${distance.toFixed(6)}`);
-    log(`   Max possible distance: √137 = ${Math.sqrt(137).toFixed(6)} (excluding padding)`);
-  }
+    log(`\n🧮 FINAL JACCARD CALCULATION:`);
+    log(`   Total intersection: ${intersection} (shared preferences)`);
+    log(`   Total union: ${union} (unique preferences from both users)`);
+    log(`   Jaccard similarity: ${intersection}/${union} = ${jaccardSimilarity.toFixed(6)}`);
+    log(`   Similarity percentage: ${(jaccardSimilarity * 100).toFixed(1)}%`);
 
-  return distance;
-}
-
-/**
- * Convert Euclidean distance to similarity score with detailed logging
- * Lower distance = Higher similarity
- * Following TEMPLATE.md methodology: Similarity = 1 - (distance / max_distance)
- *
- * NOTE: Uses √137 as max distance since we exclude padding elements (137-141) from calculation
- */
-function distanceToSimilarity(distance, maxDistance = Math.sqrt(137), enableDetailedLogging = true) {
-  // Normalize distance to 0-1 range and invert for similarity
-  const normalizedDistance = Math.min(distance / maxDistance, 1);
-  const similarity = 1 - normalizedDistance;
-
-  if (enableDetailedLogging) {
-    log(`\n🎯 === DISTANCE TO SIMILARITY CONVERSION ===`);
-    log(`📏 Euclidean distance: ${distance.toFixed(6)}`);
-    log(`📐 Max possible distance: √137 = ${maxDistance.toFixed(6)} (excluding padding)`);
-    log(`📊 Normalized distance: ${distance.toFixed(6)} / ${maxDistance.toFixed(6)} = ${normalizedDistance.toFixed(6)}`);
-    log(`🎯 Similarity score: 1 - ${normalizedDistance.toFixed(6)} = ${similarity.toFixed(6)}`);
-    log(`📈 Similarity percentage: ${(similarity * 100).toFixed(1)}%`);
-
-    // Provide interpretation
-    if (similarity >= 0.8) {
-      log(`💚 Interpretation: Very High Similarity (${(similarity * 100).toFixed(1)}%)`);
-    } else if (similarity >= 0.6) {
-      log(`💛 Interpretation: High Similarity (${(similarity * 100).toFixed(1)}%)`);
-    } else if (similarity >= 0.4) {
-      log(`🧡 Interpretation: Moderate Similarity (${(similarity * 100).toFixed(1)}%)`);
-    } else if (similarity >= 0.2) {
-      log(`❤️ Interpretation: Low Similarity (${(similarity * 100).toFixed(1)}%)`);
+    // Interpretation
+    if (jaccardSimilarity >= 0.7) {
+      log(`   💚 Interpretation: Very High Similarity (${(jaccardSimilarity * 100).toFixed(1)}%)`);
+    } else if (jaccardSimilarity >= 0.5) {
+      log(`   💛 Interpretation: High Similarity (${(jaccardSimilarity * 100).toFixed(1)}%)`);
+    } else if (jaccardSimilarity >= 0.3) {
+      log(`   🧡 Interpretation: Moderate Similarity (${(jaccardSimilarity * 100).toFixed(1)}%)`);
+    } else if (jaccardSimilarity >= 0.1) {
+      log(`   ❤️ Interpretation: Low Similarity (${(jaccardSimilarity * 100).toFixed(1)}%)`);
     } else {
-      log(`💔 Interpretation: Very Low Similarity (${(similarity * 100).toFixed(1)}%)`);
+      log(`   💔 Interpretation: Very Low Similarity (${(jaccardSimilarity * 100).toFixed(1)}%)`);
     }
   }
 
-  return similarity;
+  return jaccardSimilarity;
+}
+
+
+
+/**
+ * Calculate completeness-weighted similarity with multiple adjustment strategies
+ * Addresses the sparse vector problem by considering data overlap and profile completeness
+ */
+function calculateCompletenessWeightedSimilarity(distance, vector1, vector2, completeness1, completeness2, enableDetailedLogging = true) {
+  // Strategy 1: Calculate actual data overlap
+  const overlap = calculateDataOverlap(vector1, vector2);
+
+  // Strategy 2: Apply sparsity penalty
+  const sparsityPenalty = calculateSparsityPenalty(completeness1, completeness2);
+
+  // Strategy 3: Use adaptive max distance based on actual data
+  const adaptiveMaxDistance = calculateAdaptiveMaxDistance(vector1, vector2);
+
+  // Strategy 4: Component weighting (sports > faculty > campus > time > facilities)
+  const componentWeights = {
+    sports: 0.35,      // Most important for sports matching
+    faculty: 0.25,     // Important for common interests
+    campus: 0.20,      // Important for logistics
+    gender: 0.05,      // Less important for sports
+    playStyle: 0.10,   // Moderately important
+    timeSlots: 0.03,   // Less important (flexible)
+    facilities: 0.02   // Least important (adaptable)
+  };
+
+  // Calculate weighted distance
+  const weightedDistance = calculateWeightedDistance(vector1, vector2, componentWeights, enableDetailedLogging);
+
+  // Apply multiple adjustment strategies
+  let adjustedSimilarity;
+  let confidence;
+  let reason;
+
+  // Choose best strategy based on data characteristics
+  if (overlap.overlapRatio < 0.1) {
+    // Very low overlap - use Jaccard similarity for sparse data
+    adjustedSimilarity = calculateJaccardSimilarity(vector1, vector2);
+    confidence = Math.min(overlap.overlapRatio * 5, 0.8); // Low confidence for sparse data
+    reason = `Jaccard similarity due to low overlap (${(overlap.overlapRatio * 100).toFixed(1)}%)`;
+  } else if (completeness1 < 0.05 || completeness2 < 0.05) {
+    // Very sparse profiles - heavy penalty
+    const normalizedDistance = Math.min(weightedDistance / adaptiveMaxDistance, 1);
+    adjustedSimilarity = (1 - normalizedDistance) * sparsityPenalty * 0.5; // Heavy penalty
+    confidence = Math.max(completeness1, completeness2) * 2; // Low confidence
+    reason = `Heavy sparsity penalty applied (completeness: ${(completeness1*100).toFixed(1)}%, ${(completeness2*100).toFixed(1)}%)`;
+  } else if (Math.abs(completeness1 - completeness2) > 0.1) {
+    // Mismatched completeness levels
+    const normalizedDistance = Math.min(weightedDistance / adaptiveMaxDistance, 1);
+    const completenessGap = Math.abs(completeness1 - completeness2);
+    const gapPenalty = 1 - (completenessGap * 0.5); // Reduce similarity for large gaps
+    adjustedSimilarity = (1 - normalizedDistance) * gapPenalty;
+    confidence = 1 - completenessGap; // Lower confidence for mismatched profiles
+    reason = `Completeness gap penalty (gap: ${(completenessGap*100).toFixed(1)}%)`;
+  } else {
+    // Good data quality - use weighted calculation
+    const normalizedDistance = Math.min(weightedDistance / adaptiveMaxDistance, 1);
+    adjustedSimilarity = (1 - normalizedDistance) * sparsityPenalty;
+    confidence = Math.min((completeness1 + completeness2) / 2 * 2, 1.0); // Higher confidence for complete profiles
+    reason = `Weighted calculation with good data quality`;
+  }
+
+  if (enableDetailedLogging) {
+    log(`\n📊 === COMPLETENESS ANALYSIS ===`);
+    log(`🔗 Data overlap: ${overlap.commonElements}/${overlap.totalElements} elements (${(overlap.overlapRatio*100).toFixed(1)}%)`);
+    log(`📉 Sparsity penalty: ${sparsityPenalty.toFixed(3)}`);
+    log(`📏 Adaptive max distance: ${adaptiveMaxDistance.toFixed(3)} (vs standard ${Math.sqrt(137).toFixed(3)})`);
+    log(`⚖️ Weighted distance: ${weightedDistance.toFixed(3)} (vs unweighted ${distance.toFixed(3)})`);
+  }
+
+  return {
+    weightedSimilarity: Math.max(0, Math.min(1, adjustedSimilarity)), // Clamp to [0,1]
+    confidenceScore: Math.max(0, Math.min(1, confidence)), // Clamp to [0,1]
+    reason: reason
+  };
 }
 
 /**
  * Get cached similarity or calculate and cache it
  */
-async function getCachedSimilarity(userId1, userId2, vector1, vector2, version1, version2) {
+async function getCachedSimilarity(userId1, userId2, vector1, vector2, version1, version2, completeness1 = null, completeness2 = null) {
   try {
     // Check if similarity is already cached
     const { data: cached, error: cacheError } = await supabase
       .from('user_similarity_cache_knn')
-      .select('euclidean_distance, similarity_score')
+      .select('jaccard_similarity')
       .or(`and(user_id_1.eq.${userId1},user_id_2.eq.${userId2}),and(user_id_1.eq.${userId2},user_id_2.eq.${userId1})`)
       .single();
 
     if (!cacheError && cached) {
       return {
-        distance: cached.euclidean_distance,
-        similarity: cached.similarity_score,
+        similarity: cached.jaccard_similarity,
         fromCache: true
       };
     }
 
     // Calculate new similarity with detailed logging
-    log(`\n🚀 === FRESH SIMILARITY CALCULATION ===`);
+    log(`\n🚀 === FRESH JACCARD SIMILARITY CALCULATION ===`);
     log(`👥 Users: ${userId1} vs ${userId2}`);
 
     // Display both user vectors for comparison
     displayUserVector(vector1, userId1);
     displayUserVector(vector2, userId2);
 
-    const distance = calculateEuclideanDistance(vector1, vector2, userId1, userId2, true);
-    const similarity = distanceToSimilarity(distance, Math.sqrt(137), true);
+    const similarity = calculateJaccardSimilarity(vector1, vector2, userId1, userId2, true);
 
     // Cache the result (ensure consistent ordering: smaller ID first)
     const [smallerId, largerId] = userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
@@ -288,8 +359,7 @@ async function getCachedSimilarity(userId1, userId2, vector1, vector2, version1,
       .upsert({
         user_id_1: smallerId,
         user_id_2: largerId,
-        euclidean_distance: distance,
-        similarity_score: similarity,
+        jaccard_similarity: similarity,
         vector_version_1: smallerVersion,
         vector_version_2: largerVersion
       }, {
@@ -297,7 +367,6 @@ async function getCachedSimilarity(userId1, userId2, vector1, vector2, version1,
       });
 
     return {
-      distance,
       similarity,
       fromCache: false
     };
@@ -305,9 +374,8 @@ async function getCachedSimilarity(userId1, userId2, vector1, vector2, version1,
   } catch (error) {
     // Fallback to direct calculation if caching fails
     logError('Cache operation failed, falling back to direct calculation:', error);
-    const distance = calculateEuclideanDistance(vector1, vector2, userId1, userId2, false); // Disable detailed logging for fallback
-    const similarity = distanceToSimilarity(distance, Math.sqrt(137), false);
-    return { distance, similarity, fromCache: false };
+    const similarity = calculateJaccardSimilarity(vector1, vector2, userId1, userId2, false); // Disable detailed logging for fallback
+    return { similarity, fromCache: false };
   }
 }
 
@@ -335,7 +403,7 @@ async function findKNearestNeighbors(userId, k = 10) {
       .from('user_vectors_knn')
       .select('user_id, vector_data, completeness_score, vector_version')
       .neq('user_id', userId)
-      .gte('completeness_score', 0.05); // Temporarily lowered for testing - consider users with basic completeness
+      .gte('completeness_score', 0.005); // Lowered for testing with minimal user data - consider users with very basic completeness
 
     if (error) throw error;
 
@@ -357,14 +425,15 @@ async function findKNearestNeighbors(userId, k = 10) {
         userVector.vector_data,
         otherUser.vector_data,
         userVector.vector_version,
-        otherUser.vector_version
+        otherUser.vector_version,
+        userVector.completeness_score,
+        otherUser.completeness_score
       );
 
       if (result.fromCache) cacheHits++;
 
       distances.push({
         userId: otherUser.user_id,
-        distance: result.distance,
         similarity: result.similarity,
         completenessScore: otherUser.completeness_score
       });
@@ -372,8 +441,8 @@ async function findKNearestNeighbors(userId, k = 10) {
 
     log(`Cache hits: ${cacheHits}/${otherVectors.length} (${Math.round(cacheHits/otherVectors.length*100)}%)`);
 
-    // Sort by distance (ascending) and take top K
-    distances.sort((a, b) => a.distance - b.distance);
+    // Sort by similarity (descending) and take top K
+    distances.sort((a, b) => b.similarity - a.similarity);
     const kNearest = distances.slice(0, k);
 
     // Enhanced logging for K nearest neighbors results
@@ -387,8 +456,7 @@ async function findKNearestNeighbors(userId, k = 10) {
       const rank = index + 1;
       const similarityPercent = (neighbor.similarity * 100).toFixed(1);
       log(`   ${rank}. User ${neighbor.userId}:`);
-      log(`      Distance: ${neighbor.distance.toFixed(6)}`);
-      log(`      Similarity: ${neighbor.similarity.toFixed(6)} (${similarityPercent}%)`);
+      log(`      Jaccard Similarity: ${neighbor.similarity.toFixed(6)} (${similarityPercent}%)`);
       log(`      Completeness: ${(neighbor.completenessScore * 100).toFixed(1)}%`);
     });
 
@@ -653,13 +721,145 @@ async function clearAllKNNCaches(userId) {
   }
 }
 
+/**
+ * Calculate data overlap between two vectors
+ * Returns overlap statistics for similarity confidence assessment
+ */
+function calculateDataOverlap(vector1, vector2) {
+  let commonElements = 0;
+  let totalElements = 0;
+  let vector1Elements = 0;
+  let vector2Elements = 0;
+
+  for (let i = 0; i < vector1.length; i++) {
+    const hasData1 = vector1[i] > 0;
+    const hasData2 = vector2[i] > 0;
+
+    if (hasData1) vector1Elements++;
+    if (hasData2) vector2Elements++;
+
+    if (hasData1 || hasData2) {
+      totalElements++;
+      if (hasData1 && hasData2) {
+        commonElements++;
+      }
+    }
+  }
+
+  const overlapRatio = totalElements > 0 ? commonElements / totalElements : 0;
+
+  return {
+    commonElements,
+    totalElements,
+    vector1Elements,
+    vector2Elements,
+    overlapRatio
+  };
+}
+
+/**
+ * Calculate sparsity penalty based on profile completeness
+ * Reduces similarity for comparisons between very sparse profiles
+ */
+function calculateSparsityPenalty(completeness1, completeness2) {
+  const avgCompleteness = (completeness1 + completeness2) / 2;
+  const minCompleteness = Math.min(completeness1, completeness2);
+
+  // Heavy penalty for very sparse profiles
+  if (avgCompleteness < 0.05) {
+    return 0.3; // 70% penalty
+  } else if (avgCompleteness < 0.1) {
+    return 0.5; // 50% penalty
+  } else if (minCompleteness < 0.05) {
+    return 0.7; // 30% penalty for mismatched completeness
+  } else {
+    return Math.min(1.0, avgCompleteness * 2); // Gradual improvement with completeness
+  }
+}
+
+/**
+ * Calculate adaptive max distance based on actual data overlap
+ * Adjusts normalization based on how much data is actually comparable
+ */
+function calculateAdaptiveMaxDistance(vector1, vector2) {
+  const overlap = calculateDataOverlap(vector1, vector2);
+
+  // If very little overlap, use smaller max distance
+  if (overlap.overlapRatio < 0.1) {
+    return Math.sqrt(overlap.totalElements || 1);
+  } else if (overlap.overlapRatio < 0.3) {
+    return Math.sqrt(overlap.totalElements * 2);
+  } else {
+    // Use standard max distance for good overlap
+    return Math.sqrt(137);
+  }
+}
+
+/**
+ * Calculate weighted distance using component importance
+ * Gives different weights to different vector components
+ */
+function calculateWeightedDistance(vector1, vector2, componentWeights, enableDetailedLogging = false) {
+  let weightedSum = 0;
+  let totalWeight = 0;
+
+  // Define component ranges
+  const components = [
+    { name: 'sports', start: 0, end: 33, weight: componentWeights.sports },
+    { name: 'faculty', start: 33, end: 40, weight: componentWeights.faculty },
+    { name: 'campus', start: 40, end: 53, weight: componentWeights.campus },
+    { name: 'gender', start: 53, end: 57, weight: componentWeights.gender },
+    { name: 'playStyle', start: 57, end: 59, weight: componentWeights.playStyle },
+    { name: 'timeSlots', start: 59, end: 108, weight: componentWeights.timeSlots },
+    { name: 'facilities', start: 108, end: 137, weight: componentWeights.facilities }
+  ];
+
+  if (enableDetailedLogging) {
+    log(`\n⚖️ === WEIGHTED DISTANCE CALCULATION ===`);
+  }
+
+  for (const component of components) {
+    let componentSum = 0;
+    let componentElements = 0;
+
+    for (let i = component.start; i < component.end; i++) {
+      const diff = vector1[i] - vector2[i];
+      componentSum += diff * diff;
+      componentElements++;
+    }
+
+    const componentDistance = Math.sqrt(componentSum);
+    const weightedComponentDistance = componentDistance * component.weight;
+    weightedSum += weightedComponentDistance * weightedComponentDistance;
+    totalWeight += component.weight * component.weight;
+
+    if (enableDetailedLogging) {
+      log(`${component.name}: distance=${componentDistance.toFixed(3)}, weight=${component.weight}, weighted=${weightedComponentDistance.toFixed(3)}`);
+    }
+  }
+
+  const finalDistance = Math.sqrt(weightedSum);
+
+  if (enableDetailedLogging) {
+    log(`Final weighted distance: ${finalDistance.toFixed(6)}`);
+  }
+
+  return finalDistance;
+}
+
+
+
 export {
   getKNNRecommendations,
   findKNearestNeighbors,
-  calculateEuclideanDistance,
-  distanceToSimilarity,
+  calculateJaccardSimilarity,
   generateUserSimilarityExplanation,
   generateDetailedSimilarityBreakdown,
   clearKNNCache,
-  clearAllKNNCaches
+  clearAllKNNCaches,
+  // Legacy helper functions (kept for compatibility)
+  calculateDataOverlap,
+  calculateSparsityPenalty,
+  calculateAdaptiveMaxDistance,
+  calculateWeightedDistance
 };
