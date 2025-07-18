@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Typography, CircularProgress, Skeleton, Alert, Paper, Button, Grid, Snackbar, AlertTitle, Chip, IconButton, Tooltip } from '@mui/material';
 import EnhancedRecommendationCard from './EnhancedRecommendationCard';
-import { getRecommendations, clearCache, invalidateUserCache } from '../services/simplifiedRecommendationService';
+import { getRecommendations } from '../services/unifiedRecommendationService';
+import { clearCache, invalidateUserCache } from '../services/simplifiedRecommendationService';
+import { clearKNNCache, clearAllKNNCaches } from '../services/knnRecommendationService';
+import { clearUserRecommendationCache } from '../services/userRecommendationService';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../services/supabase';
 
@@ -355,11 +358,13 @@ const RecommendationsList = React.memo(({ limit = 5, onError = () => {} }) => {
   }, []);
 
   // Event handlers optimized with useCallback (moved outside useEffect to fix hook rules)
-  const handleUserPreferenceUpdate = useCallback(() => {
+  const handleUserPreferenceUpdate = useCallback(async () => {
     if (import.meta.env.DEV) {
       console.log('[RecommendationsList] User preferences updated, refreshing recommendations');
     }
-    invalidateUserCache(user.id);
+    invalidateUserCache(user.id); // Clear simplified recommendation cache
+    await clearAllKNNCaches(user.id); // Clear BOTH in-memory AND database KNN caches
+    clearUserRecommendationCache(); // Clear user recommendation cache for user discovery
     fetchRecommendations();
   }, [user.id, fetchRecommendations]);
 

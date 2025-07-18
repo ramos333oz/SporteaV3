@@ -48,6 +48,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../contexts/ToastContext';
+import UserRecommendationTrigger from '../components/UserRecommendations/UserRecommendationTrigger';
 import { friendshipService, supabase } from '../services/supabase';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -740,16 +741,25 @@ const Friends = () => {
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
-          <Button 
-            size="small" 
-            sx={{ ml: 2 }} 
+          <Button
+            size="small"
+            sx={{ ml: 2 }}
             onClick={fetchFriends}
           >
             Retry
           </Button>
         </Alert>
       )}
-      
+
+      {/* User Recommendation System - Instagram-style user discovery */}
+      <Box sx={{ mb: 4 }}>
+        <UserRecommendationTrigger
+          variant="card"
+          className="w-full"
+          showBadge={true}
+        />
+      </Box>
+
       <Paper sx={{ mb: 4 }}>
         <Tabs
           value={activeTab}

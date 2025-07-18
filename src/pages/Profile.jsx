@@ -117,20 +117,41 @@ const getSkillLevelColor = (level) => {
   return levelColors[level] || 'default';
 };
 
-// Format time for display
+// Time slot mapping for display
+const TIME_SLOT_LABELS = {
+  '9-11': '9:00 AM - 11:00 AM',
+  '11-13': '11:00 AM - 1:00 PM',
+  '13-15': '1:00 PM - 3:00 PM',
+  '15-17': '3:00 PM - 5:00 PM',
+  '17-19': '5:00 PM - 7:00 PM',
+  '19-21': '7:00 PM - 9:00 PM',
+  '21-23': '9:00 PM - 11:00 PM',
+};
+
+// Format time for display - handles both old format (objects) and new format (strings)
 const formatTimeRange = (range) => {
   if (!range) return '';
-  
-  const formatTime = (timeStr) => {
-    if (!timeStr) return '';
-    const [hours, minutes] = timeStr.split(':');
-    const hour = parseInt(hours, 10);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const hour12 = hour % 12 || 12;
-    return `${hour12}:${minutes} ${ampm}`;
-  };
-  
-  return `${formatTime(range.start)} - ${formatTime(range.end)}`;
+
+  // New format - time slot ID
+  if (typeof range === 'string' && TIME_SLOT_LABELS[range]) {
+    return TIME_SLOT_LABELS[range];
+  }
+
+  // Old format - object with start/end times
+  if (typeof range === 'object' && range.start && range.end) {
+    const formatTime = (timeStr) => {
+      if (!timeStr) return '';
+      const [hours, minutes] = timeStr.split(':');
+      const hour = parseInt(hours, 10);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const hour12 = hour % 12 || 12;
+      return `${hour12}:${minutes} ${ampm}`;
+    };
+
+    return `${formatTime(range.start)} - ${formatTime(range.end)}`;
+  }
+
+  return '';
 };
 
 // Format day name

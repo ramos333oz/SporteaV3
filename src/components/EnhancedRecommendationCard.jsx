@@ -185,6 +185,31 @@ const EnhancedRecommendationCard = React.memo(({
   const getPreferenceFactors = () => {
     const factors = [];
 
+    // KNN User Similarity System (TEMPLATE.md methodology)
+    if (recommendation.knn_user_similarity_score !== undefined) {
+      const userSimilarityPercentage = Math.round(recommendation.knn_user_similarity_score * 100);
+      const creatorName = recommendation.users?.name || 'Another user';
+
+      factors.push({
+        icon: <SportsScore color="primary" />,
+        label: 'User Similarity Match',
+        description: `${creatorName} has ${userSimilarityPercentage}% similar preferences and created this match`,
+        score: recommendation.knn_user_similarity_score || 0,
+        weight: '100%',
+        color: 'primary',
+        system: 'K-Nearest Neighbors User Recommendation (TEMPLATE.md)',
+        systemColor: '#1976d2',
+        mathematical: {
+          formula: 'User Euclidean Distance = √[(x₁-y₁)² + (x₂-y₂)² + ... + (x₁₄₂-y₁₄₂)²]',
+          vectorDimensions: 142,
+          userDistance: recommendation.knn_user_distance?.toFixed(4) || 'N/A',
+          userSimilarity: recommendation.knn_user_similarity_score?.toFixed(4) || 'N/A',
+          methodology: 'Find similar users, recommend their matches',
+          recommendationType: 'User similarity-based recommendation'
+        }
+      });
+    }
+
     // Enhanced weighted cosine similarity system (academic demonstration)
     if (similarity_score !== undefined && similarity_percentage !== undefined) {
       factors.push({

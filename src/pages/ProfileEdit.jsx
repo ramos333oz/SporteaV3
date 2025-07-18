@@ -26,7 +26,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { userService, locationService } from '../services/supabase';
-import recommendationServiceV3 from '../services/recommendationServiceV3';
+// Legacy recommendationServiceV3 removed - now using unifiedRecommendationService
 import { useToast } from '../contexts/ToastContext';
 import PhotoCamera from '@mui/icons-material/PhotoCamera';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -44,6 +44,8 @@ import CakeIcon from '@mui/icons-material/Cake';
 import ProfilePreferences from '../components/ProfilePreferences';
 import { subYears, isAfter, isBefore } from 'date-fns';
 import { invalidateUserCache } from '../services/simplifiedRecommendationService';
+import { clearKNNCache, clearAllKNNCaches } from '../services/knnRecommendationService';
+import { clearUserRecommendationCache } from '../services/userRecommendationService';
 
 // Map sport names to their respective icons (same as in Profile.jsx)
 const getSportIcon = (sportName) => {
@@ -501,16 +503,36 @@ const ProfileEdit = () => {
   // Extract available times from the available_hours object structure
   const extractAvailableTimes = (availableHours) => {
     if (!availableHours) return [];
-    
+
     // Skip if it's already in the right format
     if (availableHours.available_times) return availableHours.available_times;
-    
+
     const availableTimes = [];
+
+    // Time slot mapping for conversion
+    const timeSlotMap = {
+      '9-11': { start: '09:00', end: '11:00' },
+      '11-13': { start: '11:00', end: '13:00' },
+      '13-15': { start: '13:00', end: '15:00' },
+      '15-17': { start: '15:00', end: '17:00' },
+      '17-19': { start: '17:00', end: '19:00' },
+      '19-21': { start: '19:00', end: '21:00' },
+      '21-23': { start: '21:00', end: '23:00' },
+    };
+
     // Process each day's time slots
     Object.keys(availableHours).forEach(day => {
       if (Array.isArray(availableHours[day])) {
         availableHours[day].forEach(timeSlot => {
-          if (timeSlot.start && timeSlot.end) {
+          if (typeof timeSlot === 'string' && timeSlotMap[timeSlot]) {
+            // New format - time slot IDs
+            availableTimes.push({
+              day,
+              start: timeSlotMap[timeSlot].start,
+              end: timeSlotMap[timeSlot].end
+            });
+          } else if (timeSlot.start && timeSlot.end) {
+            // Old format - start/end times
             availableTimes.push({
               day,
               start: timeSlot.start,
@@ -520,36 +542,56 @@ const ProfileEdit = () => {
         });
       }
     });
-    
+
     return availableTimes;
   };
   
   // Process available hours from database format to component format
   const processAvailableHours = (availableHours) => {
     if (!availableHours) return {};
-    
+
     console.log("Processing available hours:", availableHours);
-    
-    // If there are no available_times, return as is
+
+    // Time slot mapping for conversion from start/end times to slot IDs
+    const timeToSlotMap = {
+      '09:00-11:00': '9-11',
+      '11:00-13:00': '11-13',
+      '13:00-15:00': '13-15',
+      '15:00-17:00': '15-17',
+      '17:00-19:00': '17-19',
+      '19:00-21:00': '19-21',
+      '21:00-23:00': '21-23',
+    };
+
+    // If there are no available_times, return as is (might be new format already)
     if (!availableHours.available_times || !Array.isArray(availableHours.available_times) || availableHours.available_times.length === 0) {
       return availableHours;
     }
-    
-    // Convert from array format to day-based object format
+
+    // Convert from array format to day-based object format with time slot IDs
     const processedHours = {};
-    
+
     availableHours.available_times.forEach(timeSlot => {
       const { day, start, end } = timeSlot;
-      
+
       if (!day || !start || !end) return;
-      
+
       if (!processedHours[day]) {
         processedHours[day] = [];
       }
-      
-      processedHours[day].push({ start, end });
+
+      // Convert start/end times to time slot ID
+      const timeKey = `${start}-${end}`;
+      const slotId = timeToSlotMap[timeKey];
+
+      if (slotId) {
+        processedHours[day].push(slotId);
+      } else {
+        // Fallback for non-standard time ranges - keep as object
+        processedHours[day].push({ start, end });
+      }
     });
-    
+
     console.log("Processed hours:", processedHours);
     return processedHours;
   };
@@ -653,8 +695,10 @@ const ProfileEdit = () => {
       
       // Invalidate recommendation cache since user preferences changed
       try {
-        invalidateUserCache(user.id);
-        console.log('Recommendation cache invalidated after profile update');
+        invalidateUserCache(user.id); // Clear simplified recommendation cache
+        await clearAllKNNCaches(user.id); // Clear BOTH in-memory AND database KNN caches
+        clearUserRecommendationCache(); // Clear user recommendation cache for user discovery
+        console.log('All recommendation caches invalidated after profile update');
 
         // Dispatch custom event to notify other components
         window.dispatchEvent(new CustomEvent('sportea:user-preferences-updated', {

@@ -98,7 +98,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useAchievements } from "../../hooks/useAchievements";
 import { participantService } from "../../services/supabase";
 import { XP_VALUES } from "../../services/achievementService";
-import recommendationServiceV3 from "../../services/recommendationServiceV3";
+// Legacy recommendationServiceV3 removed - now using unifiedRecommendationService
 import interactionService from "../../services/interactionService";
 import { useNavigate } from "react-router-dom";
 import RecommendationsList from "../../components/RecommendationsList";
