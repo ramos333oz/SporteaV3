@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Typography, 
-  TextField, 
-  Button, 
-  Paper, 
+import {
+  Box,
+  Typography,
+  Paper,
   Link,
   Container,
   CircularProgress,
@@ -15,6 +13,9 @@ import {
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../services/supabase';
+import { SporteaButton } from '../components/common/SporteaButton';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -280,33 +281,41 @@ const Login = () => {
         )}
         
         <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            id="email"
-            label="Email Address"
-            name="email"
-            autoComplete="email"
-            autoFocus
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="student@student.uitm.edu.my"
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            name="password"
-            label="Password"
-            type="password"
-            id="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            sx={{ mb: 1 }}
-          />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium">
+                Email Address *
+              </Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                autoFocus
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="student@student.uitm.edu.my"
+                className="w-full"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium">
+                Password *
+              </Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full"
+              />
+            </div>
+          </div>
           
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <FormControlLabel
@@ -329,16 +338,16 @@ const Login = () => {
             </Link>
           </Box>
           
-          <Button
+          <SporteaButton
             type="submit"
-            fullWidth
-            variant="contained"
-            size="large"
+            sport="athletic"
+            intensity="bold"
+            size="lg"
             disabled={isLoading}
-            sx={{ mb: 2, height: 48 }}
+            className="w-full mb-4 h-12"
           >
             {isLoading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
-          </Button>
+          </SporteaButton>
           
           <Box sx={{ textAlign: 'center', mt: 2 }}>
             <Typography variant="body1">

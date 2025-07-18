@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Paper, 
+import {
+  Box,
+  Typography,
+  Paper,
   Grid,
-  Card,
-  CardContent,
-  CardActions,
   Avatar,
   Button,
   Chip,
@@ -22,6 +19,8 @@ import {
   Snackbar,
   Alert
 } from '@mui/material';
+import { UserCard } from '../../components/common/SporteaCard';
+import { AddFriendButton, ViewProfileButton } from '../../components/common/SporteaButton';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import SportsBasketballIcon from '@mui/icons-material/SportsBasketball';
 import SportsTennisIcon from '@mui/icons-material/SportsTennis';
@@ -659,62 +658,42 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
             <Grid container spacing={3}>
               {filteredPlayers.map(player => (
                 <Grid item xs={12} sm={6} md={4} key={player.id}>
-                  <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                    <CardContent sx={{ flexGrow: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <Avatar 
-                          src={player.avatar_url} 
-                          alt={player.full_name || player.username}
-                          sx={{ width: 50, height: 50 }}
-                        >
-                          {(player.full_name?.[0] || player.username?.[0] || '?').toUpperCase()}
-                        </Avatar>
-                        <Box sx={{ ml: 2 }}>
-                          <Typography variant="h6" component="div" noWrap>
-                            {player.full_name || player.username || 'Anonymous User'}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" noWrap>
-                            {player.username ? `@${player.username}` : ''}
-                            {player.faculty && player.campus ? ` • ${player.faculty}, ${player.campus}` : 
-                             player.faculty ? ` • ${player.faculty}` : 
-                             player.campus ? ` • ${player.campus}` : ''}
-                          </Typography>
-                        </Box>
+                  <UserCard
+                    user={{
+                      name: player.full_name || player.username || 'Anonymous User',
+                      profilePicture: player.avatar_url,
+                      faculty: player.faculty && player.campus ? `${player.faculty}, ${player.campus}` :
+                               player.faculty ? player.faculty :
+                               player.campus ? player.campus : '',
+                      skillLevel: player.sport_preferences &&
+                                 player.sport_preferences.length > 0 &&
+                                 player.skill_levels ?
+                                 renderSkillLevel(player.skill_levels, player.sport_preferences[0]) : '',
+                      status: player.username ? `@${player.username}` : ''
+                    }}
+                    actions={
+                      <Box className="flex space-x-2">
+                        {renderFriendshipButton(player.id)}
+                        <ViewProfileButton
+                          size="sm"
+                          onClick={() => handleViewProfile(player.id)}
+                        />
                       </Box>
-                      
+                    }
+                    className="h-full"
+                  />
+
+                  {/* Additional info section */}
+                  {(player.bio || player.sport_preferences) && (
+                    <Box className="mt-2 p-3 bg-gray-50 rounded-lg">
                       {player.bio && (
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        <Typography variant="body2" color="text.secondary" className="mb-2">
                           {player.bio.length > 100 ? `${player.bio.substring(0, 100)}...` : player.bio}
                         </Typography>
                       )}
-                      
-                      <Divider sx={{ my: 1 }} />
-                      
-                      {renderSportPreferences(player.sport_preferences)}
-                      
-                      {player.sport_preferences && 
-                       player.sport_preferences.length > 0 && 
-                       player.skill_levels && 
-                       renderSkillLevel(player.skill_levels, player.sport_preferences[0])}
-                    </CardContent>
-                    
-                    <CardActions sx={{ p: 2, pt: 0 }}>
-                      <Grid container spacing={1}>
-                        <Grid item xs={7}>
-                          {renderFriendshipButton(player.id)}
-                        </Grid>
-                        <Grid item xs={5}>
-                          <Button 
-                            variant="outlined"
-                            onClick={() => handleViewProfile(player.id)}
-                            fullWidth
-                          >
-                            View Profile
-                          </Button>
-                        </Grid>
-                      </Grid>
-                    </CardActions>
-                  </Card>
+                      {player.sport_preferences && renderSportPreferences(player.sport_preferences)}
+                    </Box>
+                  )}
                 </Grid>
               ))}
             </Grid>

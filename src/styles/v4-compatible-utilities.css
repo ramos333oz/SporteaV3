@@ -1,0 +1,164 @@
+/* 
+ * v4-Compatible Utility Patterns
+ * These patterns will work in both v3 and v4
+ */
+
+/* ✅ v4-Compatible: CSS Custom Properties */
+@layer utilities {
+  /* Sportea-specific utilities using CSS variables */
+  .sportea-bg-primary {
+    background-color: hsl(var(--primary));
+  }
+  
+  .sportea-text-primary {
+    color: hsl(var(--primary));
+  }
+  
+  .sportea-border-primary {
+    border-color: hsl(var(--primary));
+  }
+  
+  /* Athletic gradient utilities */
+  .sportea-gradient-athletic {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8));
+  }
+  
+  .sportea-gradient-card {
+    background: linear-gradient(145deg, hsl(var(--card)), hsl(var(--card) / 0.95));
+  }
+  
+  /* Spacing utilities using design tokens */
+  .sportea-spacing-section {
+    padding: var(--section-spacing);
+  }
+  
+  .sportea-spacing-card {
+    padding: var(--card-padding);
+  }
+  
+  .sportea-spacing-form {
+    gap: var(--form-spacing);
+  }
+  
+  /* Shadow utilities */
+  .sportea-shadow-card {
+    box-shadow: var(--shadow-md);
+  }
+  
+  .sportea-shadow-elevated {
+    box-shadow: var(--shadow-lg);
+  }
+  
+  /* Border radius utilities */
+  .sportea-radius-card {
+    border-radius: var(--radius-xl);
+  }
+  
+  .sportea-radius-button {
+    border-radius: var(--radius);
+  }
+  
+  /* Transition utilities */
+  .sportea-transition-standard {
+    transition: var(--transition-normal);
+  }
+  
+  .sportea-transition-fast {
+    transition: var(--transition-fast);
+  }
+}
+
+/* ✅ v4-Compatible: Component Utilities */
+@layer components {
+  /* Button base - compatible with both v3 and v4 */
+  .sportea-btn-base {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap;
+    @apply transition-all disabled:pointer-events-none disabled:opacity-50;
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-primary/50;
+    border-radius: var(--radius);
+    font-weight: 500;
+  }
+  
+  /* Card base - compatible with both v3 and v4 */
+  .sportea-card-base {
+    background-color: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+  }
+  
+  /* Input base - compatible with both v3 and v4 */
+  .sportea-input-base {
+    @apply flex w-full border border-input bg-background px-3 py-2;
+    @apply text-sm ring-offset-background file:border-0 file:bg-transparent;
+    @apply file:text-sm file:font-medium placeholder:text-muted-foreground;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+    @apply focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    border-radius: var(--radius);
+  }
+}
+
+/* ✅ v4-Ready: Animation Utilities */
+@layer utilities {
+  .sportea-animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .sportea-animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .sportea-animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ✅ v4-Compatible: Responsive Utilities */
+@layer utilities {
+  /* Mobile-first responsive patterns */
+  .sportea-grid-responsive {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  @media (min-width: 768px) {
+    .sportea-grid-responsive {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .sportea-grid-responsive {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+}

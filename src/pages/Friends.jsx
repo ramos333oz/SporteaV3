@@ -16,8 +16,6 @@ import {
   InputAdornment,
   IconButton,
   Divider,
-  Card,
-  CardContent,
   Grid,
   CircularProgress,
   Alert,
@@ -52,6 +50,8 @@ import UserRecommendationTrigger from '../components/UserRecommendations/UserRec
 import { friendshipService, supabase } from '../services/supabase';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { UserCard, SporteaCard } from '../components/common/SporteaCard';
+import { ViewProfileButton, AddFriendButton, BlockUserButton } from '../components/common/SporteaButton';
 
 const FriendsList = ({ friends, onRemoveFriend, onBlockUser }) => {
   if (friends.length === 0) {
@@ -65,47 +65,42 @@ const FriendsList = ({ friends, onRemoveFriend, onBlockUser }) => {
   }
 
   return (
-    <List>
+    <Box className="space-y-4">
       {friends.map((friend) => (
-        <Paper key={friend.id} elevation={1} sx={{ mb: 2, borderRadius: 2 }}>
-          <ListItem
-            secondaryAction={
-              <Box>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  size="small"
-                  startIcon={<PersonRemoveIcon />}
-                  onClick={() => onRemoveFriend(friend)}
-                  sx={{ mr: 1 }}
-                >
-                  Remove
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="warning"
-                  size="small"
-                  startIcon={<BlockIcon />}
-                  onClick={() => onBlockUser(friend)}
-                >
-                  Block
-                </Button>
-              </Box>
-            }
-          >
-            <ListItemAvatar>
-              <Avatar src={friend.avatar_url} alt={friend.full_name || friend.username}>
-                {(friend.full_name || friend.username || 'U').charAt(0)}
-              </Avatar>
-            </ListItemAvatar>
-            <ListItemText
-              primary={friend.full_name || friend.username || friend.email}
-              secondary={`Friends since ${format(new Date(friend.created_at), 'MMM d, yyyy')}`}
-            />
-          </ListItem>
-        </Paper>
+        <UserCard
+          key={friend.id}
+          user={{
+            name: friend.full_name || friend.username || friend.email,
+            profilePicture: friend.avatar_url,
+            faculty: `Friends since ${format(new Date(friend.created_at), 'MMM d, yyyy')}`,
+            status: friend.status || 'Active'
+          }}
+          actions={
+            <Box className="flex space-x-2">
+              <ViewProfileButton
+                size="sm"
+                onClick={() => {/* Handle view profile */}}
+              />
+              <BlockUserButton
+                size="sm"
+                onClick={() => onBlockUser(friend)}
+              />
+              <Button
+                variant="outlined"
+                color="error"
+                size="small"
+                startIcon={<PersonRemoveIcon />}
+                onClick={() => onRemoveFriend(friend)}
+                className="text-xs"
+              >
+                Remove
+              </Button>
+            </Box>
+          }
+          className="mb-2"
+        />
       ))}
-    </List>
+    </Box>
   );
 };
 

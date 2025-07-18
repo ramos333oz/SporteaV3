@@ -1,5 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+/* ✅ v4 CSS Import (uncomment when migrating) */
+/* @import "tailwindcss"; */
+
+/* ❌ v3 Directives (comment out when migrating to v4) */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ✅ v4-Compatible Utilities - moved after Tailwind directives */
+
 :root {
-  /* Color Variables */
+  /* Sportea Brand Colors (Legacy - for migration) */
   --primary-maroon: #8A1538;
   --secondary-maroon-light: #B52E4C;
   --secondary-maroon-pale: #F9EBEE;
@@ -12,8 +24,8 @@
   --background-white: #FFFFFF;
   --background-light: #F5F7F9;
   --background-dark: #1A1A1A;
-  
-  /* Font Sizes */
+
+  /* Font Sizes (Legacy) */
   --font-h1: 28px;
   --font-h2: 24px;
   --font-h3: 20px;
@@ -22,14 +34,173 @@
   --font-body-small: 13px;
   --font-caption: 12px;
   --font-button: 16px;
-  
-  /* Spacing System */
+
+  /* Spacing System (Legacy) */
   --spacing-micro: 4px;
   --spacing-small: 8px;
   --spacing-default: 16px;
   --spacing-medium: 24px;
   --spacing-large: 32px;
   --spacing-xl: 48px;
+
+  /* shadcn/ui Design Tokens - Mural-Inspired Theme */
+  --background: 0 0% 98%;    /* Clean white #FAFAFA */
+  --foreground: 0 0% 13%;    /* Dark gray #202124 */
+  --card: 0 0% 100%;         /* Pure white #FFFFFF */
+  --card-foreground: 0 0% 13%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 13%;
+  --primary: 351 100% 62%;   /* Mural brand red #FF4757 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 17% 98%;  /* Light gray #F8F9FA */
+  --secondary-foreground: 0 0% 37%;
+  --muted: 210 17% 98%;
+  --muted-foreground: 0 0% 62%;  /* Medium gray #9AA0A6 */
+  --accent: 210 17% 98%;     /* Light gray accent #F8F9FA */
+  --accent-foreground: 0 0% 37%;
+  --destructive: 0 84% 60%;  /* Error red #E74C3C */
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 13% 91%;     /* Border gray #E8EAED */
+  --input: 220 13% 91%;
+  --ring: 351 100% 62%;      /* Primary focus ring */
+  --radius: 0.5rem;          /* 8px default radius */
+
+  /* Sportea Extended Design Tokens */
+  /* Athletic Blue Secondary */
+  --athletic-blue: 220 100% 35%;  /* #1E40AF */
+  --athletic-blue-light: 220 100% 50%;  /* #3B82F6 */
+  --athletic-blue-dark: 220 100% 25%;  /* #1E3A8A */
+
+  /* Success Green */
+  --success: 158 64% 52%;  /* #059669 */
+  --success-light: 158 64% 62%;  /* #10B981 */
+  --success-dark: 158 64% 42%;  /* #047857 */
+
+  /* Warning Orange */
+  --warning: 32 95% 44%;  /* #D97706 */
+  --warning-light: 32 95% 54%;  /* #F59E0B */
+  --warning-dark: 32 95% 34%;  /* #B45309 */
+
+  /* Error Red (Override destructive) */
+  --error: 0 74% 42%;  /* #DC2626 */
+  --error-light: 0 74% 52%;  /* #EF4444 */
+  --error-dark: 0 74% 32%;  /* #B91C1C */
+
+  /* Neutral Grays */
+  --gray-50: 210 20% 98%;   /* #F9FAFB */
+  --gray-100: 220 14% 96%;  /* #F3F4F6 */
+  --gray-200: 220 13% 91%;  /* #E5E7EB */
+  --gray-300: 216 12% 84%;  /* #D1D5DB */
+  --gray-400: 218 11% 65%;  /* #9CA3AF */
+  --gray-500: 220 9% 46%;   /* #6B7280 */
+  --gray-600: 220 14% 35%;  /* #4B5563 */
+  --gray-700: 215 25% 27%;  /* #374151 */
+  --gray-800: 217 33% 17%;  /* #1F2937 */
+  --gray-900: 222 84% 5%;   /* #111827 */
+
+  /* Typography Scale - Elegant Luxury Fonts */
+  --font-family-sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-serif: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
+  --font-family-mono: 'IBM Plex Mono', 'Fira Code', 'Consolas', monospace;
+  --font-size-xs: 0.75rem;     /* 12px */
+  --font-size-sm: 0.875rem;    /* 14px */
+  --font-size-base: 1rem;      /* 16px */
+  --font-size-lg: 1.125rem;    /* 18px */
+  --font-size-xl: 1.25rem;     /* 20px */
+  --font-size-2xl: 1.5rem;     /* 24px */
+  --font-size-3xl: 1.875rem;   /* 30px */
+  --font-size-4xl: 2.25rem;    /* 36px */
+  --font-size-5xl: 3rem;       /* 48px */
+
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* Spacing Scale (4px base unit) */
+  --space-0: 0;
+  --space-1: 0.25rem;    /* 4px */
+  --space-2: 0.5rem;     /* 8px */
+  --space-3: 0.75rem;    /* 12px */
+  --space-4: 1rem;       /* 16px */
+  --space-5: 1.25rem;    /* 20px */
+  --space-6: 1.5rem;     /* 24px */
+  --space-8: 2rem;       /* 32px */
+  --space-10: 2.5rem;    /* 40px */
+  --space-12: 3rem;      /* 48px */
+  --space-16: 4rem;      /* 64px */
+  --space-20: 5rem;      /* 80px */
+  --space-24: 6rem;      /* 96px */
+
+  /* Component Spacing */
+  --button-padding-sm: var(--space-2) var(--space-3);
+  --button-padding-md: var(--space-3) var(--space-4);
+  --button-padding-lg: var(--space-4) var(--space-6);
+  --card-padding: var(--space-4);
+  --card-padding-lg: var(--space-6);
+  --form-spacing: var(--space-4);
+  --section-spacing: var(--space-8);
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+
+  /* Border Radius */
+  --radius-none: 0;
+  --radius-sm: 0.125rem;   /* 2px */
+  --radius-md: 0.375rem;   /* 6px */
+  --radius-lg: 0.5rem;     /* 8px */
+  --radius-xl: 0.75rem;    /* 12px */
+  --radius-2xl: 1rem;      /* 16px */
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  --transition-normal: 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0.0, 0.2, 1);
+
+  /* Z-Index Scale */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+  --z-toast: 1080;
+}
+
+/* Dark Mode Theme - Mural-Inspired */
+.dark {
+  --background: 0 0% 13%;    /* Dark background #202124 */
+  --foreground: 0 0% 98%;    /* Light text #FAFAFA */
+  --card: 0 0% 15%;          /* Dark card #262626 */
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 15%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 351 100% 62%;   /* Same brand red #FF4757 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 20%;     /* Dark secondary #333333 */
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 20%;
+  --muted-foreground: 0 0% 62%;  /* Medium gray #9AA0A6 */
+  --accent: 0 0% 20%;        /* Dark accent #333333 */
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 84% 60%;  /* Error red #E74C3C */
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 25%;        /* Dark border #404040 */
+  --input: 0 0% 25%;
+  --ring: 351 100% 62%;      /* Primary focus ring */
 }
 
 * {
@@ -39,9 +210,9 @@
 }
 
 body {
-  font-family: 'Inter', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-  background-color: var(--background-light);
-  color: var(--dark-gray);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

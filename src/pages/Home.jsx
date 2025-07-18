@@ -1,34 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Container, 
-  Button, 
-  Grid, 
-  Paper, 
-  Card, 
-  CardContent,
-  Avatar,
-  Chip,
-  Divider,
-  CircularProgress,
-  Alert,
-  IconButton
-} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import { RefreshCw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useProductionRealtime } from '../hooks/useProductionRealtime';
+import { SporteaButton, HostMatchButton } from '../components/common/SporteaButton';
+import { SporteaCard } from '../components/common/SporteaCard';
 import { matchService, participantService } from '../services/supabase';
 import { format } from 'date-fns';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import PersonIcon from '@mui/icons-material/Person';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
-import EventIcon from '@mui/icons-material/Event';
 import LiveMatchBoard from '../components/LiveMatchBoard';
 import RecommendationsList from '../components/RecommendationsList';
-
 import EnhancedMatchCard from '../components/EnhancedMatchCard';
 import SportCard from '../components/SportCard';
 import { supabase } from '../services/supabase';
@@ -239,96 +220,143 @@ const Home = () => {
   }, [connectionState.isConnected]);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box>
-          <Typography variant="h1" component="h1" gutterBottom>
-            Welcome, {user?.user_metadata?.full_name || 'Athlete'}!
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
+    <div className="container mx-auto px-4 py-8">
+      {/* Header Section */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome, {user?.user_metadata?.full_name?.split(' ')[0] || 'Athlete'}!
+          </h1>
+          <p className="text-gray-600">
             Find matches, join games, and connect with fellow UiTM students.
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <IconButton color="primary" onClick={fetchUpcomingMatches} disabled={loading}>
-            <RefreshIcon />
-          </IconButton>
-        </Box>
-      </Box>
-      
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6}>
-          <Button 
-            variant="contained" 
-            fullWidth 
-            size="large"
-            sx={{ height: '80px', fontSize: '1.2rem' }}
-            onClick={() => navigate('/find')}
-          >
-            Find Games
-          </Button>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Button 
-            variant="outlined" 
-            fullWidth 
-            size="large"
-            sx={{ height: '80px', fontSize: '1.2rem' }}
-            onClick={() => navigate('/host')}
-          >
-            Host a Match
-          </Button>
-        </Grid>
-      </Grid>
+          </p>
+        </div>
+        <button
+          className={cn(
+            "p-2 rounded-md transition-all",
+            "hover:bg-gray-100 text-gray-500 hover:text-brand-primary",
+            "focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+          )}
+          onClick={fetchUpcomingMatches}
+          disabled={loading}
+          aria-label="Refresh"
+        >
+          <RefreshCw className={cn(
+            "w-5 h-5",
+            loading && "animate-spin"
+          )} />
+        </button>
+      </div>
 
-
+      {/* Action Buttons */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <SporteaButton
+          variant="athletic"
+          intensity="bold"
+          size="lg"
+          className="w-full h-20 text-xl"
+          onClick={() => navigate('/find')}
+        >
+          Find Games
+        </SporteaButton>
+        <HostMatchButton
+          className="w-full h-20 text-xl"
+          variant="outline"
+          onClick={() => navigate('/host')}
+        />
+      </div>
 
       {/* Live match board with real-time updates */}
-      <Box sx={{ mb: 4 }}>
+      <div className="mb-8">
         <LiveMatchBoard />
-        
-        <Box sx={{ textAlign: 'center', mt: 2 }}>
-          <Button 
-            variant="outlined" 
+
+        <div className="text-center mt-4">
+          <SporteaButton
+            variant="outline"
             onClick={() => navigate('/find')}
           >
             View All Matches
-          </Button>
-        </Box>
-      </Box>
-      
+          </SporteaButton>
+        </div>
+      </div>
+
       {/* Personalized match recommendations */}
-      <RecommendationsList 
+      <RecommendationsList
         limit={3}
         onError={(err) => console.error('Recommendation error:', err)}
       />
-      
+
       {/* Popular sports section */}
-      <Box sx={{ mb: 4, mt: 6 }}>
-        <Typography variant="h2" gutterBottom>
+      <div className="mb-8 mt-12">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">
           Popular Sports
-        </Typography>
-        <Grid container spacing={3}>
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {popularSports.map((sport) => (
-            <Grid item xs={12} sm={6} md={3} key={sport.id}>
-              <SportCard
-                sport={sport}
-                stats={{
-                  activeMatches: sport.activeCount,
-                  totalMatches: sport.totalCount,
-                  totalPlayers: sport.totalCount * 8, // Estimate
-                  upcomingMatches: sport.activeCount,
-                  popularityScore: sport.totalCount / Math.max(...popularSports.map(s => s.totalCount), 1)
-                }}
-                onClick={() => navigate(`/find?sport=${sport.id}`)}
-                variant="default"
-                compact={false}
-              />
-            </Grid>
+            <SporteaCard
+              key={sport.id}
+              variant="sport"
+              className="h-full"
+              onClick={() => navigate(`/find?sport=${sport.id}`)}
+            >
+              <div className="p-4">
+                <h3 className="text-xl font-semibold mb-1">{sport.name}</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  {sport.activeCount} active • {sport.totalCount} total matches
+                </p>
+
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-10 h-10 bg-brand-primary/10 rounded-full flex items-center justify-center">
+                    <span className="text-brand-primary font-medium">{sport.name.charAt(0)}</span>
+                  </div>
+                  <div>
+                    <h6 className="font-medium text-gray-900">{sport.name}</h6>
+                    <span className="text-xs text-gray-500">Popular sport</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1 mb-1">
+                      <RefreshCw className="w-4 h-4 text-gray-500" />
+                      <p className="text-xs text-gray-600">Active Matches</p>
+                    </div>
+                    <span className="font-semibold">{sport.activeCount}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1 mb-1">
+                      <RefreshCw className="w-4 h-4 text-gray-500" />
+                      <p className="text-xs text-gray-600">Total Matches</p>
+                    </div>
+                    <span className="font-semibold">{sport.totalCount}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1 mb-1">
+                      <RefreshCw className="w-4 h-4 text-gray-500" />
+                      <p className="text-xs text-gray-600">Players</p>
+                    </div>
+                    <span className="font-semibold">{sport.totalCount * 8}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1 mb-1">
+                      <RefreshCw className="w-4 h-4 text-gray-500" />
+                      <p className="text-xs text-gray-600">Trending</p>
+                    </div>
+                    <span className="font-semibold">
+                      {Math.round((sport.totalCount / Math.max(...popularSports.map(s => s.totalCount), 1)) * 100)}%
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-center text-sm text-brand-primary font-medium hover:underline">
+                  View Active Matches
+                </div>
+              </div>
+            </SporteaCard>
           ))}
-        </Grid>
-      </Box>
-    </Container>
+        </div>
+      </div>
+    </div>
   );
 };
 

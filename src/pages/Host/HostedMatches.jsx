@@ -1,34 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import {
-  Box,
-  Typography,
-  Paper,
-  Tabs,
-  Tab,
-  List,
-  ListItem,
-  Card,
-  CardContent,
-  CardActions,
-  Button,
-  Chip,
-  Divider,
-  IconButton,
-  Badge,
-  Avatar,
-  AvatarGroup,
-  Skeleton,
-  Menu,
-  MenuItem
-} from '@mui/material';
-import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
-import SportsBasketballIcon from '@mui/icons-material/SportsBasketball';
-import SportsTennisIcon from '@mui/icons-material/SportsTennis';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import PersonIcon from '@mui/icons-material/Person';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+  MapPin,
+  Clock,
+  Users,
+  MoreVertical,
+  Calendar,
+  Eye,
+  Edit,
+  Trash2
+} from 'lucide-react';
+import { SporteaTabs, SporteaTab, SporteaTabPanel } from '../../components/common/SporteaTabs';
+import { SporteaCard } from '../../components/common/SporteaCard';
+import { SporteaButton } from '../../components/common/SporteaButton';
 import { useAuth } from '../../hooks/useAuth';
 import { format } from 'date-fns';
 import { matchService } from '../../services/supabase';
@@ -351,209 +336,265 @@ const HostedMatches = () => {
   // Render match card
   const renderMatchCard = (match) => {
     const { date, time } = formatDateTime(match.dateTime);
-    
+
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'upcoming': return 'border-l-brand-primary';
+        case 'completed': return 'border-l-green-500';
+        case 'cancelled': return 'border-l-red-500';
+        default: return 'border-l-gray-300';
+      }
+    };
+
     return (
-      <Card 
-        elevation={2} 
-        sx={{ 
-          borderRadius: 2,
-          mb: 2,
-          borderLeft: 4,
-          borderColor: 
-            match.status === 'upcoming' ? 'primary.main' :
-            match.status === 'completed' ? 'success.main' : 'error.main'
-        }}
+      <SporteaCard
+        variant="match"
+        className={cn("border-l-4", getStatusColor(match.status))}
       >
-        <CardContent sx={{ pb: 1 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Chip 
-                icon={match.sportIcon}
-                label={match.sport.charAt(0).toUpperCase() + match.sport.slice(1)}
-                color="primary"
-                size="small"
-                sx={{ mr: 1 }}
-              />
+        <div className="p-4">
+          <div className="flex justify-between items-start mb-3">
+            <div className="flex items-center gap-2">
+              <div className={cn(
+                "px-2 py-1 rounded-full text-xs font-medium",
+                "bg-brand-primary/10 text-brand-primary"
+              )}>
+                {match.sport.charAt(0).toUpperCase() + match.sport.slice(1)}
+              </div>
               {match.participantRequests > 0 && (
-                <Badge badgeContent={match.participantRequests} color="error">
-                  <Chip 
-                    label="Requests"
-                    size="small"
-                    color="secondary"
-                    variant="outlined"
-                  />
-                </Badge>
+                <div className="relative">
+                  <div className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                    Requests
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {match.participantRequests}
+                  </div>
+                </div>
               )}
-            </Box>
-            
-            <IconButton
-              aria-label="more"
+            </div>
+
+            <button
               onClick={(e) => handleMenuOpen(e, match)}
-              size="small"
+              className={cn(
+                "p-1 rounded-md transition-all",
+                "hover:bg-gray-100 text-gray-500 hover:text-brand-primary",
+                "focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+              )}
+              aria-label="more options"
             >
-              <MoreVertIcon />
-            </IconButton>
-          </Box>
-          
-          <Typography variant="h3" component="h3" gutterBottom>
+              <MoreVertical className="w-4 h-4" />
+            </button>
+          </div>
+
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">
             {match.title}
-          </Typography>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <LocationOnIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-            <Typography variant="body2" color="text.secondary" noWrap>
-              {match.location}
-            </Typography>
-          </Box>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <AccessTimeIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-            <Typography variant="body2" color="text.secondary">
-              {date}, {time}
-            </Typography>
-          </Box>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <PersonIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-            <Typography variant="body2" color="text.secondary">
-              {match.currentParticipants}/{match.maxParticipants} participants
-            </Typography>
-          </Box>
-          
+          </h3>
+
+          <div className="space-y-2 mb-4">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <MapPin className="w-4 h-4" />
+              <span className="truncate">{match.location}</span>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Clock className="w-4 h-4" />
+              <span>{date}, {time}</span>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Users className="w-4 h-4" />
+              <span>{match.currentParticipants}/{match.maxParticipants} participants</span>
+            </div>
+          </div>
+
           {match.participants.length > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
-                Participants:
-              </Typography>
-              <AvatarGroup max={3} sx={{ '& .MuiAvatar-root': { width: 24, height: 24, fontSize: '0.75rem' } }}>
-                {match.participants.map(participant => (
-                  <Avatar key={participant.id} alt={participant.name}>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-sm text-gray-600">Participants:</span>
+              <div className="flex -space-x-1">
+                {match.participants.slice(0, 3).map(participant => (
+                  <div
+                    key={participant.id}
+                    className="w-6 h-6 bg-brand-primary text-white text-xs rounded-full flex items-center justify-center border-2 border-white"
+                    title={participant.name}
+                  >
                     {participant.name.charAt(0)}
-                  </Avatar>
+                  </div>
                 ))}
-              </AvatarGroup>
-            </Box>
+                {match.participants.length > 3 && (
+                  <div className="w-6 h-6 bg-gray-300 text-gray-600 text-xs rounded-full flex items-center justify-center border-2 border-white">
+                    +{match.participants.length - 3}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
-        </CardContent>
-        
-        <CardActions sx={{ px: 2, pb: 2 }}>
-          {match.status === 'upcoming' && (
-            <>
-              <Button
-                size="small"
-                variant="outlined"
+
+          <div className="flex gap-2 pt-2 border-t border-gray-100">
+            {match.status === 'upcoming' && (
+              <>
+                <SporteaButton
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleViewParticipants(match)}
+                  className="flex items-center gap-1"
+                >
+                  <Eye className="w-3 h-3" />
+                  View Participants
+                </SporteaButton>
+                <SporteaButton
+                  variant="primary"
+                  size="sm"
+                  onClick={() => handleEditMatch(match)}
+                  className="flex items-center gap-1"
+                >
+                  <Edit className="w-3 h-3" />
+                  Edit Match
+                </SporteaButton>
+              </>
+            )}
+            {match.status === 'completed' && (
+              <SporteaButton
+                variant="outline"
+                size="sm"
                 onClick={() => handleViewParticipants(match)}
+                className="flex items-center gap-1"
               >
-                View Participants
-              </Button>
-              <Button
-                size="small"
-                variant="contained"
-                onClick={() => handleEditMatch(match)}
-              >
-                Edit Match
-              </Button>
-            </>
-          )}
-          {match.status === 'completed' && (
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => handleViewParticipants(match)}
-            >
-              Match Summary
-            </Button>
-          )}
-          {/* Removed Restore Match button for cancelled matches */}
-        </CardActions>
-      </Card>
+                <Calendar className="w-3 h-3" />
+                Match Summary
+              </SporteaButton>
+            )}
+          </div>
+        </div>
+      </SporteaCard>
     );
   };
   
   return (
-    <Box>
-      <Typography variant="h2" component="h2" gutterBottom>
+    <div>
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">
         Your Hosted Matches
-      </Typography>
-      
-      <Paper sx={{ mb: 3, borderRadius: 2 }}>
-        <Tabs 
-          value={tabValue} 
-          onChange={handleTabChange}
-          variant="fullWidth"
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
-        >
-          <Tab label="Upcoming" />
-          <Tab label="Past" />
-          <Tab label="Cancelled" />
-        </Tabs>
-      </Paper>
+      </h2>
+
+      <div className="mb-6">
+        <SporteaTabs variant="elevated">
+          <SporteaTab
+            active={tabValue === 0}
+            onClick={() => handleTabChange(null, 0)}
+            className="flex-1 text-center"
+          >
+            Upcoming
+          </SporteaTab>
+          <SporteaTab
+            active={tabValue === 1}
+            onClick={() => handleTabChange(null, 1)}
+            className="flex-1 text-center"
+          >
+            Past
+          </SporteaTab>
+          <SporteaTab
+            active={tabValue === 2}
+            onClick={() => handleTabChange(null, 2)}
+            className="flex-1 text-center"
+          >
+            Cancelled
+          </SporteaTab>
+        </SporteaTabs>
+      </div>
       
       {loading ? (
         // Loading skeletons
-        Array(3).fill().map((_, index) => (
-          <Skeleton 
-            key={`skeleton-${index}`}
-            variant="rectangular" 
-            height={160} 
-            sx={{ borderRadius: 2, mb: 2 }} 
-          />
-        ))
+        <div className="space-y-4">
+          {Array(3).fill().map((_, index) => (
+            <div
+              key={`skeleton-${index}`}
+              className="animate-pulse bg-gray-200 h-40 rounded-lg"
+            />
+          ))}
+        </div>
       ) : matches.length === 0 ? (
         // No matches found
-        <Paper 
-          sx={{ 
-            p: 3, 
-            textAlign: 'center',
-            borderRadius: 2
-          }}
-        >
-          <Typography variant="h3" gutterBottom>
-            No {tabValue === 0 ? 'upcoming' : tabValue === 1 ? 'past' : 'cancelled'} matches
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {tabValue === 0 
-              ? "You don't have any upcoming matches. Create a new match to get started!" 
-              : tabValue === 1 
-                ? "You haven't hosted any matches yet."
-                : "You don't have any cancelled matches."}
-          </Typography>
-        </Paper>
+        <SporteaCard variant="default" className="text-center">
+          <div className="p-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No {tabValue === 0 ? 'upcoming' : tabValue === 1 ? 'past' : 'cancelled'} matches
+            </h3>
+            <p className="text-gray-600">
+              {tabValue === 0
+                ? "You don't have any upcoming matches. Create a new match to get started!"
+                : tabValue === 1
+                  ? "You haven't hosted any matches yet."
+                  : "You don't have any cancelled matches."}
+            </p>
+          </div>
+        </SporteaCard>
       ) : (
         // Match list
-        <List disablePadding>
+        <div className="space-y-4">
           {matches.map(match => (
-            <ListItem key={match.id} disablePadding sx={{ display: 'block', mb: 2 }}>
+            <div key={match.id}>
               {renderMatchCard(match)}
-            </ListItem>
+            </div>
           ))}
-        </List>
+        </div>
       )}
       
       {/* Match options menu */}
-      <Menu
-        anchorEl={menuAnchorEl}
-        open={open}
-        onClose={handleMenuClose}
-      >
-        {selectedMatch?.status === 'upcoming' && (
-          <MenuItem onClick={() => handleEditMatch(selectedMatch)}>Edit Match</MenuItem>
-        )}
-        {selectedMatch?.status === 'upcoming' && (
-          <MenuItem onClick={() => handleCancelMatch(selectedMatch)}>Cancel Match</MenuItem>
-        )}
-        {/* Removed Restore Match option from dropdown menu for cancelled matches */}
-        {(selectedMatch?.status === 'cancelled' || selectedMatch?.status === 'completed') && (
-          <MenuItem onClick={() => handleDeleteMatch(selectedMatch)}>Delete Match</MenuItem>
-        )}
-        {/* Only show View Participants/Summary for upcoming and completed matches, not cancelled */}
-        {selectedMatch?.status !== 'cancelled' && (
-          <MenuItem onClick={() => handleViewParticipants(selectedMatch)}>
-            {selectedMatch?.status === 'completed' ? 'View Summary' : 'View Participants'}
-          </MenuItem>
-        )}
-      </Menu>
-    </Box>
+      {menuAnchorEl && (
+        <div
+          className="absolute z-50 bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200"
+          style={{
+            top: menuAnchorEl.getBoundingClientRect().bottom + window.scrollY,
+            left: menuAnchorEl.getBoundingClientRect().left + window.scrollX
+          }}
+        >
+          <div className="py-1">
+            {selectedMatch?.status === 'upcoming' && (
+              <button
+                onClick={() => {
+                  handleEditMatch(selectedMatch);
+                  handleMenuClose();
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                Edit Match
+              </button>
+            )}
+            {selectedMatch?.status === 'upcoming' && (
+              <button
+                onClick={() => {
+                  handleCancelMatch(selectedMatch);
+                  handleMenuClose();
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                Cancel Match
+              </button>
+            )}
+            {(selectedMatch?.status === 'cancelled' || selectedMatch?.status === 'completed') && (
+              <button
+                onClick={() => {
+                  handleDeleteMatch(selectedMatch);
+                  handleMenuClose();
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                Delete Match
+              </button>
+            )}
+            {selectedMatch?.status !== 'cancelled' && (
+              <button
+                onClick={() => {
+                  handleViewParticipants(selectedMatch);
+                  handleMenuClose();
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                {selectedMatch?.status === 'completed' ? 'View Summary' : 'View Participants'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

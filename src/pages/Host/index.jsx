@@ -1,23 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Container, 
-  Typography, 
-  Stepper,
-  Step,
-  StepLabel,
-  Paper,
-  Button,
-  Grid,
-  Card,
-  CardContent,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions
-} from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { cn } from '@/lib/utils';
+import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import { SporteaButton } from '../../components/common/SporteaButton';
+import { SporteaCard } from '../../components/common/SporteaCard';
 import SportSelection from './SportSelection';
 import MatchDetails from './MatchDetails';
 import LocationSelection from './LocationSelection';
@@ -28,13 +13,36 @@ import { matchService } from '../../services/supabase';
 import { useNavigate } from 'react-router-dom';
 import { useAchievements } from '../../hooks/useAchievements';
 import { XP_VALUES } from '../../services/achievementService';
-import Snackbar from '@mui/material/Snackbar';
-import MuiAlert from '@mui/material/Alert';
-import CircularProgress from '@mui/material/CircularProgress';
 
 // Alert component for success/error messages
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+const Alert = React.forwardRef(function Alert({ severity, children, ...props }, ref) {
+  const alertVariants = {
+    success: "bg-green-50 border-green-200 text-green-800",
+    error: "bg-red-50 border-red-200 text-red-800",
+    warning: "bg-orange-50 border-orange-200 text-orange-800",
+    info: "bg-blue-50 border-blue-200 text-blue-800"
+  };
+
+  const iconVariants = {
+    success: <CheckCircle className="w-5 h-5 text-green-500" />,
+    error: <AlertCircle className="w-5 h-5 text-red-500" />,
+    warning: <AlertCircle className="w-5 h-5 text-orange-500" />,
+    info: <AlertCircle className="w-5 h-5 text-blue-500" />
+  };
+
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "flex items-center gap-3 p-4 border rounded-lg",
+        alertVariants[severity] || alertVariants.info
+      )}
+      {...props}
+    >
+      {iconVariants[severity] || iconVariants.info}
+      <div>{children}</div>
+    </div>
+  );
 });
 
 const Host = () => {
@@ -345,116 +353,128 @@ const Host = () => {
   };
   
   return (
-    <Container maxWidth="lg" sx={{ py: 2 }}>
+    <div className="container mx-auto px-4 py-8">
       {!showNewMatch ? (
         <>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h1" component="h1">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-2xl font-bold text-gray-900">
               Host a Match
-            </Typography>
-            <Button 
-              variant="contained" 
-              color="primary"
+            </h1>
+            <SporteaButton
+              variant="primary"
               onClick={() => setShowNewMatch(true)}
-              sx={{ borderRadius: 2 }}
             >
               Create New Match
-            </Button>
-          </Box>
-          
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={8}>
+            </SporteaButton>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
               {/* User's hosted matches */}
               <HostedMatches />
-            </Grid>
-            <Grid item xs={12} md={4}>
+            </div>
+            <div className="lg:col-span-1">
               {/* Tips and information */}
-              <Card 
-                elevation={2} 
-                sx={{ 
-                  borderRadius: 3,
-                  height: '100%',
-                  bgcolor: 'secondary.light'
-                }}
-              >
-                <CardContent>
-                  <Typography variant="h3" component="h3" gutterBottom color="primary">
+              <SporteaCard variant="elevated" className="h-full">
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold text-brand-primary mb-4">
                     Hosting Tips
-                  </Typography>
-                  <Typography variant="body1" paragraph>
-                    Create an engaging match title and description to attract participants.
-                  </Typography>
-                  <Typography variant="body1" paragraph>
-                    Set clear skill level expectations to ensure a balanced match.
-                  </Typography>
-                  <Typography variant="body1" paragraph>
-                    Choose a convenient location and time for most students.
-                  </Typography>
-                  <Typography variant="body1">
-                    Be responsive to participant questions before the match.
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+                  </h3>
+                  <div className="space-y-3">
+                    <p className="text-gray-700">
+                      Create an engaging match title and description to attract participants.
+                    </p>
+                    <p className="text-gray-700">
+                      Set clear skill level expectations to ensure a balanced match.
+                    </p>
+                    <p className="text-gray-700">
+                      Choose a convenient location and time for most students.
+                    </p>
+                    <p className="text-gray-700">
+                      Be responsive to participant questions before the match.
+                    </p>
+                  </div>
+                </div>
+              </SporteaCard>
+            </div>
+          </div>
         </>
       ) : (
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-            <IconButton 
-              onClick={handleCancel} 
-              sx={{ mr: 1 }}
+        <div>
+          <div className="flex items-center mb-6">
+            <button
+              onClick={handleCancel}
+              className={cn(
+                "p-2 mr-3 rounded-md transition-all",
+                "hover:bg-gray-100 text-gray-500 hover:text-brand-primary",
+                "focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+              )}
               aria-label="back to hosted matches"
             >
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography variant="h1" component="h1">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-2xl font-bold text-gray-900">
               {activeStep === 3 ? 'Review Match' : 'Create New Match'}
-            </Typography>
-          </Box>
-          
-          <Paper 
-            elevation={2} 
-            sx={{ 
-              p: 3, 
-              mb: 3,
-              borderRadius: 3
-            }}
-          >
-            <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
-              {steps.map((label) => (
-                <Step key={label}>
-                  <StepLabel>{label}</StepLabel>
-                </Step>
-              ))}
-            </Stepper>
-            
-            <Box>
+            </h1>
+          </div>
+
+          <SporteaCard variant="elevated" className="mb-6">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                {steps.map((label, index) => (
+                  <div key={label} className="flex items-center">
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+                      index <= activeStep
+                        ? "bg-brand-primary text-white"
+                        : "bg-gray-200 text-gray-500"
+                    )}>
+                      {index + 1}
+                    </div>
+                    <span className={cn(
+                      "ml-2 text-sm font-medium",
+                      index <= activeStep ? "text-brand-primary" : "text-gray-500"
+                    )}>
+                      {label}
+                    </span>
+                    {index < steps.length - 1 && (
+                      <div className={cn(
+                        "w-12 h-0.5 mx-4",
+                        index < activeStep ? "bg-brand-primary" : "bg-gray-200"
+                      )} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </SporteaCard>
+
+          <SporteaCard variant="default">
+            <div className="p-6">
               {getStepContent(activeStep)}
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-                <Button
-                  variant="outlined"
+
+              <div className="flex justify-between mt-6">
+                <SporteaButton
+                  variant="outline"
                   onClick={handleCancel}
-                  sx={{ borderRadius: 2 }}
+                  className="text-red-600 border-red-300 hover:bg-red-50"
                 >
                   Cancel
-                </Button>
-                <Box>
+                </SporteaButton>
+
+                <div className="flex gap-3">
                   {activeStep > 0 && (
-                    <Button
-                      variant="outlined"
+                    <SporteaButton
+                      variant="outline"
                       onClick={handleBack}
-                      sx={{ mr: 1, borderRadius: 2 }}
                     >
                       Back
-                    </Button>
+                    </SporteaButton>
                   )}
                   {activeStep === steps.length - 1 ? (
-                    <Button
-                      variant="contained"
+                    <SporteaButton
+                      variant="primary"
                       onClick={handleCreateMatch}
-                      sx={{ borderRadius: 2 }}
                       disabled={isSubmitting || !matchData.termsAccepted || !matchData.canCreateMatch}
                       title={
                         !matchData.termsAccepted
@@ -465,19 +485,18 @@ const Host = () => {
                       }
                     >
                       {isSubmitting ? (
-                        <>
-                          <CircularProgress size={24} color="inherit" sx={{ mr: 1 }} />
+                        <div className="flex items-center gap-2">
+                          <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
                           Creating...
-                        </>
+                        </div>
                       ) : (
                         'Create Match'
                       )}
-                    </Button>
+                    </SporteaButton>
                   ) : (
-                    <Button
-                      variant="contained"
+                    <SporteaButton
+                      variant="primary"
                       onClick={handleNext}
-                      sx={{ borderRadius: 2 }}
                       disabled={
                         (activeStep === 0 && !matchData.sport) ||
                         (activeStep === 1 && (!matchData.title || !matchData.date || !matchData.time)) ||
@@ -485,72 +504,74 @@ const Host = () => {
                       }
                     >
                       Next
-                    </Button>
+                    </SporteaButton>
                   )}
-                </Box>
-              </Box>
-            </Box>
-          </Paper>
-        </Box>
+                </div>
+              </div>
+            </div>
+          </SporteaCard>
+        </div>
       )}
       
       {/* Confirmation dialog for canceling match creation */}
-      <Dialog
-        open={openConfirmDialog}
-        onClose={() => setOpenConfirmDialog(false)}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
-      >
-        <DialogTitle id="alert-dialog-title">
-          Cancel Match Creation?
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1">
-            Are you sure you want to cancel? All entered information will be lost.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenConfirmDialog(false)} color="primary">
-            No, Continue Editing
-          </Button>
-          <Button 
-            onClick={() => {
-              setOpenConfirmDialog(false);
-              resetForm();
-            }} 
-            color="error"
-            autoFocus
-          >
-            Yes, Cancel
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {openConfirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <SporteaCard variant="elevated" className="max-w-md mx-4">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Cancel Match Creation?
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to cancel? All entered information will be lost.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <SporteaButton
+                  variant="outline"
+                  onClick={() => setOpenConfirmDialog(false)}
+                >
+                  No, Continue Editing
+                </SporteaButton>
+                <SporteaButton
+                  variant="primary"
+                  onClick={() => {
+                    setOpenConfirmDialog(false);
+                    resetForm();
+                  }}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Yes, Cancel
+                </SporteaButton>
+              </div>
+            </div>
+          </SporteaCard>
+        </div>
+      )}
       
       {/* Success/Error Snackbar */}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={6000} 
-        onClose={() => setSnackbar({...snackbar, open: false})}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={() => setSnackbar({...snackbar, open: false})} 
-          severity={snackbar.severity}
-        >
-          {snackbar.message}
-          {snackbar.severity === 'success' && createdMatchId && (
-            <Button 
-              color="inherit" 
-              size="small" 
-              onClick={() => navigate(`/match/${createdMatchId}`)}
-              sx={{ ml: 2 }}
-            >
-              View Match
-            </Button>
-          )}
-        </Alert>
-      </Snackbar>
-    </Container>
+      {snackbar.open && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+          <Alert
+            severity={snackbar.severity}
+            onClick={() => setSnackbar({...snackbar, open: false})}
+            className="cursor-pointer"
+          >
+            <div className="flex items-center justify-between">
+              <span>{snackbar.message}</span>
+              {snackbar.severity === 'success' && createdMatchId && (
+                <SporteaButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/match/${createdMatchId}`)}
+                  className="ml-3 text-white hover:bg-white/20"
+                >
+                  View Match
+                </SporteaButton>
+              )}
+            </div>
+          </Alert>
+        </div>
+      )}
+    </div>
   );
 };
 

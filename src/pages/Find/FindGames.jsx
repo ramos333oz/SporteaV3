@@ -39,8 +39,6 @@ import {
   Button,
   CardActions,
   Skeleton,
-  Tabs,
-  Tab,
   Divider,
   Avatar,
   AvatarGroup,
@@ -114,6 +112,8 @@ import GroupIcon from "@mui/icons-material/Group";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { useTheme } from "@mui/material/styles";
+import { SporteaTabs, SporteaTab, SporteaTabPanel } from "../../components/common/SporteaTabs";
+import { cn } from '@/lib/utils';
 
 /**
  * SportIcon component for displaying sport-specific icons
@@ -2101,18 +2101,31 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
       )}
 
       {/* View Mode Tabs */}
-      <Paper sx={{ mb: 3, borderRadius: 2 }}>
-        <Tabs
-          value={viewMode}
-          onChange={handleViewModeChange}
-          variant="fullWidth"
-          sx={{ borderBottom: 1, borderColor: "divider" }}
-        >
-          <Tab label="List View" />
-          <Tab label="Map View" />
-          <Tab label="Calendar" />
-        </Tabs>
-      </Paper>
+      <div className="mb-6">
+        <SporteaTabs variant="elevated">
+          <SporteaTab
+            active={viewMode === 0}
+            onClick={() => handleViewModeChange(null, 0)}
+            className="flex-1 text-center"
+          >
+            List View
+          </SporteaTab>
+          <SporteaTab
+            active={viewMode === 1}
+            onClick={() => handleViewModeChange(null, 1)}
+            className="flex-1 text-center"
+          >
+            Map View
+          </SporteaTab>
+          <SporteaTab
+            active={viewMode === 2}
+            onClick={() => handleViewModeChange(null, 2)}
+            className="flex-1 text-center"
+          >
+            Calendar
+          </SporteaTab>
+        </SporteaTabs>
+      </div>
 
       {/* Only show filters in List View */}
       {viewMode === 0 && (

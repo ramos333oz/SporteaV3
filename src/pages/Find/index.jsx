@@ -1,22 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  Box, 
-  Container, 
-  Typography, 
-  Tabs, 
-  Tab, 
-  Paper,
-  InputBase,
-  IconButton,
-  Divider,
-  CircularProgress,
-  Alert,
-  Badge,
-  Chip
-} from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import TuneIcon from '@mui/icons-material/Tune';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import { cn } from '@/lib/utils';
+import { Search, RefreshCw, AlertCircle } from 'lucide-react';
+import { SporteaTabs, SporteaTab, SporteaTabPanel } from '../../components/common/SporteaTabs';
+import { SporteaCard } from '../../components/common/SporteaCard';
+import { SporteaButton } from '../../components/common/SporteaButton';
 import FindGames from './FindGames';
 import FindPlayers from './FindPlayers';
 import { supabase, sportService, matchService } from '../../services/supabase';
@@ -254,96 +241,127 @@ const Find = () => {
   };
   
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h4">
+    <div className="container mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">
           Find {activeTab === 0 ? 'Games' : 'Players'}
-        </Typography>
-        
+        </h1>
+
         {activeTab === 0 && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <div className="flex items-center gap-3">
             {newMatchCount > 0 && (
-              <Chip 
-                color="primary" 
-                label={`${newMatchCount} new match${newMatchCount > 1 ? 'es' : ''}`}
+              <button
                 onClick={applyNewMatches}
-                icon={<RefreshIcon />}
-              />
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium",
+                  "bg-brand-primary text-white hover:bg-brand-primary/90",
+                  "transition-colors duration-200"
+                )}
+              >
+                <RefreshCw className="w-4 h-4" />
+                {newMatchCount} new match{newMatchCount > 1 ? 'es' : ''}
+              </button>
             )}
-            <IconButton 
-              color="primary" 
-              onClick={fetchData} 
+            <button
+              onClick={fetchData}
               disabled={loading}
+              className={cn(
+                "p-2 rounded-md transition-all",
+                "hover:bg-gray-100 text-gray-500 hover:text-brand-primary",
+                "focus:outline-none focus:ring-2 focus:ring-brand-primary/50",
+                loading && "opacity-50 cursor-not-allowed"
+              )}
               aria-label="Refresh matches"
             >
-              <RefreshIcon />
-            </IconButton>
-          </Box>
+              <RefreshCw className={cn("w-5 h-5", loading && "animate-spin")} />
+            </button>
+          </div>
         )}
-      </Box>
-      
+      </div>
+
       {/* Search bar */}
-      <Paper
-        component="form"
-        sx={{ p: '2px 4px', display: 'flex', alignItems: 'center', mb: 3 }}
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSearch();
-        }}
-      >
-        <InputBase
-          sx={{ ml: 1, flex: 1 }}
-          placeholder={`Search for ${activeTab === 0 ? 'games' : 'players'}...`}
-          value={searchQuery}
-          onChange={handleSearchChange}
-        />
-        <IconButton type="submit" sx={{ p: '10px' }} aria-label="search">
-          <SearchIcon />
-        </IconButton>
-      </Paper>
+      <SporteaCard variant="default" className="mb-6">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSearch();
+          }}
+          className="flex items-center p-2"
+        >
+          <input
+            type="text"
+            placeholder={`Search for ${activeTab === 0 ? 'games' : 'players'}...`}
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="flex-1 px-3 py-2 border-0 bg-transparent focus:outline-none text-gray-900 placeholder-gray-500"
+          />
+          <button
+            type="submit"
+            className={cn(
+              "p-2 rounded-md transition-all",
+              "hover:bg-gray-100 text-gray-500 hover:text-brand-primary",
+              "focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+            )}
+            aria-label="search"
+          >
+            <Search className="w-5 h-5" />
+          </button>
+        </form>
+      </SporteaCard>
 
       {/* Tabs */}
-      <Box sx={{ mb: 3 }}>
-        <Tabs 
-          value={activeTab} 
-          onChange={handleTabChange} 
-          aria-label="find tabs"
-          variant="fullWidth"
-        >
-          <Tab label="Games" />
-          <Tab label="Players" />
-        </Tabs>
-      </Box>
-      
+      <div className="mb-6">
+        <SporteaTabs variant="elevated">
+          <SporteaTab
+            active={activeTab === 0}
+            onClick={() => handleTabChange(null, 0)}
+            className="flex-1 text-center"
+          >
+            Games
+          </SporteaTab>
+          <SporteaTab
+            active={activeTab === 1}
+            onClick={() => handleTabChange(null, 1)}
+            className="flex-1 text-center"
+          >
+            Players
+          </SporteaTab>
+        </SporteaTabs>
+      </div>
+
       {/* Error message */}
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <p className="text-red-700">{error}</p>
+        </div>
       )}
-      
+
       {/* Loading state */}
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
-        </Box>
+        <div className="flex justify-center my-8">
+          <div className="animate-spin w-8 h-8 border-2 border-brand-primary border-t-transparent rounded-full"></div>
+        </div>
       ) : (
-        <Box>
+        <div>
           {activeTab === 0 && !loading && matches.length > 0 && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+            <p className="text-sm text-gray-500 mb-4">
               Last updated: {lastRefreshed.toLocaleTimeString()} • {matches.length} matches found
-            </Typography>
+            </p>
           )}
-          
+
           {/* Content based on active tab */}
-          {activeTab === 0 ? (
+          <SporteaTabPanel active={activeTab === 0}>
             <FindGames matches={matches} sports={sports} />
-          ) : (
+          </SporteaTabPanel>
+
+          <SporteaTabPanel active={activeTab === 1}>
             <FindPlayers players={players} />
-          )}
-        </Box>
+          </SporteaTabPanel>
+        </div>
       )}
-    </Container>
+    </div>
   );
 };
 
