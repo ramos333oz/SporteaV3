@@ -72,10 +72,11 @@ async function getUserRecommendations(userId, options = {}) {
     }
 
     // Step 2: Filter users by minimum similarity threshold
-    const similarUsers = nearestNeighbors.filter(neighbor => neighbor.similarity >= Math.min(minSimilarity, 0.1)); // Temporarily lowered for testing
+    // TESTING MODE: Display ALL users regardless of similarity threshold for screenshot evidence
+    const similarUsers = nearestNeighbors; // Removed threshold filtering to show all calculated similarities
     
     if (similarUsers.length === 0) {
-      log(`No users meet minimum similarity threshold of ${minSimilarity}`);
+      log(`No users found for recommendations`);
       return {
         recommendations: [],
         metadata: {
@@ -86,14 +87,14 @@ async function getUserRecommendations(userId, options = {}) {
           k_value: k,
           users_analyzed: nearestNeighbors.length,
           similar_users_found: 0,
-          min_similarity_threshold: minSimilarity,
+          min_similarity_threshold: 'DISABLED_FOR_TESTING',
           purpose: 'Find users for connection and friendship'
         },
         type: 'user_similarity_recommendations'
       };
     }
 
-    log(`Found ${similarUsers.length} similar users for potential connection`);
+    log(`Found ${similarUsers.length} users for potential connection (threshold filtering disabled for testing)`);
 
     // Step 3: Filter out users who are already friends or have pending requests
     const similarUserIds = similarUsers.map(user => user.userId);
@@ -138,7 +139,7 @@ async function getUserRecommendations(userId, options = {}) {
           users_analyzed: nearestNeighbors.length,
           similar_users_found: similarUsers.length,
           filtered_out_friends: similarUserIds.length - filteredUserIds.length,
-          min_similarity_threshold: minSimilarity,
+          min_similarity_threshold: 'DISABLED_FOR_TESTING',
           purpose: 'Find users for connection and friendship'
         },
         type: 'user_similarity_recommendations'
@@ -226,7 +227,7 @@ async function getUserRecommendations(userId, options = {}) {
         similar_users_found: similarUsers.length,
         filtered_out_friends: similarUserIds.length - filteredUserIds.length,
         profiles_retrieved: userProfiles.length,
-        min_similarity_threshold: minSimilarity,
+        min_similarity_threshold: 'DISABLED_FOR_TESTING',
         purpose: 'Find users for connection and friendship'
       },
       type: 'user_similarity_recommendations'

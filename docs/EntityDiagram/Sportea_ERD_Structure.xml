@@ -1,0 +1,563 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<database_schema name="Sportea" version="1.0" created="2024-12-19">
+  <description>Complete Entity Relationship Diagram structure for the Sportea sports matching application</description>
+  
+  <!-- ENTITIES DEFINITION -->
+  <entities>
+    
+    <!-- Core User Management -->
+    <entity name="users" type="core">
+      <description>User profiles and authentication data</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="email" type="TEXT" constraint="UNIQUE NOT NULL" />
+        <field name="username" type="TEXT" constraint="UNIQUE NOT NULL" />
+        <field name="full_name" type="TEXT" />
+        <field name="avatar_url" type="TEXT" />
+        <field name="student_id" type="TEXT" />
+        <field name="faculty" type="TEXT" />
+        <field name="campus" type="TEXT" />
+        <field name="bio" type="TEXT" />
+        <field name="gender" type="TEXT" />
+        <field name="play_style" type="TEXT" />
+        <field name="sport_preferences" type="JSONB" />
+        <field name="skill_levels" type="JSONB" />
+        <field name="available_days" type="JSONB" />
+        <field name="available_hours" type="JSONB" />
+        <field name="preferred_facilities" type="JSONB" />
+        <field name="home_location" type="JSONB" />
+        <field name="preference_vector" type="VECTOR" />
+        <field name="account_status" type="TEXT" />
+        <field name="is_admin" type="BOOLEAN" />
+        <field name="admin_role" type="TEXT" />
+        <field name="created_at" type="TIMESTAMPTZ" />
+        <field name="updated_at" type="TIMESTAMPTZ" />
+      </fields>
+    </entity>
+
+    <!-- Sports Reference Data -->
+    <entity name="sports" type="reference">
+      <description>Available sports types and categories</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="name" type="TEXT" constraint="UNIQUE NOT NULL" />
+        <field name="icon_url" type="TEXT" />
+        <field name="description" type="TEXT" />
+        <field name="created_at" type="TIMESTAMPTZ" />
+      </fields>
+    </entity>
+
+    <!-- Location Reference Data -->
+    <entity name="locations" type="reference">
+      <description>Sports venues and facilities</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="name" type="TEXT" constraint="UNIQUE NOT NULL" />
+        <field name="address" type="TEXT" />
+        <field name="campus" type="TEXT" />
+        <field name="coordinates" type="JSONB" />
+        <field name="image_url" type="TEXT" />
+        <field name="facilities" type="JSONB" />
+        <field name="supported_sports" type="UUID[]" />
+        <field name="is_verified" type="BOOLEAN" />
+        <field name="created_at" type="TIMESTAMPTZ" />
+        <field name="updated_at" type="TIMESTAMPTZ" />
+      </fields>
+    </entity>
+
+    <!-- Core Business Logic -->
+    <entity name="matches" type="core">
+      <description>Sports match scheduling and details</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="title" type="TEXT" />
+        <field name="description" type="TEXT" />
+        <field name="rules" type="TEXT" />
+        <field name="sport_id" type="UUID" constraint="FOREIGN KEY REFERENCES sports(id)" />
+        <field name="host_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="location_id" type="UUID" constraint="FOREIGN KEY REFERENCES locations(id)" />
+        <field name="start_time" type="TIMESTAMPTZ" />
+        <field name="end_time" type="TIMESTAMPTZ" />
+        <field name="scheduled_date" type="DATE" />
+        <field name="max_participants" type="INTEGER" />
+        <field name="skill_level" type="TEXT" />
+        <field name="price_per_person" type="NUMERIC" />
+        <field name="is_private" type="BOOLEAN" />
+        <field name="access_code" type="TEXT" />
+        <field name="status" type="TEXT" />
+        <field name="moderation_status" type="TEXT" />
+        <field name="rejection_reason" type="TEXT" />
+        <field name="review_reason" type="TEXT" />
+        <field name="characteristic_vector" type="VECTOR" />
+        <field name="created_at" type="TIMESTAMPTZ" />
+        <field name="updated_at" type="TIMESTAMPTZ" />
+      </fields>
+    </entity>
+
+    <!-- Match Participation -->
+    <entity name="participants" type="bridge">
+      <description>Bridge table for user participation in matches</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="match_id" type="UUID" constraint="FOREIGN KEY REFERENCES matches(id)" />
+        <field name="user_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="joined_at" type="TIMESTAMPTZ" />
+        <field name="status" type="TEXT" />
+      </fields>
+    </entity>
+
+    <!-- Social Features -->
+    <entity name="friendships" type="social">
+      <description>User friendship relationships</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="user_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="friend_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="status" type="TEXT" />
+        <field name="created_at" type="TIMESTAMPTZ" />
+      </fields>
+    </entity>
+
+    <entity name="messages" type="social">
+      <description>Direct messaging between users</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="sender_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="receiver_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="content" type="TEXT" />
+        <field name="message_type" type="TEXT" />
+        <field name="is_read" type="BOOLEAN" />
+        <field name="read_at" type="TIMESTAMPTZ" />
+        <field name="created_at" type="TIMESTAMPTZ" />
+      </fields>
+    </entity>
+
+    <entity name="notifications" type="system">
+      <description>System notifications for users</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="user_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="match_id" type="UUID" constraint="FOREIGN KEY REFERENCES matches(id)" />
+        <field name="type" type="TEXT" />
+        <field name="title" type="TEXT" />
+        <field name="message" type="TEXT" />
+        <field name="is_read" type="BOOLEAN" />
+        <field name="created_at" type="TIMESTAMPTZ" />
+      </fields>
+    </entity>
+
+    <!-- Match Management -->
+    <entity name="match_invitations" type="management">
+      <description>Match invitation system</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="match_id" type="UUID" constraint="FOREIGN KEY REFERENCES matches(id)" />
+        <field name="inviter_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="invitee_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="status" type="TEXT" />
+        <field name="created_at" type="TIMESTAMPTZ" />
+      </fields>
+    </entity>
+
+    <entity name="match_join_requests" type="management">
+      <description>Join request management for matches</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="match_id" type="UUID" constraint="FOREIGN KEY REFERENCES matches(id)" />
+        <field name="user_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="message" type="TEXT" />
+        <field name="status" type="TEXT" />
+        <field name="created_at" type="TIMESTAMPTZ" />
+      </fields>
+    </entity>
+
+    <!-- Gamification System -->
+    <entity name="user_gamification" type="gamification">
+      <description>User experience points and level tracking</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="user_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="total_xp" type="INTEGER" />
+        <field name="current_level" type="INTEGER" />
+        <field name="matches_hosted" type="INTEGER" />
+        <field name="matches_joined" type="INTEGER" />
+        <field name="last_activity" type="TIMESTAMPTZ" />
+        <field name="created_at" type="TIMESTAMPTZ" />
+      </fields>
+    </entity>
+
+    <entity name="achievements" type="gamification">
+      <description>Achievement definitions and rewards</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="name" type="TEXT" constraint="UNIQUE NOT NULL" />
+        <field name="description" type="TEXT" />
+        <field name="icon_url" type="TEXT" />
+        <field name="xp_reward" type="INTEGER" />
+        <field name="created_at" type="TIMESTAMPTZ" />
+      </fields>
+    </entity>
+
+    <entity name="user_achievements" type="gamification">
+      <description>User achievement tracking</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="user_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="achievement_id" type="UUID" constraint="FOREIGN KEY REFERENCES achievements(id)" />
+        <field name="earned_at" type="TIMESTAMPTZ" />
+      </fields>
+    </entity>
+
+    <!-- Recommendation System -->
+    <entity name="user_vectors_knn" type="recommendation">
+      <description>KNN recommendation system vectors</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="user_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="vector_data" type="VECTOR" />
+        <field name="sports_hash" type="TEXT" />
+        <field name="completeness_score" type="NUMERIC" />
+        <field name="last_updated" type="TIMESTAMPTZ" />
+      </fields>
+    </entity>
+
+    <!-- Rating System -->
+    <entity name="ratings" type="social">
+      <description>User rating and feedback system</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="rater_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="rated_user_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="match_id" type="UUID" constraint="FOREIGN KEY REFERENCES matches(id)" />
+        <field name="rating" type="INTEGER" />
+        <field name="comment" type="TEXT" />
+      </fields>
+    </entity>
+
+    <!-- Content Moderation -->
+    <entity name="content_moderation_results" type="moderation">
+      <description>ML content moderation results</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="content_type" type="TEXT" />
+        <field name="content_id" type="UUID" />
+        <field name="risk_score" type="NUMERIC" />
+        <field name="ml_confidence" type="NUMERIC" />
+        <field name="language_detected" type="TEXT" />
+        <field name="flagged_terms" type="JSONB" />
+        <field name="created_at" type="TIMESTAMPTZ" />
+      </fields>
+    </entity>
+
+    <entity name="admin_review_queue" type="moderation">
+      <description>Admin content review workflow</description>
+      <fields>
+        <field name="id" type="UUID" constraint="PRIMARY KEY" />
+        <field name="content_type" type="TEXT" />
+        <field name="content_id" type="UUID" />
+        <field name="risk_score" type="NUMERIC" />
+        <field name="status" type="TEXT" />
+        <field name="assigned_admin_id" type="UUID" constraint="FOREIGN KEY REFERENCES users(id)" />
+        <field name="reviewed_at" type="TIMESTAMPTZ" />
+        <field name="created_at" type="TIMESTAMPTZ" />
+      </fields>
+    </entity>
+
+  </entities>
+
+  <!-- RELATIONSHIPS DEFINITION -->
+  <relationships>
+
+    <!-- Core Business Relationships -->
+    <relationship name="user_hosts_match" type="one_to_many">
+      <from_entity>users</from_entity>
+      <to_entity>matches</to_entity>
+      <from_field>id</from_field>
+      <to_field>host_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A user can host multiple matches</description>
+    </relationship>
+
+    <relationship name="sport_used_in_match" type="one_to_many">
+      <from_entity>sports</from_entity>
+      <to_entity>matches</to_entity>
+      <from_field>id</from_field>
+      <to_field>sport_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A sport can be used in multiple matches</description>
+    </relationship>
+
+    <relationship name="location_hosts_match" type="one_to_many">
+      <from_entity>locations</from_entity>
+      <to_entity>matches</to_entity>
+      <from_field>id</from_field>
+      <to_field>location_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A location can host multiple matches</description>
+    </relationship>
+
+    <relationship name="match_has_participants" type="one_to_many">
+      <from_entity>matches</from_entity>
+      <to_entity>participants</to_entity>
+      <from_field>id</from_field>
+      <to_field>match_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A match can have multiple participants</description>
+    </relationship>
+
+    <relationship name="user_participates_in_match" type="one_to_many">
+      <from_entity>users</from_entity>
+      <to_entity>participants</to_entity>
+      <from_field>id</from_field>
+      <to_field>user_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A user can participate in multiple matches</description>
+    </relationship>
+
+    <!-- Social Relationships -->
+    <relationship name="user_has_friendships" type="one_to_many">
+      <from_entity>users</from_entity>
+      <to_entity>friendships</to_entity>
+      <from_field>id</from_field>
+      <to_field>user_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A user can have multiple friendships</description>
+    </relationship>
+
+    <relationship name="user_is_friend" type="one_to_many">
+      <from_entity>users</from_entity>
+      <to_entity>friendships</to_entity>
+      <from_field>id</from_field>
+      <to_field>friend_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A user can be friend to multiple users</description>
+    </relationship>
+
+    <relationship name="user_sends_messages" type="one_to_many">
+      <from_entity>users</from_entity>
+      <to_entity>messages</to_entity>
+      <from_field>id</from_field>
+      <to_field>sender_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A user can send multiple messages</description>
+    </relationship>
+
+    <relationship name="user_receives_messages" type="one_to_many">
+      <from_entity>users</from_entity>
+      <to_entity>messages</to_entity>
+      <from_field>id</from_field>
+      <to_field>receiver_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A user can receive multiple messages</description>
+    </relationship>
+
+    <relationship name="user_receives_notifications" type="one_to_many">
+      <from_entity>users</from_entity>
+      <to_entity>notifications</to_entity>
+      <from_field>id</from_field>
+      <to_field>user_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A user can receive multiple notifications</description>
+    </relationship>
+
+    <relationship name="match_generates_notifications" type="one_to_many">
+      <from_entity>matches</from_entity>
+      <to_entity>notifications</to_entity>
+      <from_field>id</from_field>
+      <to_field>match_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A match can generate multiple notifications</description>
+    </relationship>
+
+    <!-- Match Management Relationships -->
+    <relationship name="match_has_invitations" type="one_to_many">
+      <from_entity>matches</from_entity>
+      <to_entity>match_invitations</to_entity>
+      <from_field>id</from_field>
+      <to_field>match_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A match can have multiple invitations</description>
+    </relationship>
+
+    <relationship name="user_sends_invitations" type="one_to_many">
+      <from_entity>users</from_entity>
+      <to_entity>match_invitations</to_entity>
+      <from_field>id</from_field>
+      <to_field>inviter_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A user can send multiple match invitations</description>
+    </relationship>
+
+    <relationship name="user_receives_invitations" type="one_to_many">
+      <from_entity>users</from_entity>
+      <to_entity>match_invitations</to_entity>
+      <from_field>id</from_field>
+      <to_field>invitee_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A user can receive multiple match invitations</description>
+    </relationship>
+
+    <relationship name="match_has_join_requests" type="one_to_many">
+      <from_entity>matches</from_entity>
+      <to_entity>match_join_requests</to_entity>
+      <from_field>id</from_field>
+      <to_field>match_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A match can have multiple join requests</description>
+    </relationship>
+
+    <relationship name="user_makes_join_requests" type="one_to_many">
+      <from_entity>users</from_entity>
+      <to_entity>match_join_requests</to_entity>
+      <from_field>id</from_field>
+      <to_field>user_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A user can make multiple join requests</description>
+    </relationship>
+
+    <!-- Gamification Relationships -->
+    <relationship name="user_has_gamification" type="one_to_one">
+      <from_entity>users</from_entity>
+      <to_entity>user_gamification</to_entity>
+      <from_field>id</from_field>
+      <to_field>user_id</to_field>
+      <cardinality>1:1</cardinality>
+      <description>Each user has one gamification record</description>
+    </relationship>
+
+    <relationship name="user_earns_achievements" type="one_to_many">
+      <from_entity>users</from_entity>
+      <to_entity>user_achievements</to_entity>
+      <from_field>id</from_field>
+      <to_field>user_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A user can earn multiple achievements</description>
+    </relationship>
+
+    <relationship name="achievement_earned_by_users" type="one_to_many">
+      <from_entity>achievements</from_entity>
+      <to_entity>user_achievements</to_entity>
+      <from_field>id</from_field>
+      <to_field>achievement_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>An achievement can be earned by multiple users</description>
+    </relationship>
+
+    <!-- Recommendation System Relationships -->
+    <relationship name="user_has_vector" type="one_to_one">
+      <from_entity>users</from_entity>
+      <to_entity>user_vectors_knn</to_entity>
+      <from_field>id</from_field>
+      <to_field>user_id</to_field>
+      <cardinality>1:1</cardinality>
+      <description>Each user has one recommendation vector</description>
+    </relationship>
+
+    <!-- Rating System Relationships -->
+    <relationship name="user_gives_ratings" type="one_to_many">
+      <from_entity>users</from_entity>
+      <to_entity>ratings</to_entity>
+      <from_field>id</from_field>
+      <to_field>rater_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A user can give multiple ratings</description>
+    </relationship>
+
+    <relationship name="user_receives_ratings" type="one_to_many">
+      <from_entity>users</from_entity>
+      <to_entity>ratings</to_entity>
+      <from_field>id</from_field>
+      <to_field>rated_user_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A user can receive multiple ratings</description>
+    </relationship>
+
+    <relationship name="match_has_ratings" type="one_to_many">
+      <from_entity>matches</from_entity>
+      <to_entity>ratings</to_entity>
+      <from_field>id</from_field>
+      <to_field>match_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A match can have multiple ratings</description>
+    </relationship>
+
+    <!-- Content Moderation Relationships -->
+    <relationship name="match_has_moderation_results" type="one_to_many">
+      <from_entity>matches</from_entity>
+      <to_entity>content_moderation_results</to_entity>
+      <from_field>id</from_field>
+      <to_field>content_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>A match can have multiple moderation results</description>
+    </relationship>
+
+    <relationship name="moderation_creates_review_queue" type="one_to_many">
+      <from_entity>content_moderation_results</from_entity>
+      <to_entity>admin_review_queue</to_entity>
+      <from_field>content_id</from_field>
+      <to_field>content_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>Moderation results can create review queue items</description>
+    </relationship>
+
+    <relationship name="admin_reviews_content" type="one_to_many">
+      <from_entity>users</from_entity>
+      <to_entity>admin_review_queue</to_entity>
+      <from_field>id</from_field>
+      <to_field>assigned_admin_id</to_field>
+      <cardinality>1:M</cardinality>
+      <description>An admin can review multiple content items</description>
+    </relationship>
+
+  </relationships>
+
+  <!-- INDEXES AND CONSTRAINTS -->
+  <indexes>
+    <index name="idx_users_email" entity="users" fields="email" type="unique" />
+    <index name="idx_users_username" entity="users" fields="username" type="unique" />
+    <index name="idx_users_student_id" entity="users" fields="student_id" type="btree" />
+    <index name="idx_users_faculty_campus" entity="users" fields="faculty,campus" type="btree" />
+    <index name="idx_matches_host_id" entity="matches" fields="host_id" type="btree" />
+    <index name="idx_matches_sport_id" entity="matches" fields="sport_id" type="btree" />
+    <index name="idx_matches_location_id" entity="matches" fields="location_id" type="btree" />
+    <index name="idx_matches_start_time" entity="matches" fields="start_time" type="btree" />
+    <index name="idx_matches_status" entity="matches" fields="status" type="btree" />
+    <index name="idx_participants_match_user" entity="participants" fields="match_id,user_id" type="unique" />
+    <index name="idx_friendships_user_friend" entity="friendships" fields="user_id,friend_id" type="unique" />
+    <index name="idx_messages_sender_receiver" entity="messages" fields="sender_id,receiver_id" type="btree" />
+    <index name="idx_notifications_user_read" entity="notifications" fields="user_id,is_read" type="btree" />
+    <index name="idx_user_gamification_user_id" entity="user_gamification" fields="user_id" type="unique" />
+    <index name="idx_user_vectors_knn_user_id" entity="user_vectors_knn" fields="user_id" type="unique" />
+    <index name="idx_content_moderation_content" entity="content_moderation_results" fields="content_type,content_id" type="btree" />
+    <index name="idx_admin_review_queue_status" entity="admin_review_queue" fields="status" type="btree" />
+  </indexes>
+
+  <!-- BUSINESS RULES -->
+  <business_rules>
+    <rule name="match_capacity_limit">
+      <description>A match cannot have more participants than max_participants</description>
+      <entities>matches, participants</entities>
+    </rule>
+    <rule name="friendship_mutual">
+      <description>Friendships should be mutual (bidirectional)</description>
+      <entities>friendships</entities>
+    </rule>
+    <rule name="self_rating_prevention">
+      <description>Users cannot rate themselves</description>
+      <entities>ratings</entities>
+    </rule>
+    <rule name="admin_role_requirement">
+      <description>Only users with is_admin=true can be assigned to admin_review_queue</description>
+      <entities>users, admin_review_queue</entities>
+    </rule>
+    <rule name="match_time_validation">
+      <description>Match end_time must be after start_time</description>
+      <entities>matches</entities>
+    </rule>
+    <rule name="content_moderation_threshold">
+      <description>Content with risk_score > 80% should be automatically queued for admin review</description>
+      <entities>content_moderation_results, admin_review_queue</entities>
+    </rule>
+  </business_rules>
+
+</database_schema>

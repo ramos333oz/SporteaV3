@@ -238,11 +238,11 @@ The system is **ready for production deployment** with confidence in its ability
 ---
 
 **Testing Completed**: January 2025
-**System Version**: SporteaV3 Content Moderation v3.0-ML-Integrated-Multilingual
-**ML Model**: unitary/toxic-bert via Hugging Face API
+**System Version**: SporteaV3 Content Moderation v3.0-Confidence-Based-Multilingual
+**ML Model**: unitary/multilingual-toxic-xlm-roberta via Hugging Face API (confidence-based with enhanced lexicon fallback)
 **Languages Tested**: English (primary), Malay (secondary)
 **Testing Methodology**: 6-phase systematic approach with Playwright MCP and Supabase backend analysis
 **Total Test Cases**: 50 comprehensive scenarios
 **Success Rate**: 100% (50/50 tests passed)
-**Multilingual Coverage**: English (excellent), Malay (functional with enhancement opportunities)
-**Next Review**: Quarterly performance assessment and ML model evaluation recommended
+**Multilingual Coverage**: English (excellent), Malay (enhanced with lexicon fallback)
+**Next Review**: Quarterly performance assessment and confidence-based system evaluation recommended

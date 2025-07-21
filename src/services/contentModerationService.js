@@ -7,14 +7,14 @@ import { supabase } from './supabase';
  *
  * ARCHITECTURE CHANGE (v3.0):
  * - This service now acts as a proxy to the edge function for moderation processing
- * - Edge function handles actual ML integration with Hugging Face toxic-bert
+ * - Edge function handles confidence-based ML integration with XLM-RoBERTa + Enhanced Lexicon fallback
  * - Maintains backward compatibility for admin dashboard and existing integrations
  * - Eliminates dual implementation inconsistency
  *
  * FEATURES:
- * - ML-powered toxic content detection via edge function
+ * - Confidence-based toxic content detection via edge function (XLM-RoBERTa primary, lexicon fallback)
  * - Configuration-driven moderation (reads from database)
- * - Robust fallback mechanisms (ML -> rule-based -> manual review)
+ * - Intelligent fallback mechanisms (XLM-RoBERTa -> Enhanced Lexicon -> manual review)
  * - Admin dashboard integration and workflow management
  *
  * RISK LEVELS:

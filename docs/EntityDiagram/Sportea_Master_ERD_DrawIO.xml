@@ -1,0 +1,858 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2024-12-19T00:00:00.000Z" agent="5.0" etag="xxx" version="24.0.0" type="device">
+  <diagram name="Sportea ERD" id="sportea-erd">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Title -->
+        <mxCell id="title" value="Sportea Application - Entity Relationship Diagram" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="20" width="400" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Legend -->
+        <mxCell id="legend-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="50" y="80" width="350" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="70" y="90" width="80" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-pk" value="• PK = Primary Key (Bold)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="70" y="115" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-fk" value="• FK = Foreign Key (Bold)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="70" y="135" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-cardinality" value="• Relationship Lines: One-to-Many (1:M), Many-to-Many (M:M)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="70" y="155" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-notation" value="• Crow's Foot Notation: ○ = Zero, | = One, ⟨ = Many" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="70" y="175" width="280" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- CORE ENTITIES ROW 1 -->
+        
+        <!-- USERS Entity (Central Hub) -->
+        <mxCell id="users-container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="250" width="220" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="users-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#606060;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="250" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="users-title" value="USERS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=white;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="250" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="users-fields-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e9ecef;strokeColor=#606060;" vertex="1" parent="1">
+          <mxGeometry x="100" y="290" width="220" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="users-field-header-text" value="Field" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="290" width="110" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="users-type-header-text" value="Type" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="210" y="290" width="110" height="25" as="geometry" />
+        </mxCell>
+        <!-- Users Fields -->
+        <mxCell id="users-field-id" value="id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="315" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-type-id" value="UUID (PK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="210" y="315" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-field-email" value="email" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="335" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-type-email" value="TEXT (UNIQUE)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="210" y="335" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-field-username" value="username" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="355" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-type-username" value="TEXT (UNIQUE)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="210" y="355" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-field-fullname" value="full_name" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="375" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-type-fullname" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="210" y="375" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-field-studentid" value="student_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="395" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-type-studentid" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="210" y="395" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-field-faculty" value="faculty" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="415" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-type-faculty" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="210" y="415" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-field-campus" value="campus" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="435" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-type-campus" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="210" y="435" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-field-sportpref" value="sport_preferences" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="455" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-type-sportpref" value="JSONB" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="210" y="455" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-field-skills" value="skill_levels" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="475" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-type-skills" value="JSONB" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="210" y="475" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-field-availdays" value="available_days" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="495" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-type-availdays" value="JSONB" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="210" y="495" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-field-availhours" value="available_hours" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="515" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-type-availhours" value="JSONB" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="210" y="515" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-field-isadmin" value="is_admin" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="535" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users-type-isadmin" value="BOOLEAN" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="210" y="535" width="110" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- MATCHES Entity (Main Business Entity) -->
+        <mxCell id="matches-container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="400" y="250" width="220" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#606060;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="400" y="250" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-title" value="MATCHES" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=white;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="250" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-fields-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e9ecef;strokeColor=#606060;" vertex="1" parent="1">
+          <mxGeometry x="400" y="290" width="220" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-header-text" value="Field" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="290" width="110" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-header-text" value="Type" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="290" width="110" height="25" as="geometry" />
+        </mxCell>
+        <!-- Matches Fields -->
+        <mxCell id="matches-field-id" value="id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="315" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-id" value="UUID (PK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="315" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-title" value="title" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="335" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-title" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="335" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-description" value="description" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="355" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-description" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="355" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-sportid" value="sport_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="375" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-sportid" value="UUID (FK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="375" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-hostid" value="host_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="395" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-hostid" value="UUID (FK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="395" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-locationid" value="location_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="415" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-locationid" value="UUID (FK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="415" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-starttime" value="start_time" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="435" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-starttime" value="TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="435" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-endtime" value="end_time" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="455" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-endtime" value="TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="455" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-maxpart" value="max_participants" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="475" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-maxpart" value="INTEGER" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="475" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-skill" value="skill_level" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="495" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-skill" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="495" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-price" value="price_per_person" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="515" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-price" value="NUMERIC" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="515" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-private" value="is_private" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="535" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-private" value="BOOLEAN" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="535" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-status" value="status" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="555" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-status" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="555" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-modstatus" value="moderation_status" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="575" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-modstatus" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="575" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-created" value="created_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="595" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-created" value="TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="595" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-field-updated" value="updated_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="400" y="615" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="matches-type-updated" value="TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="510" y="615" width="110" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- SPORTS Entity (Reference Data) -->
+        <mxCell id="sports-container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="700" y="250" width="200" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="sports-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#606060;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="700" y="250" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="sports-title" value="SPORTS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=white;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="250" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="sports-fields-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e9ecef;strokeColor=#606060;" vertex="1" parent="1">
+          <mxGeometry x="700" y="290" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="sports-field-header-text" value="Field" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="290" width="100" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="sports-type-header-text" value="Type" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="800" y="290" width="100" height="25" as="geometry" />
+        </mxCell>
+        <!-- Sports Fields -->
+        <mxCell id="sports-field-id" value="id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="315" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sports-type-id" value="UUID (PK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="800" y="315" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sports-field-name" value="name" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="335" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sports-type-name" value="TEXT (UNIQUE)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="800" y="335" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sports-field-icon" value="icon_url" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="355" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sports-type-icon" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="800" y="355" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sports-field-desc" value="description" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="375" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sports-type-desc" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="800" y="375" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sports-field-created" value="created_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="395" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sports-type-created" value="TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="800" y="395" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- LOCATIONS Entity (Reference Data) -->
+        <mxCell id="locations-container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="980" y="250" width="200" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#606060;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="980" y="250" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-title" value="LOCATIONS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=white;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="980" y="250" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-fields-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e9ecef;strokeColor=#606060;" vertex="1" parent="1">
+          <mxGeometry x="980" y="290" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-field-header-text" value="Field" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="980" y="290" width="100" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-type-header-text" value="Type" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="290" width="100" height="25" as="geometry" />
+        </mxCell>
+        <!-- Locations Fields -->
+        <mxCell id="locations-field-id" value="id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="980" y="315" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-type-id" value="UUID (PK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="315" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-field-name" value="name" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="980" y="335" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-type-name" value="TEXT (UNIQUE)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="335" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-field-address" value="address" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="980" y="355" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-type-address" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="355" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-field-campus" value="campus" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="980" y="375" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-type-campus" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="375" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-field-coords" value="coordinates" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="980" y="395" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-type-coords" value="JSONB" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="395" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-field-facilities" value="facilities" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="980" y="415" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-type-facilities" value="JSONB" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="415" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-field-sports" value="supported_sports" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="980" y="435" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-type-sports" value="UUID[]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="435" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-field-verified" value="is_verified" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="980" y="455" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-type-verified" value="BOOLEAN" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="455" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-field-created" value="created_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="980" y="475" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="locations-type-created" value="TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="475" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- PARTICIPANTS Entity (Bridge Table) -->
+        <mxCell id="participants-container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="250" width="200" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="participants-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#606060;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="250" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="participants-title" value="PARTICIPANTS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=white;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="250" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="participants-fields-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e9ecef;strokeColor=#606060;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="290" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="participants-field-header-text" value="Field" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="290" width="100" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="participants-type-header-text" value="Type" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="290" width="100" height="25" as="geometry" />
+        </mxCell>
+        <!-- Participants Fields -->
+        <mxCell id="participants-field-id" value="id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="315" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="participants-type-id" value="UUID (PK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="315" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="participants-field-matchid" value="match_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="335" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="participants-type-matchid" value="UUID (FK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="335" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="participants-field-userid" value="user_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="355" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="participants-type-userid" value="UUID (FK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="355" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="participants-field-joined" value="joined_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="375" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="participants-type-joined" value="TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="375" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="participants-field-status" value="status" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="395" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="participants-type-status" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="395" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- SOCIAL & GAMIFICATION ENTITIES ROW 2 -->
+
+        <!-- FRIENDSHIPS Entity -->
+        <mxCell id="friendships-container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="700" width="200" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="friendships-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#606060;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="700" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="friendships-title" value="FRIENDSHIPS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=white;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="700" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="friendships-fields-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e9ecef;strokeColor=#606060;" vertex="1" parent="1">
+          <mxGeometry x="100" y="740" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="friendships-field-header-text" value="Field" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="740" width="100" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="friendships-type-header-text" value="Type" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="200" y="740" width="100" height="25" as="geometry" />
+        </mxCell>
+        <!-- Friendships Fields -->
+        <mxCell id="friendships-field-id" value="id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="765" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="friendships-type-id" value="UUID (PK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="200" y="765" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="friendships-field-userid" value="user_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="785" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="friendships-type-userid" value="UUID (FK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="200" y="785" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="friendships-field-friendid" value="friend_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="805" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="friendships-type-friendid" value="UUID (FK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="200" y="805" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="friendships-field-status" value="status" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="825" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="friendships-type-status" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="200" y="825" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="friendships-field-created" value="created_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="100" y="845" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="friendships-type-created" value="TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="200" y="845" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- MESSAGES Entity -->
+        <mxCell id="messages-container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="350" y="700" width="200" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#606060;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="350" y="700" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-title" value="MESSAGES" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=white;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="350" y="700" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-fields-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e9ecef;strokeColor=#606060;" vertex="1" parent="1">
+          <mxGeometry x="350" y="740" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-field-header-text" value="Field" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="350" y="740" width="100" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-type-header-text" value="Type" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="450" y="740" width="100" height="25" as="geometry" />
+        </mxCell>
+        <!-- Messages Fields -->
+        <mxCell id="messages-field-id" value="id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="350" y="765" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-type-id" value="UUID (PK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="450" y="765" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-field-senderid" value="sender_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="350" y="785" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-type-senderid" value="UUID (FK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="450" y="785" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-field-receiverid" value="receiver_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="350" y="805" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-type-receiverid" value="UUID (FK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="450" y="805" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-field-content" value="content" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="350" y="825" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-type-content" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="450" y="825" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-field-type" value="message_type" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="350" y="845" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-type-type" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="450" y="845" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-field-isread" value="is_read" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="350" y="865" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-type-isread" value="BOOLEAN" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="450" y="865" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-field-readat" value="read_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="350" y="885" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-type-readat" value="TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="450" y="885" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-field-created" value="created_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="350" y="905" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="messages-type-created" value="TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="450" y="905" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- USER_GAMIFICATION Entity -->
+        <mxCell id="user_gamification-container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="700" width="200" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#606060;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="700" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-title" value="USER_GAMIFICATION" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=white;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="600" y="700" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-fields-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e9ecef;strokeColor=#606060;" vertex="1" parent="1">
+          <mxGeometry x="600" y="740" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-field-header-text" value="Field" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="600" y="740" width="100" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-type-header-text" value="Type" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="740" width="100" height="25" as="geometry" />
+        </mxCell>
+        <!-- User_Gamification Fields -->
+        <mxCell id="user_gamification-field-id" value="id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="600" y="765" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-type-id" value="UUID (PK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="765" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-field-userid" value="user_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="600" y="785" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-type-userid" value="UUID (FK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="785" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-field-totalxp" value="total_xp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="600" y="805" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-type-totalxp" value="INTEGER" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="805" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-field-level" value="current_level" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="600" y="825" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-type-level" value="INTEGER" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="825" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-field-hosted" value="matches_hosted" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="600" y="845" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-type-hosted" value="INTEGER" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="845" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-field-joined" value="matches_joined" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="600" y="865" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-type-joined" value="INTEGER" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="865" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-field-activity" value="last_activity" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="600" y="885" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-type-activity" value="TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="885" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-field-created" value="created_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="600" y="905" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user_gamification-type-created" value="TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="700" y="905" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- NOTIFICATIONS Entity -->
+        <mxCell id="notifications-container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="850" y="700" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#606060;strokeColor=#606060;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="850" y="700" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-title" value="NOTIFICATIONS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=white;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="850" y="700" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-fields-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e9ecef;strokeColor=#606060;" vertex="1" parent="1">
+          <mxGeometry x="850" y="740" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-field-header-text" value="Field" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="850" y="740" width="100" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-type-header-text" value="Type" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="950" y="740" width="100" height="25" as="geometry" />
+        </mxCell>
+        <!-- Notifications Fields -->
+        <mxCell id="notifications-field-id" value="id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="850" y="765" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-type-id" value="UUID (PK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="950" y="765" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-field-userid" value="user_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="850" y="785" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-type-userid" value="UUID (FK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="950" y="785" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-field-matchid" value="match_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="850" y="805" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-type-matchid" value="UUID (FK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="950" y="805" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-field-type" value="type" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="850" y="825" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-type-type" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="950" y="825" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-field-message" value="message" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="850" y="845" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-type-message" value="TEXT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="950" y="845" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-field-isread" value="is_read" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=left;fontSize=11;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="850" y="865" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications-type-isread" value="BOOLEAN" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#606060;align=center;fontSize=10;fontColor=#606060;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="950" y="865" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- PROFESSIONAL RELATIONSHIP LINES WITH CROW'S FOOT NOTATION -->
+
+        <!-- Users to Matches (1:M - User hosts many matches) -->
+        <mxCell id="users-matches-rel" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="320" y="410" as="sourcePoint" />
+            <mxPoint x="400" y="410" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <!-- One side (Users) -->
+        <mxCell id="users-matches-one" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=3;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="320" y="405" as="sourcePoint" />
+            <mxPoint x="320" y="415" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <!-- Many side (Matches) -->
+        <mxCell id="users-matches-many" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=2;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="400" y="405" as="sourcePoint" />
+            <mxPoint x="390" y="410" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="users-matches-many2" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=2;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="400" y="415" as="sourcePoint" />
+            <mxPoint x="390" y="410" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="users-matches-label" value="hosts" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontFamily=Arial;backgroundColor=white;" vertex="1" connectable="0" parent="users-matches-rel">
+          <mxGeometry x="-0.1" y="-1" relative="1" as="geometry">
+            <mxPoint y="-15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Sports to Matches (1:M - Sport used in many matches) -->
+        <mxCell id="sports-matches-rel" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="800" y="430" as="sourcePoint" />
+            <mxPoint x="510" y="250" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="800" y="450" />
+              <mxPoint x="800" y="220" />
+              <mxPoint x="510" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- One side (Sports) -->
+        <mxCell id="sports-matches-one" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=3;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="795" y="430" as="sourcePoint" />
+            <mxPoint x="805" y="430" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <!-- Many side (Matches) -->
+        <mxCell id="sports-matches-many" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=2;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="505" y="250" as="sourcePoint" />
+            <mxPoint x="510" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sports-matches-many2" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=2;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="515" y="250" as="sourcePoint" />
+            <mxPoint x="510" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sports-matches-label" value="sport_type" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontFamily=Arial;backgroundColor=white;" vertex="1" connectable="0" parent="sports-matches-rel">
+          <mxGeometry x="-0.1" y="-1" relative="1" as="geometry">
+            <mxPoint x="20" y="0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Locations to Matches (1:M - Location hosts many matches) -->
+        <mxCell id="locations-matches-rel" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="980" y="365" as="sourcePoint" />
+            <mxPoint x="620" y="415" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="900" y="365" />
+              <mxPoint x="900" y="415" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- One side (Locations) -->
+        <mxCell id="locations-matches-one" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=3;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="980" y="360" as="sourcePoint" />
+            <mxPoint x="980" y="370" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <!-- Many side (Matches) -->
+        <mxCell id="locations-matches-many" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=2;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="620" y="410" as="sourcePoint" />
+            <mxPoint x="630" y="415" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="locations-matches-many2" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=2;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="620" y="420" as="sourcePoint" />
+            <mxPoint x="630" y="415" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="locations-matches-label" value="venue" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontFamily=Arial;backgroundColor=white;" vertex="1" connectable="0" parent="locations-matches-rel">
+          <mxGeometry x="-0.1" y="-1" relative="1" as="geometry">
+            <mxPoint y="-15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Matches to Participants (1:M - Match has many participants) -->
+        <mxCell id="matches-participants-rel" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="620" y="450" as="sourcePoint" />
+            <mxPoint x="1250" y="355" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1200" y="450" />
+              <mxPoint x="1200" y="355" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- One side (Matches) -->
+        <mxCell id="matches-participants-one" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=3;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="620" y="445" as="sourcePoint" />
+            <mxPoint x="620" y="455" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <!-- Many side (Participants) -->
+        <mxCell id="matches-participants-many" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=2;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1250" y="350" as="sourcePoint" />
+            <mxPoint x="1240" y="355" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="matches-participants-many2" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=2;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1250" y="360" as="sourcePoint" />
+            <mxPoint x="1240" y="355" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="matches-participants-label" value="participants" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontFamily=Arial;backgroundColor=white;" vertex="1" connectable="0" parent="matches-participants-rel">
+          <mxGeometry x="-0.1" y="-1" relative="1" as="geometry">
+            <mxPoint y="-15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Users to Participants (1:M - User participates in many matches) -->
+        <mxCell id="users-participants-rel" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="320" y="500" as="sourcePoint" />
+            <mxPoint x="1250" y="375" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1150" y="500" />
+              <mxPoint x="1150" y="375" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- One side (Users) -->
+        <mxCell id="users-participants-one" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=3;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="320" y="495" as="sourcePoint" />
+            <mxPoint x="320" y="505" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <!-- Many side (Participants) -->
+        <mxCell id="users-participants-many" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=2;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1250" y="370" as="sourcePoint" />
+            <mxPoint x="1240" y="375" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="users-participants-many2" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=2;strokeColor=#606060;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1250" y="380" as="sourcePoint" />
+            <mxPoint x="1240" y="375" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="users-participants-label" value="joins" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontFamily=Arial;backgroundColor=white;" vertex="1" connectable="0" parent="users-participants-rel">
+          <mxGeometry x="-0.1" y="-1" relative="1" as="geometry">
+            <mxPoint y="-15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

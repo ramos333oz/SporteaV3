@@ -1,0 +1,62 @@
+<svg width="800" height="550" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="550" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Manage Friends Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Manage Friends</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Registered User, System</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">User manages friend list, requests, and connections</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="160" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="177" class="label">Preconditions:</text>
+  <rect x="170" y="160" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="177" class="cell">User must be authenticated</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="185" width="150" height="150" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="202" class="label">Main Flow:</text>
+  <rect x="170" y="185" width="610" height="150" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="202" class="cell">1. User navigates to Friends page</text>
+  <text x="175" y="217" class="cell">2. System displays friend tabs (Friends, Requests, Sent, Discover)</text>
+  <text x="175" y="232" class="cell">3. User switches between tabs to view different lists</text>
+  <text x="175" y="247" class="cell">4. User can accept/reject incoming requests</text>
+  <text x="175" y="262" class="cell">5. User can view sent requests status</text>
+  <text x="175" y="277" class="cell">6. System updates friend relationships</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="335" width="150" height="75" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="352" class="label">Alternative Flows:</text>
+  <rect x="170" y="335" width="610" height="75" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="352" class="cell">• No friends: Show discovery suggestions</text>
+  <text x="175" y="367" class="cell">• Request processing error: Retry mechanism</text>
+  <text x="175" y="382" class="cell">• Sync failure: Show offline status</text>
+</svg>

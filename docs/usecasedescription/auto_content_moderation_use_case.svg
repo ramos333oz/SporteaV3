@@ -1,0 +1,63 @@
+<svg width="800" height="650" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="650" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Auto Content Moderation Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Auto Content Moderation</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">System</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">System automatically analyzes and flags potentially inappropriate content using ML</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">Content submitted for review</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="195" width="150" height="175" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="212" class="label">Main Flow:</text>
+  <rect x="170" y="195" width="610" height="175" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="212" class="cell">1. System receives new content for analysis</text>
+  <text x="175" y="227" class="cell">2. System applies ML toxicity detection</text>
+  <text x="175" y="242" class="cell">3. System calculates risk score and confidence</text>
+  <text x="175" y="257" class="cell">4. System categorizes content by risk level</text>
+  <text x="175" y="272" class="cell">5. System auto-approves low-risk content</text>
+  <text x="175" y="287" class="cell">6. System queues high-risk content for manual review</text>
+  <text x="175" y="302" class="cell">7. System logs moderation decisions</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="370" width="150" height="75" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="387" class="label">Alternative Flows:</text>
+  <rect x="170" y="370" width="610" height="75" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="387" class="cell">• ML service unavailable: Queue for manual review</text>
+  <text x="175" y="402" class="cell">• Confidence too low: Default to manual review</text>
+  <text x="175" y="417" class="cell">• False positives: Learn from admin corrections</text>
+</svg>

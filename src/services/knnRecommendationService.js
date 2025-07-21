@@ -18,8 +18,15 @@ import { buildAndStoreUserVector, getUserVector } from './knnVectorService';
  * Lower distance = Higher user similarity
  */
 
-const DEBUG_MODE = process.env.NODE_ENV !== 'production';
+const DEBUG_MODE = typeof process !== 'undefined' ? process.env.NODE_ENV !== 'production' : true;
 const LOG_PREFIX = '[KNN Recommendation Service]';
+
+// Logging configuration
+const LOGGING_CONFIG = {
+  ENABLE_DETAILED_LOGS: typeof process !== 'undefined' ? process.env.KNN_DETAILED_LOGS === 'true' : false,
+  ENABLE_SUMMARY_LOGS: true,
+  ENABLE_COMPONENT_BREAKDOWN: typeof process !== 'undefined' ? process.env.KNN_COMPONENT_LOGS === 'true' : false
+};
 
 // Cache configuration
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
@@ -29,10 +36,22 @@ let knnCache = {
   userId: null
 };
 
-// Helper logging functions
+// Enhanced logging functions with different levels
 function log(...args) {
-  if (DEBUG_MODE) {
+  if (DEBUG_MODE && LOGGING_CONFIG.ENABLE_SUMMARY_LOGS) {
     console.log(LOG_PREFIX, ...args);
+  }
+}
+
+function logDetailed(...args) {
+  if (DEBUG_MODE && LOGGING_CONFIG.ENABLE_DETAILED_LOGS) {
+    console.log(LOG_PREFIX, '[DETAILED]', ...args);
+  }
+}
+
+function logComponent(...args) {
+  if (DEBUG_MODE && LOGGING_CONFIG.ENABLE_COMPONENT_BREAKDOWN) {
+    console.log(LOG_PREFIX, '[COMPONENT]', ...args);
   }
 }
 
@@ -44,67 +63,63 @@ function logError(...args) {
  * Display user vector with labeled components for debugging
  */
 function displayUserVector(vector, userId, userProfile = null) {
-  log(`\n📊 === USER VECTOR DISPLAY: ${userId} ===`);
-
-  if (userProfile) {
-    log(`👤 Profile Info:`);
-    log(`   Name: ${userProfile.full_name || 'Unknown'}`);
-    log(`   Faculty: ${userProfile.faculty || 'Unknown'}`);
-    log(`   Campus: ${userProfile.campus || 'Unknown'}`);
-    log(`   Sports: ${userProfile.sport_preferences ? userProfile.sport_preferences.map(s => `${s.sport} (${s.skill_level})`).join(', ') : 'None'}`);
-  }
-
-  log(`\n🔢 Vector Components (142 elements):`);
-
-  // Sport-Skills (0-32)
-  const sportSkills = vector.slice(0, 33);
-  const activeSkills = sportSkills.map((val, idx) => val > 0 ? `pos${idx}:${val}` : null).filter(Boolean);
-  log(`🏀 Sport-Skills (0-32): [${activeSkills.length > 0 ? activeSkills.join(', ') : 'none'}]`);
-
-  // Faculty (33-39)
-  const faculty = vector.slice(33, 40);
-  const activeFaculty = faculty.map((val, idx) => val > 0 ? `pos${33+idx}:${val}` : null).filter(Boolean);
-  log(`🎓 Faculty (33-39): [${activeFaculty.length > 0 ? activeFaculty.join(', ') : 'none'}]`);
-
-  // Campus (40-52)
-  const campus = vector.slice(40, 53);
-  const activeCampus = campus.map((val, idx) => val > 0 ? `pos${40+idx}:${val}` : null).filter(Boolean);
-  log(`🏫 Campus (40-52): [${activeCampus.length > 0 ? activeCampus.join(', ') : 'none'}]`);
-
-  // Gender (53-56)
-  const gender = vector.slice(53, 57);
-  const activeGender = gender.map((val, idx) => val > 0 ? `pos${53+idx}:${val}` : null).filter(Boolean);
-  log(`👤 Gender (53-56): [${activeGender.length > 0 ? activeGender.join(', ') : 'none'}]`);
-
-  // Play Style (57-58)
-  const playStyle = vector.slice(57, 59);
-  const activePlayStyle = playStyle.map((val, idx) => val > 0 ? `pos${57+idx}:${val}` : null).filter(Boolean);
-  log(`🎮 Play Style (57-58): [${activePlayStyle.length > 0 ? activePlayStyle.join(', ') : 'none'}]`);
-
-  // Time Slots (59-107)
-  const timeSlots = vector.slice(59, 108);
-  const activeTimeSlots = timeSlots.map((val, idx) => val > 0 ? `pos${59+idx}:${val}` : null).filter(Boolean);
-  log(`⏰ Time Slots (59-107): [${activeTimeSlots.length} active slots]`);
-  if (activeTimeSlots.length > 0 && activeTimeSlots.length <= 10) {
-    log(`   Active: ${activeTimeSlots.join(', ')}`);
-  }
-
-  // Facilities (108-136)
-  const facilities = vector.slice(108, 137);
-  const activeFacilities = facilities.map((val, idx) => val > 0 ? `pos${108+idx}:${val}` : null).filter(Boolean);
-  log(`🏟️ Facilities (108-136): [${activeFacilities.length > 0 ? activeFacilities.join(', ') : 'none'}]`);
-
-  // Padding (137-141)
-  const padding = vector.slice(137, 142);
-  const activePadding = padding.map((val, idx) => val > 0 ? `pos${137+idx}:${val}` : null).filter(Boolean);
-  log(`📦 Padding (137-141): [${activePadding.length > 0 ? activePadding.join(', ') : 'none'}]`);
-
-  // Summary
+  // Summary view - always shown
   const totalActiveElements = vector.filter(val => val > 0).length;
   const vectorCompleteness = (totalActiveElements / 142 * 100).toFixed(1);
-  log(`\n📈 Vector Summary:`);
-  log(`   Active elements: ${totalActiveElements}/142 (${vectorCompleteness}% complete)`);
-  log(`   Vector magnitude: ${Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0)).toFixed(6)}`);
+
+  log(`\nUser Vector: ${userId}`);
+  log(`  Active elements: ${totalActiveElements}/142 (${vectorCompleteness}% complete)`);
+
+  if (userProfile) {
+    log(`  Profile: ${userProfile.full_name || 'Unknown'} | ${userProfile.faculty || 'Unknown'} | ${userProfile.campus || 'Unknown'}`);
+  }
+
+  // Detailed breakdown - only if enabled
+  if (LOGGING_CONFIG.ENABLE_DETAILED_LOGS) {
+    logDetailed(`Vector Components (142 elements):`);
+
+    // Sport-Skills (0-32)
+    const sportSkills = vector.slice(0, 33);
+    const activeSkills = sportSkills.map((val, idx) => val > 0 ? `pos${idx}:${val}` : null).filter(Boolean);
+    logDetailed(`  Sport-Skills (0-32): [${activeSkills.length > 0 ? activeSkills.join(', ') : 'none'}]`);
+
+    // Faculty (33-39)
+    const faculty = vector.slice(33, 40);
+    const activeFaculty = faculty.map((val, idx) => val > 0 ? `pos${33+idx}:${val}` : null).filter(Boolean);
+    logDetailed(`  Faculty (33-39): [${activeFaculty.length > 0 ? activeFaculty.join(', ') : 'none'}]`);
+
+    // Campus (40-52)
+    const campus = vector.slice(40, 53);
+    const activeCampus = campus.map((val, idx) => val > 0 ? `pos${40+idx}:${val}` : null).filter(Boolean);
+    logDetailed(`  Campus (40-52): [${activeCampus.length > 0 ? activeCampus.join(', ') : 'none'}]`);
+
+    // Gender (53-56)
+    const gender = vector.slice(53, 57);
+    const activeGender = gender.map((val, idx) => val > 0 ? `pos${53+idx}:${val}` : null).filter(Boolean);
+    logDetailed(`  Gender (53-56): [${activeGender.length > 0 ? activeGender.join(', ') : 'none'}]`);
+
+    // Play Style (57-58)
+    const playStyle = vector.slice(57, 59);
+    const activePlayStyle = playStyle.map((val, idx) => val > 0 ? `pos${57+idx}:${val}` : null).filter(Boolean);
+    logDetailed(`  Play Style (57-58): [${activePlayStyle.length > 0 ? activePlayStyle.join(', ') : 'none'}]`);
+
+    // Time Slots (59-107)
+    const timeSlots = vector.slice(59, 108);
+    const activeTimeSlots = timeSlots.map((val, idx) => val > 0 ? `pos${59+idx}:${val}` : null).filter(Boolean);
+    logDetailed(`  Time Slots (59-107): [${activeTimeSlots.length} active slots]`);
+    if (activeTimeSlots.length > 0 && activeTimeSlots.length <= 10) {
+      logDetailed(`    Active: ${activeTimeSlots.join(', ')}`);
+    }
+
+    // Facilities (108-136)
+    const facilities = vector.slice(108, 137);
+    const activeFacilities = facilities.map((val, idx) => val > 0 ? `pos${108+idx}:${val}` : null).filter(Boolean);
+    logDetailed(`  Facilities (108-136): [${activeFacilities.length > 0 ? activeFacilities.join(', ') : 'none'}]`);
+
+    // Vector magnitude
+    const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
+    logDetailed(`  Vector magnitude: ${magnitude.toFixed(6)}`);
+  }
 }
 
 /**
@@ -122,19 +137,11 @@ function calculateJaccardSimilarity(vector1, vector2, userId1 = 'User1', userId2
     throw new Error('Vectors must be 142-dimensional');
   }
 
+  // Clean summary logging
   if (enableDetailedLogging) {
-    log(`\n🔍 === DETAILED JACCARD SIMILARITY CALCULATION ===`);
-    log(`📊 Comparing ${userId1} vs ${userId2}`);
-    log(`📐 Formula: Jaccard = |Intersection| / |Union| = |A ∩ B| / |A ∪ B|`);
-    log(`\n📋 Vector Structure (142 elements):`);
-    log(`   • Sport-Skills: positions 0-32 (33 elements)`);
-    log(`   • Faculty: positions 33-39 (7 elements)`);
-    log(`   • Campus/State: positions 40-52 (13 elements)`);
-    log(`   • Gender: positions 53-56 (4 elements)`);
-    log(`   • Play Style: positions 57-58 (2 elements)`);
-    log(`   • Time Slots: positions 59-107 (49 elements)`);
-    log(`   • Facilities: positions 108-136 (29 elements)`);
-    log(`   • Padding: positions 137-141 (5 elements)`);
+    log(`\nCalculating similarity: ${userId1} vs ${userId2}`);
+    logDetailed(`Formula: Jaccard = |Intersection| / |Union| = |A ∩ B| / |A ∪ B|`);
+    logDetailed(`Vector Structure: Sports(0-32), Faculty(33-39), Campus(40-52), Gender(53-56), PlayStyle(57-58), TimeSlots(59-107), Facilities(108-136)`);
   }
 
   let intersection = 0;
@@ -190,54 +197,44 @@ function calculateJaccardSimilarity(vector1, vector2, userId1 = 'User1', userId2
   const jaccardSimilarity = union > 0 ? intersection / union : 0;
 
   if (enableDetailedLogging) {
-    log(`\n📊 COMPONENT-BY-COMPONENT BREAKDOWN:`);
+    // Component breakdown - only if component logging is enabled
+    if (LOGGING_CONFIG.ENABLE_COMPONENT_BREAKDOWN) {
+      logComponent(`Component-by-component breakdown:`);
 
-    for (const [componentName, component] of Object.entries(componentBreakdown)) {
-      const componentJaccard = component.union > 0 ? component.intersection / component.union : 0;
-      const isExcluded = componentName === 'padding';
-      const statusIcon = isExcluded ? '🚫' : '🔸';
-      const statusText = isExcluded ? ' (EXCLUDED FROM CALCULATION)' : '';
+      for (const [componentName, component] of Object.entries(componentBreakdown)) {
+        const componentJaccard = component.union > 0 ? component.intersection / component.union : 0;
+        const isExcluded = componentName === 'padding';
 
-      log(`\n${statusIcon} ${componentName.toUpperCase()} (positions ${component.start}-${component.end})${statusText}:`);
+        if (!isExcluded && component.union > 0) {
+          logComponent(`  ${componentName}: ${component.intersection}/${component.union} = ${(componentJaccard * 100).toFixed(1)}%`);
 
-      if (isExcluded) {
-        log(`   ⚠️  Padding elements excluded from similarity calculation`);
-        log(`   ℹ️  These positions don't represent actual user preferences`);
-      } else {
-        log(`   Intersection: ${component.intersection} (shared preferences)`);
-        log(`   Union: ${component.union} (total unique preferences)`);
-        log(`   Component Jaccard: ${componentJaccard.toFixed(6)} (${(componentJaccard * 100).toFixed(1)}%)`);
-
-        if (component.details.length > 0) {
-          log(`   Preference details (${component.details.length}):`);
-          component.details.forEach(detail => {
-            const status = detail.inIntersection ? '✅ SHARED' : '🔸 UNIQUE';
-            log(`     Position ${detail.position}: User1=${detail.user1Value}, User2=${detail.user2Value} → ${status}`);
-          });
-        } else {
-          log(`   ✅ No preferences in this component`);
+          if (component.details.length > 0 && component.details.length <= 5) {
+            component.details.forEach(detail => {
+              const status = detail.inIntersection ? 'SHARED' : 'UNIQUE';
+              logComponent(`    pos${detail.position}: ${detail.user1Value}/${detail.user2Value} (${status})`);
+            });
+          }
         }
       }
     }
 
-    log(`\n🧮 FINAL JACCARD CALCULATION:`);
-    log(`   Total intersection: ${intersection} (shared preferences)`);
-    log(`   Total union: ${union} (unique preferences from both users)`);
-    log(`   Jaccard similarity: ${intersection}/${union} = ${jaccardSimilarity.toFixed(6)}`);
-    log(`   Similarity percentage: ${(jaccardSimilarity * 100).toFixed(1)}%`);
+    // Clean final calculation summary
+    log(`  Result: ${intersection}/${union} = ${(jaccardSimilarity * 100).toFixed(1)}% similarity`);
 
-    // Interpretation
+    // Simple interpretation without emojis
+    let interpretation;
     if (jaccardSimilarity >= 0.7) {
-      log(`   💚 Interpretation: Very High Similarity (${(jaccardSimilarity * 100).toFixed(1)}%)`);
+      interpretation = 'Very High';
     } else if (jaccardSimilarity >= 0.5) {
-      log(`   💛 Interpretation: High Similarity (${(jaccardSimilarity * 100).toFixed(1)}%)`);
+      interpretation = 'High';
     } else if (jaccardSimilarity >= 0.3) {
-      log(`   🧡 Interpretation: Moderate Similarity (${(jaccardSimilarity * 100).toFixed(1)}%)`);
+      interpretation = 'Moderate';
     } else if (jaccardSimilarity >= 0.1) {
-      log(`   ❤️ Interpretation: Low Similarity (${(jaccardSimilarity * 100).toFixed(1)}%)`);
+      interpretation = 'Low';
     } else {
-      log(`   💔 Interpretation: Very Low Similarity (${(jaccardSimilarity * 100).toFixed(1)}%)`);
+      interpretation = 'Very Low';
     }
+    log(`  Interpretation: ${interpretation} Similarity`);
   }
 
   return jaccardSimilarity;
@@ -340,9 +337,8 @@ async function getCachedSimilarity(userId1, userId2, vector1, vector2, version1,
       };
     }
 
-    // Calculate new similarity with detailed logging
-    log(`\n🚀 === FRESH JACCARD SIMILARITY CALCULATION ===`);
-    log(`👥 Users: ${userId1} vs ${userId2}`);
+    // Calculate new similarity with clean logging
+    log(`\nComparing users: ${userId1} vs ${userId2}`);
 
     // Display both user vectors for comparison
     displayUserVector(vector1, userId1);
@@ -445,30 +441,35 @@ async function findKNearestNeighbors(userId, k = 10) {
     distances.sort((a, b) => b.similarity - a.similarity);
     const kNearest = distances.slice(0, k);
 
-    // Enhanced logging for K nearest neighbors results
-    log(`\n🎯 === K NEAREST NEIGHBORS RESULTS ===`);
-    log(`👤 Target User: ${userId}`);
-    log(`🔍 Requested K: ${k}`);
-    log(`📊 Found: ${kNearest.length} nearest neighbors`);
-    log(`\n📋 Top ${Math.min(k, kNearest.length)} Most Similar Users:`);
+    // Clean results summary
+    log(`\nK-Nearest Neighbors Results:`);
+    log(`  Target: ${userId} | Requested: ${k} | Found: ${kNearest.length}`);
 
-    kNearest.forEach((neighbor, index) => {
-      const rank = index + 1;
-      const similarityPercent = (neighbor.similarity * 100).toFixed(1);
-      log(`   ${rank}. User ${neighbor.userId}:`);
-      log(`      Jaccard Similarity: ${neighbor.similarity.toFixed(6)} (${similarityPercent}%)`);
-      log(`      Completeness: ${(neighbor.completenessScore * 100).toFixed(1)}%`);
-    });
-
+    // Top results summary
     if (kNearest.length > 0) {
+      log(`  Top ${Math.min(3, kNearest.length)} matches:`);
+      kNearest.slice(0, 3).forEach((neighbor, index) => {
+        const rank = index + 1;
+        const similarityPercent = (neighbor.similarity * 100).toFixed(1);
+        log(`    ${rank}. User ${neighbor.userId}: ${similarityPercent}% similarity`);
+      });
+
+      // Statistics
       const avgSimilarity = kNearest.reduce((sum, n) => sum + n.similarity, 0) / kNearest.length;
       const maxSimilarity = kNearest[0].similarity;
       const minSimilarity = kNearest[kNearest.length - 1].similarity;
 
-      log(`\n📈 Similarity Statistics:`);
-      log(`   Highest similarity: ${(maxSimilarity * 100).toFixed(1)}%`);
-      log(`   Lowest similarity: ${(minSimilarity * 100).toFixed(1)}%`);
-      log(`   Average similarity: ${(avgSimilarity * 100).toFixed(1)}%`);
+      log(`  Range: ${(minSimilarity * 100).toFixed(1)}% - ${(maxSimilarity * 100).toFixed(1)}% | Avg: ${(avgSimilarity * 100).toFixed(1)}%`);
+    }
+
+    // Detailed breakdown - only if enabled
+    if (LOGGING_CONFIG.ENABLE_DETAILED_LOGS && kNearest.length > 0) {
+      logDetailed(`All ${kNearest.length} neighbors:`);
+      kNearest.forEach((neighbor, index) => {
+        const rank = index + 1;
+        const similarityPercent = (neighbor.similarity * 100).toFixed(1);
+        logDetailed(`  ${rank}. User ${neighbor.userId}: ${similarityPercent}% (completeness: ${(neighbor.completenessScore * 100).toFixed(1)}%)`);
+      });
     }
 
     return kNearest;

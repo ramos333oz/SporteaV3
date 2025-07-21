@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400" height="900" xmlns="http://www.w3.org/2000/svg">
+  <!-- Title -->
+  <text x="700" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="black">
+    SporteaV3 - UML Use Case Diagram
+  </text>
+  <text x="700" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="black">
+    Real-Time Sports Team-Up Platform for UiTM Students
+  </text>
+  
+  <!-- System Boundary -->
+  <rect x="200" y="80" width="1000" height="750" fill="none" stroke="black" stroke-width="2"/>
+  <text x="210" y="100" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">SporteaV3 System</text>
+  
+  <!-- Actors -->
+  <!-- User Actor -->
+  <g id="user-actor">
+    <circle cx="100" cy="200" r="15" fill="none" stroke="black" stroke-width="2"/>
+    <line x1="100" y1="215" x2="100" y2="260" stroke="black" stroke-width="2"/>
+    <line x1="85" y1="235" x2="115" y2="235" stroke="black" stroke-width="2"/>
+    <line x1="100" y1="260" x2="85" y2="290" stroke="black" stroke-width="2"/>
+    <line x1="100" y1="260" x2="115" y2="290" stroke="black" stroke-width="2"/>
+    <text x="100" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="black">User</text>
+  </g>
+  
+  <!-- Admin Actor -->
+  <g id="admin-actor">
+    <circle cx="100" cy="450" r="15" fill="none" stroke="black" stroke-width="2"/>
+    <line x1="100" y1="465" x2="100" y2="510" stroke="black" stroke-width="2"/>
+    <line x1="85" y1="485" x2="115" y2="485" stroke="black" stroke-width="2"/>
+    <line x1="100" y1="510" x2="85" y2="540" stroke="black" stroke-width="2"/>
+    <line x1="100" y1="510" x2="115" y2="540" stroke="black" stroke-width="2"/>
+    <text x="100" y="560" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="black">Admin</text>
+  </g>
+  
+  <!-- System Actor -->
+  <g id="system-actor">
+    <circle cx="1300" cy="400" r="15" fill="none" stroke="black" stroke-width="2"/>
+    <line x1="1300" y1="415" x2="1300" y2="460" stroke="black" stroke-width="2"/>
+    <line x1="1285" y1="435" x2="1315" y2="435" stroke="black" stroke-width="2"/>
+    <line x1="1300" y1="460" x2="1285" y2="490" stroke="black" stroke-width="2"/>
+    <line x1="1300" y1="460" x2="1315" y2="490" stroke="black" stroke-width="2"/>
+    <text x="1300" y="510" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="black">System</text>
+  </g>
+  
+  <!-- Authentication Use Cases -->
+  <ellipse cx="350" cy="150" rx="60" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="350" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Register/Login</text>
+  
+  <ellipse cx="500" cy="150" rx="50" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="500" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Logout</text>
+  
+  <!-- Profile Management Use Cases -->
+  <ellipse cx="350" cy="200" rx="60" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="350" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">View Profile</text>
+  
+  <ellipse cx="500" cy="200" rx="60" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="500" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Edit Profile</text>
+  
+  <!-- Match Management Use Cases -->
+  <ellipse cx="350" cy="280" rx="60" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="350" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Find Matches</text>
+  
+  <ellipse cx="500" cy="280" rx="60" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="500" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Join Match</text>
+  
+  <ellipse cx="650" cy="280" rx="60" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="650" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Host Match</text>
+  
+  <ellipse cx="350" cy="330" rx="60" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="350" y="335" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">View Live Matches</text>
+  
+  <!-- Social Features Use Cases -->
+  <ellipse cx="350" cy="380" rx="60" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="350" y="385" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Find Players</text>
+  
+  <ellipse cx="500" cy="380" rx="60" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="500" y="385" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Add Friend</text>
+  
+  <ellipse cx="650" cy="380" rx="70" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="650" y="385" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Manage Friends</text>
+  
+  <!-- Gamification Use Cases -->
+  <ellipse cx="350" cy="430" rx="70" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="350" y="435" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">View Leaderboard</text>
+  
+  <ellipse cx="500" cy="430" rx="70" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="500" y="435" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">View Achievements</text>
+  
+  <!-- Communication Use Cases -->
+  <ellipse cx="350" cy="480" rx="70" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="350" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Submit Report</text>
+  
+  <ellipse cx="500" cy="480" rx="70" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="500" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">View Notifications</text>
+  
+  <!-- Admin Use Cases -->
+  <ellipse cx="350" cy="580" rx="80" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="350" y="585" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Access Admin Portal</text>
+  
+  <ellipse cx="500" cy="580" rx="80" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="500" y="585" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Manage User Reports</text>
+  
+  <ellipse cx="680" cy="580" rx="80" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="680" y="585" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Content Moderation</text>
+  
+  <ellipse cx="350" cy="630" rx="80" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="350" y="635" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">View Dashboard</text>
+  
+  <ellipse cx="500" cy="630" rx="80" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="500" y="635" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Manage Matches</text>
+  
+  <!-- System Use Cases -->
+  <ellipse cx="950" cy="200" rx="90" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="950" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Generate Match Recommendations</text>
+  
+  <ellipse cx="950" cy="250" rx="90" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="950" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Generate User Recommendations</text>
+  
+  <ellipse cx="950" cy="300" rx="80" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="950" y="305" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Auto Content Moderation</text>
+  
+  <ellipse cx="950" cy="350" rx="70" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="950" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Send Notifications</text>
+  
+  <ellipse cx="950" cy="400" rx="80" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="950" y="405" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Update Real-time Data</text>
+  
+  <ellipse cx="950" cy="450" rx="70" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="950" y="455" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Calculate XP/Levels</text>
+  
+  <ellipse cx="950" cy="500" rx="80" ry="25" fill="none" stroke="black" stroke-width="2"/>
+  <text x="950" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">Adaptive Learning</text>
+  
+  <!-- User Associations -->
+  <line x1="115" y1="235" x2="290" y2="150" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="235" x2="290" y2="200" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="235" x2="290" y2="280" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="235" x2="290" y2="330" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="235" x2="290" y2="380" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="235" x2="280" y2="430" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="235" x2="280" y2="480" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="235" x2="440" y2="150" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="235" x2="440" y2="200" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="235" x2="440" y2="280" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="235" x2="440" y2="380" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="235" x2="430" y2="430" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="235" x2="430" y2="480" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="235" x2="590" y2="280" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="235" x2="580" y2="380" stroke="black" stroke-width="1"/>
+  
+  <!-- Admin Associations -->
+  <line x1="115" y1="485" x2="270" y2="580" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="485" x2="420" y2="580" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="485" x2="600" y2="580" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="485" x2="270" y2="630" stroke="black" stroke-width="1"/>
+  <line x1="115" y1="485" x2="420" y2="630" stroke="black" stroke-width="1"/>
+  
+  <!-- System Associations -->
+  <line x1="1285" y1="435" x2="1040" y2="200" stroke="black" stroke-width="1"/>
+  <line x1="1285" y1="435" x2="1040" y2="250" stroke="black" stroke-width="1"/>
+  <line x1="1285" y1="435" x2="1030" y2="300" stroke="black" stroke-width="1"/>
+  <line x1="1285" y1="435" x2="1020" y2="350" stroke="black" stroke-width="1"/>
+  <line x1="1285" y1="435" x2="1030" y2="400" stroke="black" stroke-width="1"/>
+  <line x1="1285" y1="435" x2="1020" y2="450" stroke="black" stroke-width="1"/>
+  <line x1="1285" y1="435" x2="1030" y2="500" stroke="black" stroke-width="1"/>
+  
+  <!-- Include Relationships (dashed arrows) -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="black"/>
+    </marker>
+  </defs>
+  
+  <!-- Login included in most user actions -->
+  <line x1="410" y1="150" x2="440" y2="280" stroke="black" stroke-width="1" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+  <text x="425" y="210" font-family="Arial, sans-serif" font-size="8" fill="black">«include»</text>
+  
+  <!-- Extend Relationships -->
+  <line x1="860" y1="200" x2="410" y2="280" stroke="black" stroke-width="1" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+  <text x="630" y="240" font-family="Arial, sans-serif" font-size="8" fill="black">«extend»</text>
+  
+  <line x1="880" y1="350" x2="560" y2="280" stroke="black" stroke-width="1" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+  <text x="720" y="315" font-family="Arial, sans-serif" font-size="8" fill="black">«extend»</text>
+  
+  <!-- Legend -->
+  <rect x="220" y="750" width="300" height="70" fill="none" stroke="black" stroke-width="1"/>
+  <text x="230" y="770" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="black">Legend:</text>
+  <line x1="230" y1="780" x2="260" y2="780" stroke="black" stroke-width="1"/>
+  <text x="270" y="785" font-family="Arial, sans-serif" font-size="10" fill="black">Association</text>
+  <line x1="230" y1="795" x2="260" y2="795" stroke="black" stroke-width="1" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+  <text x="270" y="800" font-family="Arial, sans-serif" font-size="10" fill="black">Include/Extend</text>
+  <ellipse cx="245" cy="810" rx="15" ry="8" fill="none" stroke="black" stroke-width="1"/>
+  <text x="270" y="815" font-family="Arial, sans-serif" font-size="10" fill="black">Use Case</text>
+</svg>

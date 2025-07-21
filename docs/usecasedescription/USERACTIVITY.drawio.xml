@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.0.4 Chrome/138.0.7204.97 Electron/37.2.1 Safari/537.36" version="28.0.4">
+  <diagram name="Page-1" id="ChpTrEoNGF5ekB6tCi0q">
+    <mxGraphModel dx="2830" dy="2185" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="juRAWt_25KZLuKMo2uV--1" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#ff0000;" vertex="1" parent="1">
+          <mxGeometry x="460" y="60" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--2" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;verticalAlign=bottom;endArrow=open;endSize=8;strokeColor=#ff0000;rounded=0;" edge="1" source="juRAWt_25KZLuKMo2uV--1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="475" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--3" target="juRAWt_25KZLuKMo2uV--4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="475" y="280" />
+              <mxPoint x="600" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--3" value="Registered?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="427.5" y="150" width="95" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--4" target="juRAWt_25KZLuKMo2uV--10">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="520" />
+              <mxPoint x="475" y="520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--4" value="Login" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="360" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--5" target="juRAWt_25KZLuKMo2uV--6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--5" value="Register" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="307.5" y="310" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--6" target="juRAWt_25KZLuKMo2uV--10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--6" value="Setup Profile" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="307.5" y="410" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.454;entryY=-0.033;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--3" target="juRAWt_25KZLuKMo2uV--5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="475" y="280" />
+              <mxPoint x="362" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--10" target="juRAWt_25KZLuKMo2uV--16">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="475" y="700" />
+              <mxPoint x="160" y="700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--10" target="juRAWt_25KZLuKMo2uV--15">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="475" y="700" />
+              <mxPoint x="640" y="700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--10" target="juRAWt_25KZLuKMo2uV--17">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="475" y="700" />
+              <mxPoint x="800" y="700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--10" target="juRAWt_25KZLuKMo2uV--26">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="475" y="700" />
+              <mxPoint x="960" y="700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--31" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--10" target="juRAWt_25KZLuKMo2uV--30">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="475" y="700" />
+              <mxPoint x="-160" y="700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--50" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--10" target="juRAWt_25KZLuKMo2uV--49">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="475" y="700" />
+              <mxPoint x="1120" y="700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--10" value="Dashboard" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="415" y="570" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--43" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--13" target="juRAWt_25KZLuKMo2uV--42">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--13" value="Browse Matches" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="760" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--14" value="View Leaderboard" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="760" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--15" target="juRAWt_25KZLuKMo2uV--51">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--15" value="Find Players" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="760" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--68" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--16" target="juRAWt_25KZLuKMo2uV--35">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="160" y="1020" />
+              <mxPoint x="30" y="1020" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--69" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--16" target="juRAWt_25KZLuKMo2uV--36">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--70" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--16" target="juRAWt_25KZLuKMo2uV--37">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="160" y="1020" />
+              <mxPoint x="290" y="1020" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--16" value="View Profile" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="760" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--62" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--17" target="juRAWt_25KZLuKMo2uV--52">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--17" value="Host Match" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="740" y="760" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--10" target="juRAWt_25KZLuKMo2uV--13">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="475" y="700" />
+              <mxPoint x="320" y="700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--10">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="475" y="760" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--86" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--26" target="juRAWt_25KZLuKMo2uV--74">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="960" y="1260" />
+              <mxPoint x="488" y="1260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--26" value="View Notification" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="760" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--28" value="View User Recommendations" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-60" y="760" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--29" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--10" target="juRAWt_25KZLuKMo2uV--28">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="475" y="700" />
+              <mxPoint y="700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--33" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--30" target="juRAWt_25KZLuKMo2uV--32">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--30" value="View Friends" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-220" y="760" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--75" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--32" target="juRAWt_25KZLuKMo2uV--74">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-160" y="1260" />
+              <mxPoint x="488" y="1260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--32" value="Manage Friends" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-220" y="870" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--90" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--34" target="juRAWt_25KZLuKMo2uV--74">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-40" y="1260" />
+              <mxPoint x="488" y="1260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--34" value="Refresh User Recommendations" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-60" y="870" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--76" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--35" target="juRAWt_25KZLuKMo2uV--74">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="30" y="1260" />
+              <mxPoint x="488" y="1260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--35" value="Edit Profile" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-30" y="1110" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--78" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--36" target="juRAWt_25KZLuKMo2uV--74">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="160" y="1260" />
+              <mxPoint x="488" y="1260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--36" value="View Achievements" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1110" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--80" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--37" target="juRAWt_25KZLuKMo2uV--74">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="1280.0000000000002" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="290" y="1260" />
+              <mxPoint x="488" y="1260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--37" value="View Activity" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="230" y="1110" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--54" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--42" target="juRAWt_25KZLuKMo2uV--53">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--42" value="Filter Matches" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="870" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--82" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--47" target="juRAWt_25KZLuKMo2uV--74">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--47" value="Filter Leaderboard" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="427.5" y="870" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--87" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--49" target="juRAWt_25KZLuKMo2uV--74">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1120" y="1260" />
+              <mxPoint x="488" y="1260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--49" value="Submit Report" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="760" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--84" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--51" target="juRAWt_25KZLuKMo2uV--74">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="640" y="1260" />
+              <mxPoint x="488" y="1260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--51" value="Filter Players" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="870" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--85" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--52" target="juRAWt_25KZLuKMo2uV--74">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="1260" />
+              <mxPoint x="488" y="1260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--52" value="View Match Status" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="740" y="870" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--81" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--53" target="juRAWt_25KZLuKMo2uV--74">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="1260" />
+              <mxPoint x="488" y="1260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--53" value="Join Matches" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="360" y="1110" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--89" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--74" target="juRAWt_25KZLuKMo2uV--88">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--74" value="Log Out" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="427.5" y="1300" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--83" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.439;entryY=0.007;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="juRAWt_25KZLuKMo2uV--14" target="juRAWt_25KZLuKMo2uV--47">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="juRAWt_25KZLuKMo2uV--88" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#ff0000;" vertex="1" parent="1">
+          <mxGeometry x="472.5" y="1430" width="30" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,81 @@
+<svg width="500" height="380" xmlns="http://www.w3.org/2000/svg">
+  <!-- User_Gamification Table Entity (Leaderboard Core) -->
+  <g id="leaderboard-entity">
+    <!-- Entity Header -->
+    <rect x="50" y="20" width="400" height="35" fill="#f8f9fa" stroke="#606060" stroke-width="2"/>
+    <text x="250" y="42" text-anchor="middle" fill="#333" font-family="Arial, sans-serif" font-size="16" font-weight="bold">USER_GAMIFICATION (LEADERBOARD)</text>
+    
+    <!-- Column Headers -->
+    <rect x="50" y="55" width="200" height="30" fill="#606060" stroke="#606060" stroke-width="1"/>
+    <rect x="250" y="55" width="200" height="30" fill="#606060" stroke="#606060" stroke-width="1"/>
+    <text x="150" y="75" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Field</text>
+    <text x="350" y="75" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Details</text>
+
+    <!-- Row 1 - Primary Key (white background) -->
+    <rect x="50" y="85" width="200" height="25" fill="white" stroke="#606060" stroke-width="1"/>
+    <rect x="250" y="85" width="200" height="25" fill="white" stroke="#606060" stroke-width="1"/>
+    <text x="60" y="102" font-family="Arial, sans-serif" font-size="11" font-weight="bold">id</text>
+    <text x="440" y="102" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="#606060">UUID (PK)</text>
+
+    <!-- Row 2 - user_id (light grey background) -->
+    <rect x="50" y="110" width="200" height="25" fill="#f5f5f5" stroke="#606060" stroke-width="1"/>
+    <rect x="250" y="110" width="200" height="25" fill="#f5f5f5" stroke="#606060" stroke-width="1"/>
+    <text x="60" y="127" font-family="Arial, sans-serif" font-size="11" font-weight="bold">user_id</text>
+    <text x="440" y="127" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="#606060">UUID (FK)</text>
+
+    <!-- Row 3 - total_xp (white background) -->
+    <rect x="50" y="135" width="200" height="25" fill="white" stroke="#606060" stroke-width="1"/>
+    <rect x="250" y="135" width="200" height="25" fill="white" stroke="#606060" stroke-width="1"/>
+    <text x="60" y="152" font-family="Arial, sans-serif" font-size="11">total_xp</text>
+    <text x="440" y="152" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="#606060">INTEGER</text>
+
+    <!-- Row 4 - current_level (light grey background) -->
+    <rect x="50" y="160" width="200" height="25" fill="#f5f5f5" stroke="#606060" stroke-width="1"/>
+    <rect x="250" y="160" width="200" height="25" fill="#f5f5f5" stroke="#606060" stroke-width="1"/>
+    <text x="60" y="177" font-family="Arial, sans-serif" font-size="11">current_level</text>
+    <text x="440" y="177" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="#606060">INTEGER</text>
+
+    <!-- Row 5 - current_streak (white background) -->
+    <rect x="50" y="185" width="200" height="25" fill="white" stroke="#606060" stroke-width="1"/>
+    <rect x="250" y="185" width="200" height="25" fill="white" stroke="#606060" stroke-width="1"/>
+    <text x="60" y="202" font-family="Arial, sans-serif" font-size="11">current_streak</text>
+    <text x="440" y="202" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="#606060">INTEGER</text>
+
+    <!-- Row 6 - longest_streak (light grey background) -->
+    <rect x="50" y="210" width="200" height="25" fill="#f5f5f5" stroke="#606060" stroke-width="1"/>
+    <rect x="250" y="210" width="200" height="25" fill="#f5f5f5" stroke="#606060" stroke-width="1"/>
+    <text x="60" y="227" font-family="Arial, sans-serif" font-size="11">longest_streak</text>
+    <text x="440" y="227" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="#606060">INTEGER</text>
+
+    <!-- Row 7 - last_activity_date (white background) -->
+    <rect x="50" y="235" width="200" height="25" fill="white" stroke="#606060" stroke-width="1"/>
+    <rect x="250" y="235" width="200" height="25" fill="white" stroke="#606060" stroke-width="1"/>
+    <text x="60" y="252" font-family="Arial, sans-serif" font-size="11">last_activity_date</text>
+    <text x="440" y="252" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="#606060">DATE</text>
+
+    <!-- Row 8 - community_score (light grey background) -->
+    <rect x="50" y="260" width="200" height="25" fill="#f5f5f5" stroke="#606060" stroke-width="1"/>
+    <rect x="250" y="260" width="200" height="25" fill="#f5f5f5" stroke="#606060" stroke-width="1"/>
+    <text x="60" y="277" font-family="Arial, sans-serif" font-size="11">community_score</text>
+    <text x="440" y="277" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="#606060">FLOAT8</text>
+
+    <!-- Row 9 - weekly_xp (white background) -->
+    <rect x="50" y="285" width="200" height="25" fill="white" stroke="#606060" stroke-width="1"/>
+    <rect x="250" y="285" width="200" height="25" fill="white" stroke="#606060" stroke-width="1"/>
+    <text x="60" y="302" font-family="Arial, sans-serif" font-size="11">weekly_xp</text>
+    <text x="440" y="302" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="#606060">INTEGER</text>
+
+    <!-- Row 10 - monthly_xp (light grey background) -->
+    <rect x="50" y="310" width="200" height="25" fill="#f5f5f5" stroke="#606060" stroke-width="1"/>
+    <rect x="250" y="310" width="200" height="25" fill="#f5f5f5" stroke="#606060" stroke-width="1"/>
+    <text x="60" y="327" font-family="Arial, sans-serif" font-size="11">monthly_xp</text>
+    <text x="440" y="327" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="#606060">INTEGER</text>
+
+    <!-- Row 11 - created_at (white background) -->
+    <rect x="50" y="335" width="200" height="25" fill="white" stroke="#606060" stroke-width="1"/>
+    <rect x="250" y="335" width="200" height="25" fill="white" stroke="#606060" stroke-width="1"/>
+    <text x="60" y="352" font-family="Arial, sans-serif" font-size="11">created_at</text>
+    <text x="440" y="352" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="#606060">TIMESTAMPTZ</text>
+
+  </g>
+</svg>

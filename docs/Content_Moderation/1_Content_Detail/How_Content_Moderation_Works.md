@@ -164,9 +164,9 @@ Based on your preferences, the system is configured for **100% toxic content foc
 ├── High Risk Threshold: 80%
 ├── Medium Risk Threshold: 50%
 ├── Low Risk Threshold: 20%
-├── AI Confidence Threshold: 70%
-├── Processing Timeout: 5 seconds
-└── Primary AI Model: unitary/toxic-bert
+├── AI Confidence Threshold: 50% (medium confidence minimum)
+├── Processing Timeout: 4 seconds (XLM-RoBERTa)
+└── Primary AI Model: unitary/multilingual-toxic-xlm-roberta (confidence-based with lexicon fallback)
 ```
 
 ## 🚨 **What Happens When Content is Flagged?**

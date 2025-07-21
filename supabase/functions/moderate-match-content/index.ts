@@ -1716,11 +1716,11 @@ serve(async (req) => {
         moderation_enabled: true,
         strict_mode: true,  // Enable strict mode for educational environment
         ml_enabled: true,
-        ml_confidence_threshold: 0.5, // Lowered for more sensitive detection
-        ml_timeout_ms: 5000,
+        ml_confidence_threshold: 0.5, // Confidence threshold for XLM-RoBERTa acceptance
+        ml_timeout_ms: 4000, // XLM-RoBERTa timeout (matches confidence-based implementation)
         ml_primary_model: 'unitary/multilingual-toxic-xlm-roberta',
-        ml_fallback_model: 'unitary/toxic-bert',
-        ml_tertiary_model: 'local-processing', // Xenova/local processing fallback
+        ml_fallback_model: 'enhanced-lexicon', // Lexicon-based fallback (not toxic-bert)
+        ml_tertiary_model: 'local-processing', // Emergency fallback
         simplified_mode: true
       }
 

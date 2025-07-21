@@ -1,0 +1,64 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="600" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Join Match Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Join Match</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Registered User, System</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Registered user joins an available match as a participant, extending from View Matches</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="160" width="150" height="40" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="177" class="label">Preconditions:</text>
+  <rect x="170" y="160" width="610" height="40" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="177" class="cell">Registered user authenticated, viewing matches, match has available spots</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="200" width="150" height="175" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="217" class="label">Main Flow:</text>
+  <rect x="170" y="200" width="610" height="175" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="217" class="cell">1. User selects match from search results</text>
+  <text x="175" y="232" class="cell">2. User clicks "Join Match" button</text>
+  <text x="175" y="247" class="cell">3. System validates user eligibility</text>
+  <text x="175" y="262" class="cell">4. System adds user to match participants</text>
+  <text x="175" y="277" class="cell">5. System updates match participant count</text>
+  <text x="175" y="292" class="cell">6. System sends confirmation notification</text>
+  <text x="175" y="307" class="cell">7. System updates user's match history</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="375" width="150" height="100" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="392" class="label">Alternative Flows:</text>
+  <rect x="170" y="375" width="610" height="100" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="392" class="cell">• Match full: Display waitlist option</text>
+  <text x="175" y="407" class="cell">• Time conflict: Show conflict warning</text>
+  <text x="175" y="422" class="cell">• Join failure: Retry mechanism</text>
+  <text x="175" y="437" class="cell">• Already joined: Show current status</text>
+</svg>

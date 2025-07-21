@@ -1,0 +1,350 @@
+<svg width="1600" height="1000" xmlns="http://www.w3.org/2000/svg">
+  <!-- Title -->
+  <text x="800" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold">Sportea Application - Entity Relationship Diagram</text>
+  
+  <!-- Legend -->
+  <g id="legend">
+    <rect x="50" y="50" width="300" height="80" fill="white" stroke="black" stroke-width="1"/>
+    <text x="60" y="70" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Legend:</text>
+    <text x="60" y="85" font-family="Arial, sans-serif" font-size="10">🔑 = Primary Key</text>
+    <text x="60" y="100" font-family="Arial, sans-serif" font-size="10">🔗 = Foreign Key</text>
+    <text x="60" y="115" font-family="Arial, sans-serif" font-size="10">Lines show relationships between entities</text>
+  </g>
+
+  <!-- TOP ROW: Reference Data -->
+  
+  <!-- Sports Entity -->
+  <g id="sports">
+    <rect x="100" y="150" width="140" height="120" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="100" y="150" width="140" height="25" fill="black"/>
+    <text x="170" y="167" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">SPORTS</text>
+    <text x="110" y="185" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="110" y="200" font-family="Arial, sans-serif" font-size="10">name (UNIQUE)</text>
+    <text x="110" y="215" font-family="Arial, sans-serif" font-size="10">icon_url</text>
+    <text x="110" y="230" font-family="Arial, sans-serif" font-size="10">description</text>
+    <text x="110" y="245" font-family="Arial, sans-serif" font-size="10">created_at</text>
+  </g>
+
+  <!-- Locations Entity -->
+  <g id="locations">
+    <rect x="1300" y="150" width="140" height="160" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="1300" y="150" width="140" height="25" fill="black"/>
+    <text x="1370" y="167" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">LOCATIONS</text>
+    <text x="1310" y="185" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="1310" y="200" font-family="Arial, sans-serif" font-size="10">name (UNIQUE)</text>
+    <text x="1310" y="215" font-family="Arial, sans-serif" font-size="10">address</text>
+    <text x="1310" y="230" font-family="Arial, sans-serif" font-size="10">campus</text>
+    <text x="1310" y="245" font-family="Arial, sans-serif" font-size="10">coordinates</text>
+    <text x="1310" y="260" font-family="Arial, sans-serif" font-size="10">facilities</text>
+    <text x="1310" y="275" font-family="Arial, sans-serif" font-size="10">supported_sports</text>
+    <text x="1310" y="290" font-family="Arial, sans-serif" font-size="10">is_verified</text>
+  </g>
+
+  <!-- MIDDLE ROW: Core Business Logic -->
+  
+  <!-- Users Entity - Central Hub -->
+  <g id="users">
+    <rect x="100" y="350" width="180" height="220" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="100" y="350" width="180" height="25" fill="black"/>
+    <text x="190" y="367" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">USERS</text>
+    <text x="110" y="385" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="110" y="400" font-family="Arial, sans-serif" font-size="10">email (UNIQUE)</text>
+    <text x="110" y="415" font-family="Arial, sans-serif" font-size="10">username (UNIQUE)</text>
+    <text x="110" y="430" font-family="Arial, sans-serif" font-size="10">full_name</text>
+    <text x="110" y="445" font-family="Arial, sans-serif" font-size="10">student_id</text>
+    <text x="110" y="460" font-family="Arial, sans-serif" font-size="10">faculty</text>
+    <text x="110" y="475" font-family="Arial, sans-serif" font-size="10">campus</text>
+    <text x="110" y="490" font-family="Arial, sans-serif" font-size="10">sport_preferences</text>
+    <text x="110" y="505" font-family="Arial, sans-serif" font-size="10">skill_levels</text>
+    <text x="110" y="520" font-family="Arial, sans-serif" font-size="10">available_days</text>
+    <text x="110" y="535" font-family="Arial, sans-serif" font-size="10">available_hours</text>
+    <text x="110" y="550" font-family="Arial, sans-serif" font-size="10">is_admin</text>
+  </g>
+
+  <!-- Matches Entity - Main Business Entity -->
+  <g id="matches">
+    <rect x="700" y="350" width="180" height="240" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="700" y="350" width="180" height="25" fill="black"/>
+    <text x="790" y="367" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">MATCHES</text>
+    <text x="710" y="385" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="710" y="400" font-family="Arial, sans-serif" font-size="10">title</text>
+    <text x="710" y="415" font-family="Arial, sans-serif" font-size="10">description</text>
+    <text x="710" y="430" font-family="Arial, sans-serif" font-size="10">🔗 sport_id (FK)</text>
+    <text x="710" y="445" font-family="Arial, sans-serif" font-size="10">🔗 host_id (FK)</text>
+    <text x="710" y="460" font-family="Arial, sans-serif" font-size="10">🔗 location_id (FK)</text>
+    <text x="710" y="475" font-family="Arial, sans-serif" font-size="10">start_time</text>
+    <text x="710" y="490" font-family="Arial, sans-serif" font-size="10">end_time</text>
+    <text x="710" y="505" font-family="Arial, sans-serif" font-size="10">max_participants</text>
+    <text x="710" y="520" font-family="Arial, sans-serif" font-size="10">skill_level</text>
+    <text x="710" y="535" font-family="Arial, sans-serif" font-size="10">price_per_person</text>
+    <text x="710" y="550" font-family="Arial, sans-serif" font-size="10">is_private</text>
+    <text x="710" y="565" font-family="Arial, sans-serif" font-size="10">status</text>
+    <text x="710" y="580" font-family="Arial, sans-serif" font-size="10">moderation_status</text>
+  </g>
+
+  <!-- Participants Entity - Bridge -->
+  <g id="participants">
+    <rect x="1100" y="350" width="140" height="120" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="1100" y="350" width="140" height="25" fill="black"/>
+    <text x="1170" y="367" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">PARTICIPANTS</text>
+    <text x="1110" y="385" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="1110" y="400" font-family="Arial, sans-serif" font-size="10">🔗 match_id (FK)</text>
+    <text x="1110" y="415" font-family="Arial, sans-serif" font-size="10">🔗 user_id (FK)</text>
+    <text x="1110" y="430" font-family="Arial, sans-serif" font-size="10">joined_at</text>
+    <text x="1110" y="445" font-family="Arial, sans-serif" font-size="10">status</text>
+  </g>
+
+  <!-- BOTTOM LEFT: Social Features -->
+  
+  <!-- Friendships Entity -->
+  <g id="friendships">
+    <rect x="100" y="650" width="140" height="120" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="100" y="650" width="140" height="25" fill="black"/>
+    <text x="170" y="667" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">FRIENDSHIPS</text>
+    <text x="110" y="685" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="110" y="700" font-family="Arial, sans-serif" font-size="10">🔗 user_id (FK)</text>
+    <text x="110" y="715" font-family="Arial, sans-serif" font-size="10">🔗 friend_id (FK)</text>
+    <text x="110" y="730" font-family="Arial, sans-serif" font-size="10">status</text>
+    <text x="110" y="745" font-family="Arial, sans-serif" font-size="10">created_at</text>
+  </g>
+
+  <!-- Messages Entity -->
+  <g id="messages">
+    <rect x="280" y="650" width="140" height="140" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="280" y="650" width="140" height="25" fill="black"/>
+    <text x="350" y="667" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">MESSAGES</text>
+    <text x="290" y="685" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="290" y="700" font-family="Arial, sans-serif" font-size="10">🔗 sender_id (FK)</text>
+    <text x="290" y="715" font-family="Arial, sans-serif" font-size="10">🔗 receiver_id (FK)</text>
+    <text x="290" y="730" font-family="Arial, sans-serif" font-size="10">content</text>
+    <text x="290" y="745" font-family="Arial, sans-serif" font-size="10">message_type</text>
+    <text x="290" y="760" font-family="Arial, sans-serif" font-size="10">is_read</text>
+    <text x="290" y="775" font-family="Arial, sans-serif" font-size="10">created_at</text>
+  </g>
+
+  <!-- Notifications Entity -->
+  <g id="notifications">
+    <rect x="460" y="650" width="140" height="140" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="460" y="650" width="140" height="25" fill="black"/>
+    <text x="530" y="667" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">NOTIFICATIONS</text>
+    <text x="470" y="685" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="470" y="700" font-family="Arial, sans-serif" font-size="10">🔗 user_id (FK)</text>
+    <text x="470" y="715" font-family="Arial, sans-serif" font-size="10">🔗 match_id (FK)</text>
+    <text x="470" y="730" font-family="Arial, sans-serif" font-size="10">type</text>
+    <text x="470" y="745" font-family="Arial, sans-serif" font-size="10">title</text>
+    <text x="470" y="760" font-family="Arial, sans-serif" font-size="10">message</text>
+    <text x="470" y="775" font-family="Arial, sans-serif" font-size="10">is_read</text>
+  </g>
+
+  <!-- BOTTOM CENTER: Match Management -->
+
+  <!-- Match Invitations Entity -->
+  <g id="match_invitations">
+    <rect x="640" y="650" width="140" height="120" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="640" y="650" width="140" height="25" fill="black"/>
+    <text x="710" y="667" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">MATCH_INVITATIONS</text>
+    <text x="650" y="685" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="650" y="700" font-family="Arial, sans-serif" font-size="10">🔗 match_id (FK)</text>
+    <text x="650" y="715" font-family="Arial, sans-serif" font-size="10">🔗 inviter_id (FK)</text>
+    <text x="650" y="730" font-family="Arial, sans-serif" font-size="10">🔗 invitee_id (FK)</text>
+    <text x="650" y="745" font-family="Arial, sans-serif" font-size="10">status</text>
+  </g>
+
+  <!-- Match Join Requests Entity -->
+  <g id="match_join_requests">
+    <rect x="820" y="650" width="140" height="120" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="820" y="650" width="140" height="25" fill="black"/>
+    <text x="890" y="667" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">MATCH_JOIN_REQUESTS</text>
+    <text x="830" y="685" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="830" y="700" font-family="Arial, sans-serif" font-size="10">🔗 match_id (FK)</text>
+    <text x="830" y="715" font-family="Arial, sans-serif" font-size="10">🔗 user_id (FK)</text>
+    <text x="830" y="730" font-family="Arial, sans-serif" font-size="10">message</text>
+    <text x="830" y="745" font-family="Arial, sans-serif" font-size="10">status</text>
+  </g>
+
+  <!-- BOTTOM RIGHT: Systems -->
+
+  <!-- User Gamification Entity -->
+  <g id="user_gamification">
+    <rect x="1000" y="650" width="140" height="140" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="1000" y="650" width="140" height="25" fill="black"/>
+    <text x="1070" y="667" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">USER_GAMIFICATION</text>
+    <text x="1010" y="685" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="1010" y="700" font-family="Arial, sans-serif" font-size="10">🔗 user_id (FK)</text>
+    <text x="1010" y="715" font-family="Arial, sans-serif" font-size="10">total_xp</text>
+    <text x="1010" y="730" font-family="Arial, sans-serif" font-size="10">current_level</text>
+    <text x="1010" y="745" font-family="Arial, sans-serif" font-size="10">matches_hosted</text>
+    <text x="1010" y="760" font-family="Arial, sans-serif" font-size="10">matches_joined</text>
+    <text x="1010" y="775" font-family="Arial, sans-serif" font-size="10">last_activity</text>
+  </g>
+
+  <!-- User Vectors KNN Entity -->
+  <g id="user_vectors_knn">
+    <rect x="1180" y="650" width="140" height="120" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="1180" y="650" width="140" height="25" fill="black"/>
+    <text x="1250" y="667" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">USER_VECTORS_KNN</text>
+    <text x="1190" y="685" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="1190" y="700" font-family="Arial, sans-serif" font-size="10">🔗 user_id (FK)</text>
+    <text x="1190" y="715" font-family="Arial, sans-serif" font-size="10">vector_data</text>
+    <text x="1190" y="730" font-family="Arial, sans-serif" font-size="10">sports_hash</text>
+    <text x="1190" y="745" font-family="Arial, sans-serif" font-size="10">completeness_score</text>
+  </g>
+
+  <!-- Ratings Entity -->
+  <g id="ratings">
+    <rect x="1360" y="650" width="140" height="120" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="1360" y="650" width="140" height="25" fill="black"/>
+    <text x="1430" y="667" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">RATINGS</text>
+    <text x="1370" y="685" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="1370" y="700" font-family="Arial, sans-serif" font-size="10">🔗 rater_id (FK)</text>
+    <text x="1370" y="715" font-family="Arial, sans-serif" font-size="10">🔗 rated_user_id (FK)</text>
+    <text x="1370" y="730" font-family="Arial, sans-serif" font-size="10">🔗 match_id (FK)</text>
+    <text x="1370" y="745" font-family="Arial, sans-serif" font-size="10">rating</text>
+  </g>
+
+  <!-- FAR RIGHT: Content Moderation -->
+
+  <!-- Content Moderation Results Entity -->
+  <g id="content_moderation_results">
+    <rect x="1360" y="350" width="140" height="140" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="1360" y="350" width="140" height="25" fill="black"/>
+    <text x="1430" y="367" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">CONTENT_MODERATION</text>
+    <text x="1370" y="385" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="1370" y="400" font-family="Arial, sans-serif" font-size="10">content_type</text>
+    <text x="1370" y="415" font-family="Arial, sans-serif" font-size="10">content_id</text>
+    <text x="1370" y="430" font-family="Arial, sans-serif" font-size="10">risk_score</text>
+    <text x="1370" y="445" font-family="Arial, sans-serif" font-size="10">ml_confidence</text>
+    <text x="1370" y="460" font-family="Arial, sans-serif" font-size="10">language_detected</text>
+    <text x="1370" y="475" font-family="Arial, sans-serif" font-size="10">flagged_terms</text>
+  </g>
+
+  <!-- Admin Review Queue Entity -->
+  <g id="admin_review_queue">
+    <rect x="1360" y="520" width="140" height="120" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="1360" y="520" width="140" height="25" fill="black"/>
+    <text x="1430" y="537" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">ADMIN_REVIEW_QUEUE</text>
+    <text x="1370" y="555" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="1370" y="570" font-family="Arial, sans-serif" font-size="10">content_type</text>
+    <text x="1370" y="585" font-family="Arial, sans-serif" font-size="10">content_id</text>
+    <text x="1370" y="600" font-family="Arial, sans-serif" font-size="10">risk_score</text>
+    <text x="1370" y="615" font-family="Arial, sans-serif" font-size="10">🔗 assigned_admin_id (FK)</text>
+  </g>
+
+  <!-- BOTTOM: Achievements -->
+
+  <!-- Achievements Entity -->
+  <g id="achievements">
+    <rect x="100" y="820" width="140" height="120" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="100" y="820" width="140" height="25" fill="black"/>
+    <text x="170" y="837" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">ACHIEVEMENTS</text>
+    <text x="110" y="855" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="110" y="870" font-family="Arial, sans-serif" font-size="10">name (UNIQUE)</text>
+    <text x="110" y="885" font-family="Arial, sans-serif" font-size="10">description</text>
+    <text x="110" y="900" font-family="Arial, sans-serif" font-size="10">icon_url</text>
+    <text x="110" y="915" font-family="Arial, sans-serif" font-size="10">xp_reward</text>
+  </g>
+
+  <!-- User Achievements Entity -->
+  <g id="user_achievements">
+    <rect x="280" y="820" width="140" height="100" fill="white" stroke="black" stroke-width="2"/>
+    <rect x="280" y="820" width="140" height="25" fill="black"/>
+    <text x="350" y="837" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">USER_ACHIEVEMENTS</text>
+    <text x="290" y="855" font-family="Arial, sans-serif" font-size="10" font-weight="bold">🔑 id (UUID)</text>
+    <text x="290" y="870" font-family="Arial, sans-serif" font-size="10">🔗 user_id (FK)</text>
+    <text x="290" y="885" font-family="Arial, sans-serif" font-size="10">🔗 achievement_id (FK)</text>
+    <text x="290" y="900" font-family="Arial, sans-serif" font-size="10">earned_at</text>
+  </g>
+
+  <!-- RELATIONSHIP LINES -->
+
+  <!-- Core Relationships -->
+
+  <!-- Users to Matches (host_id) -->
+  <path d="M 280 460 L 700 460" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="490" y="455" font-family="Arial, sans-serif" font-size="9" fill="black">hosts</text>
+
+  <!-- Sports to Matches -->
+  <path d="M 170 270 L 170 320 L 790 320 L 790 350" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="175" y="315" font-family="Arial, sans-serif" font-size="9" fill="black">sport_type</text>
+
+  <!-- Locations to Matches -->
+  <path d="M 1300 250 L 1250 250 L 1250 320 L 790 320 L 790 350" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="1020" y="315" font-family="Arial, sans-serif" font-size="9" fill="black">venue</text>
+
+  <!-- Matches to Participants -->
+  <path d="M 880 460 L 1100 460" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="990" y="455" font-family="Arial, sans-serif" font-size="9" fill="black">has_participants</text>
+
+  <!-- Users to Participants -->
+  <path d="M 280 410 L 320 410 L 320 300 L 1050 300 L 1050 410 L 1100 410" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="690" y="295" font-family="Arial, sans-serif" font-size="9" fill="black">participates_in</text>
+
+  <!-- Social Relationships -->
+
+  <!-- Users to Friendships -->
+  <path d="M 190 570 L 190 650" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="195" y="610" font-family="Arial, sans-serif" font-size="9" fill="black">friends</text>
+
+  <!-- Users to Messages (sender) -->
+  <path d="M 220 570 L 220 620 L 350 620 L 350 650" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="285" y="615" font-family="Arial, sans-serif" font-size="9" fill="black">sends</text>
+
+  <!-- Users to Notifications -->
+  <path d="M 250 570 L 250 620 L 530 620 L 530 650" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="390" y="615" font-family="Arial, sans-serif" font-size="9" fill="black">receives</text>
+
+  <!-- Match Management Relationships -->
+
+  <!-- Matches to Match Invitations -->
+  <path d="M 790 590 L 790 620 L 710 620 L 710 650" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="715" y="615" font-family="Arial, sans-serif" font-size="9" fill="black">invitations</text>
+
+  <!-- Matches to Match Join Requests -->
+  <path d="M 790 590 L 790 620 L 890 620 L 890 650" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="840" y="615" font-family="Arial, sans-serif" font-size="9" fill="black">join_requests</text>
+
+  <!-- System Relationships -->
+
+  <!-- Users to User Gamification -->
+  <path d="M 280 500 L 320 500 L 320 600 L 1070 600 L 1070 650" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="700" y="595" font-family="Arial, sans-serif" font-size="9" fill="black">gamification</text>
+
+  <!-- Users to User Vectors KNN -->
+  <path d="M 280 520 L 320 520 L 320 600 L 1250 600 L 1250 650" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="785" y="595" font-family="Arial, sans-serif" font-size="9" fill="black">recommendations</text>
+
+  <!-- Users to Ratings (rater) -->
+  <path d="M 280 540 L 320 540 L 320 600 L 1430 600 L 1430 650" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="875" y="595" font-family="Arial, sans-serif" font-size="9" fill="black">rates_users</text>
+
+  <!-- Achievement Relationships -->
+
+  <!-- Users to User Achievements -->
+  <path d="M 190 570 L 190 800 L 350 800 L 350 820" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="195" y="695" font-family="Arial, sans-serif" font-size="9" fill="black">earns</text>
+
+  <!-- Achievements to User Achievements -->
+  <path d="M 240 880 L 280 880" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="245" y="875" font-family="Arial, sans-serif" font-size="9" fill="black">earned_by</text>
+
+  <!-- Content Moderation Relationships -->
+
+  <!-- Matches to Content Moderation -->
+  <path d="M 880 430 L 1360 430" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="1120" y="425" font-family="Arial, sans-serif" font-size="9" fill="black">moderated</text>
+
+  <!-- Content Moderation to Admin Review Queue -->
+  <path d="M 1430 490 L 1430 520" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="1435" y="505" font-family="Arial, sans-serif" font-size="9" fill="black">queued</text>
+
+  <!-- Users (Admin) to Admin Review Queue -->
+  <path d="M 280 380 L 320 380 L 320 280 L 1320 280 L 1320 580 L 1360 580" stroke="black" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="840" y="275" font-family="Arial, sans-serif" font-size="9" fill="black">admin_reviews</text>
+
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="black"/>
+    </marker>
+  </defs>
+</svg>

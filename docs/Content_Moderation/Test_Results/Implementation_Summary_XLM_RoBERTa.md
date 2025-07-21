@@ -24,12 +24,13 @@ The systematic implementation and documentation update has been completed succes
 
 ### **✅ Database Configuration Verified**
 ```sql
--- PRODUCTION CONFIGURATION (VERIFIED)
+-- PRODUCTION CONFIGURATION (UPDATED)
 ml_primary_model = 'unitary/multilingual-toxic-xlm-roberta'
-ml_fallback_model = 'unitary/toxic-bert'
+ml_fallback_model = 'enhanced-lexicon'
 ml_enabled = true
 ml_confidence_threshold = 0.5
-ml_timeout_ms = 10000
+ml_timeout_ms = 4000
+system_version = '3.0-confidence-based-fallback'
 ```
 
 ### **✅ Test Files Updated**

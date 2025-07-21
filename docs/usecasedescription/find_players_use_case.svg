@@ -1,0 +1,62 @@
+<svg width="800" height="550" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .header { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .cell { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #2c3e50; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="550" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="header">Find Players Use Case</text>
+  
+  <!-- Table Header -->
+  <rect x="20" y="40" width="760" height="30" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="30" y="58" class="header">Use Case Specification</text>
+  
+  <!-- Use Case Name -->
+  <rect x="20" y="70" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="87" class="label">Use Case Name:</text>
+  <rect x="170" y="70" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="87" class="cell">Find Players</text>
+  
+  <!-- Actor(s) -->
+  <rect x="20" y="95" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="112" class="label">Actor(s):</text>
+  <rect x="170" y="95" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="112" class="cell">Registered User, System</text>
+  
+  <!-- Description -->
+  <rect x="20" y="120" width="150" height="50" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="137" class="label">Description:</text>
+  <rect x="170" y="120" width="610" height="50" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="137" class="cell">Registered user searches for other players with user recommendation system support</text>
+  
+  <!-- Preconditions -->
+  <rect x="20" y="170" width="150" height="25" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="187" class="label">Preconditions:</text>
+  <rect x="170" y="170" width="610" height="25" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="187" class="cell">Registered user must be authenticated</text>
+  
+  <!-- Main Flow -->
+  <rect x="20" y="195" width="150" height="150" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="212" class="label">Main Flow:</text>
+  <rect x="170" y="195" width="610" height="150" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="212" class="cell">1. User navigates to Find page</text>
+  <text x="175" y="227" class="cell">2. User selects "Players" tab</text>
+  <text x="175" y="242" class="cell">3. User applies sport filters</text>
+  <text x="175" y="257" class="cell">4. System queries user database</text>
+  <text x="175" y="272" class="cell">5. System displays player profiles with sports and details</text>
+  <text x="175" y="287" class="cell">6. User views player information and mutual interests</text>
+  
+  <!-- Alternative Flows -->
+  <rect x="20" y="345" width="150" height="75" fill="#f1f3f4" stroke="#adb5bd"/>
+  <text x="25" y="362" class="label">Alternative Flows:</text>
+  <rect x="170" y="345" width="610" height="75" fill="white" stroke="#adb5bd"/>
+  <text x="175" y="362" class="cell">• No players found: Suggest broadening search</text>
+  <text x="175" y="377" class="cell">• Search error: Display cached results</text>
+  <text x="175" y="392" class="cell">• Profile access restricted: Show limited info</text>
+</svg>

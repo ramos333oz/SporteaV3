@@ -1,0 +1,288 @@
+<svg width="1200" height="1600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .activity { fill: #e1f5fe; stroke: #0277bd; stroke-width: 2; rx: 20; ry: 20; }
+      .decision { fill: #fff3e0; stroke: #f57c00; stroke-width: 2; }
+      .start-end { fill: #2e7d32; stroke: #1b5e20; stroke-width: 2; }
+      .swimlane { fill: none; stroke: #424242; stroke-width: 1; stroke-dasharray: 5,5; }
+      .flow { stroke: #424242; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .text { font-family: Arial, sans-serif; font-size: 12px; text-anchor: middle; fill: #212121; }
+      .label { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; text-anchor: middle; fill: #1565c0; }
+      .swimlane-label { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; text-anchor: middle; fill: #424242; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#424242" />
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="600" y="30" class="swimlane-label" font-size="20">Sportea Application - User Activity Diagram</text>
+  
+  <!-- Swimlanes -->
+  <rect x="50" y="60" width="300" height="1500" class="swimlane"/>
+  <text x="200" y="80" class="swimlane-label">User</text>
+  
+  <rect x="350" y="60" width="300" height="1500" class="swimlane"/>
+  <text x="500" y="80" class="swimlane-label">System</text>
+  
+  <rect x="650" y="60" width="300" height="1500" class="swimlane"/>
+  <text x="800" y="80" class="swimlane-label">Application</text>
+  
+  <rect x="950" y="60" width="200" height="1500" class="swimlane"/>
+  <text x="1050" y="80" class="swimlane-label">Notifications</text>
+  
+  <!-- Start -->
+  <circle cx="200" cy="120" r="15" class="start-end"/>
+  <text x="200" y="145" class="text">Start</text>
+  
+  <!-- Authentication Flow -->
+  <rect x="150" y="170" width="100" height="40" class="activity"/>
+  <text x="200" y="195" class="text">Access Sportea</text>
+  
+  <polygon points="175,240 225,240 250,270 225,300 175,300 150,270" class="decision"/>
+  <text x="200" y="275" class="text">Registered?</text>
+  
+  <!-- Login Path -->
+  <rect x="250" y="330" width="100" height="40" class="activity"/>
+  <text x="300" y="355" class="text">Enter Credentials</text>
+  
+  <rect x="450" y="330" width="100" height="40" class="activity"/>
+  <text x="500" y="355" class="text">Validate Login</text>
+  
+  <polygon points="475,400 525,400 550,430 525,460 475,460 450,430" class="decision"/>
+  <text x="500" y="435" class="text">Valid?</text>
+  
+  <!-- Registration Path -->
+  <rect x="50" y="330" width="100" height="40" class="activity"/>
+  <text x="100" y="355" class="text">Register Account</text>
+  
+  <rect x="450" y="250" width="100" height="40" class="activity"/>
+  <text x="500" y="275" class="text">Create Profile</text>
+  
+  <!-- Profile Setup -->
+  <rect x="150" y="500" width="100" height="40" class="activity"/>
+  <text x="200" y="525" class="text">Setup Profile</text>
+  
+  <rect x="450" y="500" width="100" height="40" class="activity"/>
+  <text x="500" y="525" class="text">Save Profile Data</text>
+  
+  <!-- Main Dashboard -->
+  <rect x="150" y="580" width="100" height="40" class="activity"/>
+  <text x="200" y="605" class="text">View Dashboard</text>
+  
+  <rect x="750" y="580" width="100" height="40" class="activity"/>
+  <text x="800" y="605" class="text">Load Recommendations</text>
+  
+  <!-- Core Activities Decision -->
+  <polygon points="175,660 225,660 250,690 225,720 175,720 150,690" class="decision"/>
+  <text x="200" y="695" class="text">Choose Activity</text>
+  
+  <!-- Match Management Flow -->
+  <rect x="50" y="760" width="80" height="40" class="activity"/>
+  <text x="90" y="785" class="text">View Matches</text>
+  
+  <rect x="750" y="760" width="100" height="40" class="activity"/>
+  <text x="800" y="785" class="text">Generate Match Recommendations</text>
+  
+  <polygon points="65,830 115,830 140,860 115,890 65,890 40,860" class="decision"/>
+  <text x="90" y="865" class="text">Action?</text>
+  
+  <!-- Join Match -->
+  <rect x="20" y="920" width="60" height="40" class="activity"/>
+  <text x="50" y="945" class="text">Join Match</text>
+  
+  <rect x="450" y="920" width="100" height="40" class="activity"/>
+  <text x="500" y="945" class="text">Update Participants</text>
+  
+  <rect x="1000" y="920" width="80" height="40" class="activity"/>
+  <text x="1040" y="945" class="text">Send Join Notification</text>
+  
+  <!-- Host Match -->
+  <rect x="100" y="920" width="60" height="40" class="activity"/>
+  <text x="130" y="945" class="text">Host Match</text>
+  
+  <rect x="450" y="980" width="100" height="40" class="activity"/>
+  <text x="500" y="1005" class="text">Create Match</text>
+  
+  <rect x="750" y="980" width="100" height="40" class="activity"/>
+  <text x="800" y="1005" class="text">Content Moderation</text>
+  
+  <!-- Social Features Flow -->
+  <rect x="170" y="760" width="80" height="40" class="activity"/>
+  <text x="210" y="785" class="text">Find Players</text>
+  
+  <rect x="750" y="830" width="100" height="40" class="activity"/>
+  <text x="800" y="855" class="text">Generate User Recommendations</text>
+  
+  <rect x="170" y="920" width="80" height="40" class="activity"/>
+  <text x="210" y="945" class="text">Add Friend</text>
+  
+  <rect x="1000" y="980" width="80" height="40" class="activity"/>
+  <text x="1040" y="1005" class="text">Friend Request Notification</text>
+  
+  <!-- Gamification Flow -->
+  <rect x="270" y="760" width="80" height="40" class="activity"/>
+  <text x="310" y="785" class="text">View Leaderboard</text>
+  
+  <rect x="270" y="830" width="80" height="40" class="activity"/>
+  <text x="310" y="855" class="text">View Achievements</text>
+  
+  <rect x="450" y="830" width="100" height="40" class="activity"/>
+  <text x="500" y="855" class="text">Calculate XP/Levels</text>
+  
+  <rect x="1000" y="830" width="80" height="40" class="activity"/>
+  <text x="1040" y="855" class="text">Achievement Notification</text>
+  
+  <!-- Profile Management -->
+  <rect x="270" y="920" width="80" height="40" class="activity"/>
+  <text x="310" y="945" class="text">Manage Profile</text>
+  
+  <polygon points="285,990 335,990 360,1020 335,1050 285,1050 260,1020" class="decision"/>
+  <text x="310" y="1025" class="text">Edit Profile?</text>
+  
+  <rect x="270" y="1080" width="80" height="40" class="activity"/>
+  <text x="310" y="1105" class="text">Update Profile</text>
+  
+  <!-- Notification Flow -->
+  <rect x="150" y="1160" width="100" height="40" class="activity"/>
+  <text x="200" y="1185" class="text">View Notifications</text>
+
+  <rect x="750" y="1160" width="100" height="40" class="activity"/>
+  <text x="800" y="1185" class="text">Update Real-time Data</text>
+
+  <!-- Report Submission -->
+  <rect x="50" y="1080" width="80" height="40" class="activity"/>
+  <text x="90" y="1105" class="text">Submit Report</text>
+
+  <rect x="450" y="1080" width="100" height="40" class="activity"/>
+  <text x="500" y="1105" class="text">Process Report</text>
+
+  <!-- Continuous Activity Loop -->
+  <polygon points="175,1240 225,1240 250,1270 225,1300 175,1300 150,1270" class="decision"/>
+  <text x="200" y="1275" class="text">Continue?</text>
+  
+  <!-- Logout -->
+  <rect x="150" y="1340" width="100" height="40" class="activity"/>
+  <text x="200" y="1365" class="text">Logout</text>
+  
+  <rect x="450" y="1340" width="100" height="40" class="activity"/>
+  <text x="500" y="1365" class="text">Clear Session</text>
+  
+  <!-- End -->
+  <circle cx="200" cy="1420" r="15" class="start-end"/>
+  <text x="200" y="1445" class="text">End</text>
+  
+  <!-- Flow Lines -->
+  <line x1="200" y1="135" x2="200" y2="170" class="flow"/>
+  <line x1="200" y1="210" x2="200" y2="240" class="flow"/>
+  
+  <!-- Registration branch -->
+  <line x1="150" y1="270" x2="100" y2="270" class="flow"/>
+  <line x1="100" y1="270" x2="100" y2="330" class="flow"/>
+  <text x="125" y="285" class="text">No</text>
+  
+  <!-- Login branch -->
+  <line x1="250" y1="270" x2="300" y2="270" class="flow"/>
+  <line x1="300" y1="270" x2="300" y2="330" class="flow"/>
+  <text x="275" y="285" class="text">Yes</text>
+  
+  <line x1="300" y1="370" x2="500" y2="370" class="flow"/>
+  <line x1="500" y1="370" x2="500" y2="400" class="flow"/>
+  
+  <!-- Valid login -->
+  <line x1="500" y1="460" x2="500" y2="500" class="flow"/>
+  <text x="525" y="480" class="text">Yes</text>
+  
+  <!-- Invalid login loop back -->
+  <line x1="450" y1="430" x2="300" y2="430" class="flow"/>
+  <line x1="300" y1="430" x2="300" y2="370" class="flow"/>
+  <text x="375" y="445" class="text">No</text>
+  
+  <!-- Profile setup flow -->
+  <line x1="100" y1="370" x2="100" y2="480" class="flow"/>
+  <line x1="100" y1="480" x2="200" y2="480" class="flow"/>
+  <line x1="200" y1="480" x2="200" y2="500" class="flow"/>
+  
+  <line x1="500" y1="290" x2="500" y2="480" class="flow"/>
+  <line x1="500" y1="480" x2="200" y2="480" class="flow"/>
+  
+  <line x1="250" y1="525" x2="450" y2="525" class="flow"/>
+  <line x1="200" y1="540" x2="200" y2="580" class="flow"/>
+  
+  <!-- Dashboard flow -->
+  <line x1="250" y1="605" x2="750" y2="605" class="flow"/>
+  <line x1="200" y1="620" x2="200" y2="660" class="flow"/>
+  
+  <!-- Activity branches -->
+  <line x1="150" y1="690" x2="90" y2="690" class="flow"/>
+  <line x1="90" y1="690" x2="90" y2="760" class="flow"/>
+  <text x="120" y="705" class="text">Matches</text>
+  
+  <line x1="200" y1="720" x2="210" y2="720" class="flow"/>
+  <line x1="210" y1="720" x2="210" y2="760" class="flow"/>
+  <text x="205" y="740" class="text">Social</text>
+  
+  <line x1="250" y1="690" x2="310" y2="690" class="flow"/>
+  <line x1="310" y1="690" x2="310" y2="760" class="flow"/>
+  <text x="280" y="705" class="text">Profile</text>
+  
+  <!-- Match recommendations -->
+  <line x1="130" y1="785" x2="750" y2="785" class="flow"/>
+  
+  <!-- Match actions -->
+  <line x1="90" y1="800" x2="90" y2="830" class="flow"/>
+  <line x1="40" y1="860" x2="50" y2="860" class="flow"/>
+  <line x1="50" y1="860" x2="50" y2="920" class="flow"/>
+  <text x="45" y="875" class="text">Join</text>
+  
+  <line x1="140" y1="860" x2="130" y2="860" class="flow"/>
+  <line x1="130" y1="860" x2="130" y2="920" class="flow"/>
+  <text x="135" y="875" class="text">Host</text>
+  
+  <!-- System processes -->
+  <line x1="80" y1="945" x2="450" y2="945" class="flow"/>
+  <line x1="550" y1="945" x2="1000" y2="945" class="flow"/>
+  
+  <line x1="160" y1="945" x2="450" y2="945" class="flow"/>
+  <line x1="500" y1="960" x2="500" y2="980" class="flow"/>
+  <line x1="550" y1="1005" x2="750" y2="1005" class="flow"/>
+  
+  <!-- Social flow -->
+  <line x1="250" y1="785" x2="750" y2="785" class="flow"/>
+  <line x1="210" y1="800" x2="210" y2="920" class="flow"/>
+  <line x1="250" y1="945" x2="1000" y2="945" class="flow"/>
+  
+  <!-- Gamification flow -->
+  <line x1="310" y1="800" x2="310" y2="830" class="flow"/>
+  <line x1="350" y1="855" x2="450" y2="855" class="flow"/>
+  <line x1="550" y1="855" x2="1000" y2="855" class="flow"/>
+  
+  <!-- Profile management -->
+  <line x1="310" y1="960" x2="310" y2="990" class="flow"/>
+  <line x1="310" y1="1050" x2="310" y2="1080" class="flow"/>
+  <text x="335" y="1070" class="text">Yes</text>
+
+  <!-- Report flow -->
+  <line x1="130" y1="1105" x2="450" y2="1105" class="flow"/>
+
+  <!-- Notification convergence -->
+  <line x1="200" y1="1120" x2="200" y2="1160" class="flow"/>
+  <line x1="250" y1="1185" x2="750" y2="1185" class="flow"/>
+
+  <!-- Continue loop -->
+  <line x1="200" y1="1200" x2="200" y2="1240" class="flow"/>
+  <line x1="150" y1="1270" x2="90" y2="1270" class="flow"/>
+  <line x1="90" y1="1270" x2="90" y2="690" class="flow"/>
+  <line x1="90" y1="690" x2="150" y2="690" class="flow"/>
+  <text x="125" y="1285" class="text">Yes</text>
+  
+  <!-- Logout flow -->
+  <line x1="250" y1="1270" x2="300" y2="1270" class="flow"/>
+  <line x1="300" y1="1270" x2="300" y2="1340" class="flow"/>
+  <line x1="200" y1="1340" x2="200" y2="1340" class="flow"/>
+  <text x="275" y="1285" class="text">No</text>
+  
+  <line x1="250" y1="1365" x2="450" y2="1365" class="flow"/>
+  <line x1="200" y1="1380" x2="200" y2="1405" class="flow"/>
+  
+</svg>
