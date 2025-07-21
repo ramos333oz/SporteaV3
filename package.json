@@ -51,17 +51,27 @@
     "postcss": "^8.5.6",
     "supabase": "^2.30.4",
     "tailwindcss": "^4.1.11",
+    "terser": "^5.43.1",
     "vite": "^5.0.0"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:prod": "NODE_ENV=production vite build --mode production",
+    "build:analyze": "npm run build:prod && npx vite-bundle-analyzer dist/stats.html",
     "preview": "vite preview",
+    "preview:prod": "vite preview --mode production",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext js,jsx --fix",
     "test:e2e": "node test-recommendation-e2e.js",
     "test:performance": "node test-recommendation-performance.js",
     "test:db": "node test-recommendation-db-functions.js",
-    "test:all": "npm run test:db && npm run test:e2e && npm run test:performance"
+    "test:all": "npm run test:db && npm run test:e2e && npm run test:performance",
+    "deploy:vercel": "npm run build:prod && vercel --prod",
+    "deploy:netlify": "npm run build:prod && netlify deploy --prod --dir=dist",
+    "supabase:deploy": "supabase functions deploy --no-verify-jwt",
+    "supabase:db:push": "supabase db push",
+    "health-check": "node scripts/health-check.js"
   },
   "browserslist": {
     "production": [
