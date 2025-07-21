@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "sportea",
   "builds": [
     {
       "src": "package.json",
@@ -8,16 +7,6 @@
       "config": {
         "distDir": "dist"
       }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
     }
   ],
   "headers": [
@@ -79,11 +68,6 @@
       "destination": "/index.html"
     }
   ],
-  "functions": {
-    "app/api/**/*.js": {
-      "runtime": "@vercel/node"
-    }
-  },
   "env": {
     "NODE_ENV": "production"
   },

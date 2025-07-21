@@ -33,12 +33,14 @@ export default defineConfig(({ command, mode }) => {
       rollupOptions: {
         output: {
           manualChunks: {
-            // Split vendor chunks for better caching
+            // Split vendor chunks for better caching and smaller uploads
             vendor: ['react', 'react-dom'],
             supabase: ['@supabase/supabase-js', '@supabase/auth-helpers-react'],
-            ui: ['antd', '@mui/material', '@mui/icons-material'],
+            ui: ['antd'],
+            mui: ['@mui/material', '@mui/icons-material'],
             maps: ['leaflet', 'react-leaflet', 'leaflet.markercluster'],
-            utils: ['date-fns', 'moment', 'uuid', 'lodash']
+            utils: ['date-fns', 'moment', 'uuid'],
+            charts: ['recharts']
           }
         }
       },
