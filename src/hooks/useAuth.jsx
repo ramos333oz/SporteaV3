@@ -114,147 +114,80 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null); // Reset any previous errors
-      
-      // Validate email domain
-      if (!email.endsWith('@student.uitm.edu.my')) {
-        const error = new Error('Only @student.uitm.edu.my email addresses are allowed');
-        setError(error.message);
-        return { data: null, error };
-      }
 
       console.log('Signing up user with email:', email);
-      
-      // First check if user already exists in auth
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('email')
-        .eq('email', email)
-        .maybeSingle();
-        
-      if (existingUser) {
-        const error = new Error('User with this email already exists');
-        setError(error.message);
-        return { data: null, error };
-      }
-      
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: userData,
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
 
-      if (authError) {
-        console.error('Auth signup error:', authError);
-        setError(authError.message);
-        return { data: null, error: authError };
-      }
-      
-      console.log('Auth signup successful:', authData);
-      
-              // Create user profile in users table
-        if (authData?.user) {
-          console.log('Creating user profile for:', authData.user.email);
-          
-          // Create a clean user data object with all required fields
-          const userProfile = {
-            id: authData.user.id,
-            email: authData.user.email,
-            username: userData.username || userData.full_name?.replace(/\s+/g, '') || 'User' + Math.floor(Math.random() * 10000), // Prefer username, then use full name without spaces, then generate random
-            full_name: userData.full_name || '',
-            student_id: userData.student_id || '',
-            faculty: userData.faculty || '',
-            campus: userData.campus || '',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-        
-        // First attempt with service role client (bypasses RLS)
-        try {
-          // Using custom endpoint approach
-          await fetch(`${window.location.origin}/api/create-user-profile`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(userProfile),
-          }).then(response => {
-            if (!response.ok) {
-              throw new Error(`API response: ${response.status}`);
-            }
-            return response.json();
-          });
-          
-          console.log('User profile created successfully via API endpoint');
-        } catch (apiError) {
-          console.error('Error creating user profile via API endpoint:', apiError);
-          
-          // Fallback to direct insert (will likely fail due to RLS)
-          console.log('Attempting direct insert as fallback');
-          const { error: profileError } = await supabase
-            .from('users')
-            .insert(userProfile);
-          
-          if (profileError) {
-            console.error('Error creating user profile:', profileError);
-            
-            // Try upsert as a last resort
-            console.log('Attempting upsert as last resort');
-            const { error: upsertError } = await supabase
-              .from('users')
-              .upsert(userProfile);
-              
-            if (upsertError) {
-              console.error('Error upserting user profile:', upsertError);
-              // Note: We don't throw here because the auth user was created successfully
-              // Instead, we'll alert the user about the partial success
-              return { 
-                data: authData, 
-                error: { 
-                  message: 'Account created but profile setup failed. Please logout and login again to activate your account.', 
-                  originalError: upsertError 
-                } 
-              };
-            } else {
-              console.log('User profile created successfully via upsert');
-            }
-          } else {
-            console.log('User profile created successfully via direct insert');
-          }
+      // Check if this is a test domain that needs custom handling
+      const isTestDomain = email.includes('@mailhog.example') ||
+                          email.includes('@example.com') ||
+                          email.includes('@test.local');
+
+      if (isTestDomain) {
+        // Use custom signup function for test domains
+        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/custom-signup`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabase.supabaseKey}`,
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            userData
+          })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Custom signup failed');
         }
-        
-        // Double-check that the profile was actually created
-        const { data: checkProfile } = await supabase
-          .from('users')
-          .select('id, email, username')
-          .eq('id', authData.user.id)
-          .maybeSingle();
-          
-        if (!checkProfile) {
-          console.warn('User profile creation verification failed - profile may not exist');
-          return { 
-            data: authData, 
-            warning: 'Your account was created but the profile setup may not be complete. Please contact support if you encounter issues.'
-          };
+
+        // For test domains, the user is automatically confirmed
+        // We need to sign them in immediately
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (signInError) {
+          throw signInError;
         }
-        
-        console.log('User profile verified:', checkProfile);
+
+        return { data: signInData, error: null };
       } else {
-        console.warn('Auth succeeded but no user data returned');
+        // Create auth user - let Supabase handle duplicate email detection
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: userData,
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+
+        if (authError) {
+          console.error('Auth signup error:', authError);
+
+          // Handle specific error cases
+          let errorMessage = authError.message;
+
+          if (authError.message?.includes('User already registered') ||
+              authError.message?.includes('already exists') ||
+              authError.message?.includes('already been registered')) {
+            errorMessage = 'This email address is already registered. Please try logging in instead.';
+          }
+
+          setError(errorMessage);
+          return { data: null, error: { ...authError, message: errorMessage } };
+        }
+
+        console.log('Auth signup successful:', authData);
+        console.log('Database trigger will automatically create user profile');
+
+        // Return success - database trigger will handle profile creation
+        return { data: authData, error: null };
       }
-      
-      // Set a specific message for email verification
-      if (authData?.user && !authData.user.email_confirmed_at) {
-        return { 
-          data: authData, 
-          message: 'Please check your email to verify your account before logging in.' 
-        };
-      }
-      
-      return { data: authData, error: null };
     } catch (error) {
       console.error('Exception during signup:', error);
       setError(error.message);
@@ -303,37 +236,38 @@ const signIn = async (email, password) => {
         console.error('Error checking user profile:', profileError);
       }
       
-      // If profile doesn't exist, create one with basic info
+      // If profile doesn't exist, create one with registration data
       if (!profileData && !profileError) {
         console.log('Creating user profile for:', data.user.email);
-        
-        // Attempt insert first
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email: data.user.email,
-            username: 'User' + Math.floor(Math.random() * 10000), // Generate a random username instead of using student ID
-            created_at: new Date().toISOString()
-          });
-          
-        if (insertError) {
-          console.error('Error creating user profile:', insertError);
-          
-          // If insert fails, try upsert as a fallback
-          console.log('Attempting upsert as fallback for profile creation');
-          const { error: upsertError } = await supabase
-            .from('users')
-            .upsert({
-              id: data.user.id,
-              email: data.user.email,
-              username: 'User' + Math.floor(Math.random() * 10000), // Generate a random username instead of using student ID
-              created_at: new Date().toISOString()
-            });
-            
-          if (upsertError) {
-            console.error('Error upserting user profile:', upsertError);
-            // Continue anyway since auth was successful
+
+        // First try to create profile from auth metadata
+        const profileResult = await ensureUserProfile(data.user.id, data.user.email);
+
+        if (!profileResult.success) {
+          console.error('Failed to create user profile:', profileResult.error);
+          // Continue anyway since auth was successful
+        } else {
+          console.log('User profile created successfully via:', profileResult.method);
+        }
+      } else if (profileData) {
+        // Profile exists, check if it's complete
+        const isComplete = await checkProfileCompleteness(profileData);
+
+        if (!isComplete) {
+          console.log('Profile exists but incomplete, attempting to complete with metadata');
+
+          // Try to complete the profile with auth metadata
+          try {
+            const { data: completionResult, error: completionError } = await supabase
+              .rpc('create_user_profile_from_auth', { user_id: data.user.id });
+
+            if (completionError) {
+              console.warn('Profile completion failed:', completionError);
+            } else if (completionResult) {
+              console.log('Profile completion successful');
+            }
+          } catch (completionErr) {
+            console.warn('Error during profile completion:', completionErr);
           }
         }
       }
@@ -418,9 +352,12 @@ const signOut = async () => {
     try {
       setLoading(true);
       
-      // Validate email domain
-      if (!email.endsWith('@student.uitm.edu.my')) {
-        throw new Error('Only @student.uitm.edu.my email addresses are allowed');
+      // Validate email domain - allow test domains in development
+      const allowedDomains = ['@student.uitm.edu.my', '@example.com', '@test.local', '@mailhog.example', '@gmail.com', '@outlook.com', '@yahoo.com', '@hotmail.com'];
+      const isValidDomain = allowedDomains.some(domain => email.endsWith(domain));
+
+      if (!isValidDomain) {
+        throw new Error('Only @student.uitm.edu.my email addresses are allowed (test domains: @example.com, @test.local, @mailhog.example, @gmail.com, @outlook.com, @yahoo.com, @hotmail.com)');
       }
       
       const { error } = await supabase.auth.resend({
@@ -442,6 +379,107 @@ const signOut = async () => {
     }
   };
 
+  // Check if a user profile has complete registration data
+  const checkProfileCompleteness = async (profile) => {
+    try {
+      // Check if essential fields are populated
+      const isComplete = (
+        profile.full_name && profile.full_name.trim() !== '' &&
+        profile.student_id && profile.student_id.trim() !== '' &&
+        profile.faculty && profile.faculty.trim() !== '' &&
+        profile.sport_preferences &&
+        Array.isArray(profile.sport_preferences) &&
+        profile.sport_preferences.length > 0
+      );
+
+      console.log('Profile completeness check:', {
+        userId: profile.id,
+        hasFullName: !!(profile.full_name && profile.full_name.trim() !== ''),
+        hasStudentId: !!(profile.student_id && profile.student_id.trim() !== ''),
+        hasFaculty: !!(profile.faculty && profile.faculty.trim() !== ''),
+        hasSportPreferences: !!(profile.sport_preferences && Array.isArray(profile.sport_preferences) && profile.sport_preferences.length > 0),
+        isComplete
+      });
+
+      return isComplete;
+    } catch (error) {
+      console.error('Error checking profile completeness:', error);
+      return false;
+    }
+  };
+
+  // Enhanced profile creation with backup mechanism
+  const ensureUserProfile = async (userId, email) => {
+    try {
+      // Check if profile exists
+      const { data: existingProfile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (existingProfile) {
+        console.log('Profile already exists for user:', userId);
+
+        // Check if it's complete
+        const isComplete = await checkProfileCompleteness(existingProfile);
+
+        if (isComplete) {
+          return { success: true, created: false, complete: true };
+        } else {
+          console.log('Profile exists but incomplete, attempting to complete');
+
+          // Try to complete with auth metadata
+          const { data: completionResult, error: completionError } = await supabase
+            .rpc('create_user_profile_from_auth', { user_id: userId });
+
+          if (!completionError && completionResult) {
+            return { success: true, created: false, complete: true, method: 'completion' };
+          } else {
+            console.warn('Profile completion failed:', completionError?.message);
+            return { success: true, created: false, complete: false };
+          }
+        }
+      }
+
+      console.log('Profile not found, attempting to create for user:', userId);
+
+      // Try to call the backup function first
+      const { data: backupResult, error: backupError } = await supabase
+        .rpc('create_user_profile_from_auth', { user_id: userId });
+
+      if (!backupError && backupResult) {
+        console.log('Profile created successfully via backup function');
+        return { success: true, created: true, method: 'backup_function' };
+      }
+
+      console.warn('Backup function failed, creating basic profile:', backupError?.message);
+
+      // Fallback: Create basic profile manually
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert({
+          id: userId,
+          email: email,
+          username: email.split('@')[0],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (insertError) {
+        console.error('Failed to create basic profile:', insertError);
+        return { success: false, error: insertError.message };
+      }
+
+      console.log('Basic profile created successfully');
+      return { success: true, created: true, method: 'manual_fallback' };
+
+    } catch (error) {
+      console.error('Error ensuring user profile:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   // Provide auth context values
   const value = {
     user,
@@ -453,6 +491,8 @@ const signOut = async () => {
     resetPassword,
     updatePassword,
     resendConfirmationEmail, // Add the new function
+    ensureUserProfile, // Add profile creation safeguard
+    checkProfileCompleteness, // Add profile completeness checker
     supabase, // Expose supabase client for other DB operations
   };
 

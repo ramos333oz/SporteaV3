@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Typography, 
-  TextField, 
-  Button, 
-  Paper, 
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Paper,
   Link,
   Container,
   CircularProgress,
@@ -27,7 +27,11 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  InputAdornment
+  InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
@@ -36,6 +40,18 @@ import ResendConfirmation from '../components/ResendConfirmation';
 import { ExpandMore, SportsBasketball, AccessTime, LocationOn, Cake } from '@mui/icons-material';
 import { sportService, locationService, supabase } from '../services/supabase';
 import { subYears } from 'date-fns';
+import { checkEmailExists, isValidEmailDomain, getEmailErrorMessage, getEmailSuggestions } from '../utils/emailValidation';
+
+// Predefined time slots for availability selection
+const TIME_SLOTS = [
+  { id: '9-11', label: '9:00 AM - 11:00 AM', start: '09:00', end: '11:00' },
+  { id: '11-13', label: '11:00 AM - 1:00 PM', start: '11:00', end: '13:00' },
+  { id: '13-15', label: '1:00 PM - 3:00 PM', start: '13:00', end: '15:00' },
+  { id: '15-17', label: '3:00 PM - 5:00 PM', start: '15:00', end: '17:00' },
+  { id: '17-19', label: '5:00 PM - 7:00 PM', start: '17:00', end: '19:00' },
+  { id: '19-21', label: '7:00 PM - 9:00 PM', start: '19:00', end: '21:00' },
+  { id: '21-23', label: '9:00 PM - 11:00 PM', start: '21:00', end: '23:00' },
+];
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -48,6 +64,7 @@ const Register = () => {
     // New preference fields
     sport_preferences: [],
     available_days: [],
+    available_hours: {},
     preferred_facilities: [],
     faculty: '',
     play_style: 'casual',
@@ -68,7 +85,20 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [existingEmail, setExistingEmail] = useState('');
-  
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [isFormValid, setIsFormValid] = useState(false);
+
+  // Email validation states
+  const [emailValidation, setEmailValidation] = useState({
+    isChecking: false,
+    exists: false,
+    isConfirmed: false,
+    error: null,
+    suggestions: null
+  });
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+
   // Data for dropdown options
   const [sports, setSports] = useState([]);
   const [locations, setLocations] = useState([]);
@@ -115,15 +145,184 @@ const Register = () => {
     
     loadOptions();
   }, []);
-  
+
+  // Calculate password strength
+  const calculatePasswordStrength = (password) => {
+    if (!password) return 0;
+
+    let strength = 0;
+    // Length check
+    if (password.length >= 8) strength += 25;
+    // Uppercase check
+    if (/[A-Z]/.test(password)) strength += 25;
+    // Lowercase check
+    if (/[a-z]/.test(password)) strength += 25;
+    // Number or special character check
+    if (/[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) strength += 25;
+
+    return strength;
+  };
+
+  const passwordStrength = calculatePasswordStrength(formData.password);
+
+  const getPasswordStrengthColor = () => {
+    if (passwordStrength < 50) return 'error';
+    if (passwordStrength < 75) return 'warning';
+    return 'success';
+  };
+
+  // Email validation function
+  const validateEmail = async (email) => {
+    if (!email || !email.trim()) {
+      setEmailValidation({
+        isChecking: false,
+        exists: false,
+        isConfirmed: false,
+        error: null,
+        suggestions: null
+      });
+      return;
+    }
+
+    setEmailValidation(prev => ({ ...prev, isChecking: true }));
+
+    try {
+      // Check domain first
+      if (!isValidEmailDomain(email)) {
+        const errorMessage = getEmailErrorMessage(email, { exists: false, isConfirmed: false, error: null });
+        const suggestions = getEmailSuggestions(email, { exists: false, isConfirmed: false });
+
+        setEmailValidation({
+          isChecking: false,
+          exists: false,
+          isConfirmed: false,
+          error: errorMessage,
+          suggestions
+        });
+        return;
+      }
+
+      // Check if email exists
+      const result = await checkEmailExists(email);
+      const errorMessage = getEmailErrorMessage(email, result);
+      const suggestions = getEmailSuggestions(email, result);
+
+      setEmailValidation({
+        isChecking: false,
+        exists: result.exists,
+        isConfirmed: result.isConfirmed,
+        error: errorMessage,
+        suggestions
+      });
+
+      // Show dialog if email exists and is confirmed
+      if (result.exists && result.isConfirmed) {
+        setShowEmailDialog(true);
+      }
+
+    } catch (error) {
+      console.error('Email validation error:', error);
+      setEmailValidation({
+        isChecking: false,
+        exists: false,
+        isConfirmed: false,
+        error: 'Unable to validate email. Please try again.',
+        suggestions: null
+      });
+    }
+  };
+
+  // Real-time form validation check
+  const checkFormValidity = () => {
+    const requiredFields = [
+      'email', 'fullName', 'username', 'studentId', 'faculty', 'state',
+      'gender', 'birth_date', 'duration_preference', 'play_style', 'password', 'confirmPassword'
+    ];
+
+    const hasRequiredFields = requiredFields.every(field => {
+      if (field === 'password' || field === 'confirmPassword') {
+        return formData[field] && formData[field].length > 0;
+      }
+      return formData[field] && formData[field].toString().trim().length > 0;
+    });
+
+    const hasSports = formData.sport_preferences && formData.sport_preferences.length > 0;
+    const hasAvailability = formData.available_days && formData.available_days.length > 0;
+    const hasTimeSlots = formData.available_days.some(day =>
+      formData.available_hours[day] && formData.available_hours[day].length > 0
+    );
+    const hasFacilities = formData.preferred_facilities && formData.preferred_facilities.length > 0;
+    const passwordsMatch = formData.password === formData.confirmPassword;
+    const strongPassword = passwordStrength >= 50;
+
+    const emailValid = !emailValidation.error && !emailValidation.exists;
+
+    const isValid = hasRequiredFields && hasSports && hasAvailability && hasTimeSlots &&
+                   hasFacilities && passwordsMatch && strongPassword && agreeToTerms && emailValid;
+
+    setIsFormValid(isValid);
+  };
+
+  // Check form validity whenever formData or agreeToTerms changes
+  useEffect(() => {
+    checkFormValidity();
+  }, [formData, agreeToTerms]);
+
+  // Function to extract Student ID from email
+  const extractStudentIdFromEmail = (email) => {
+    if (!email) return '';
+
+    // Extract the part before @ symbol
+    const beforeAt = email.split('@')[0];
+
+    // Extract numeric portion from the beginning
+    const numericMatch = beforeAt.match(/^\d+/);
+
+    return numericMatch ? numericMatch[0] : '';
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
+
+    // Update form data
+    const updatedFormData = {
       ...formData,
       [name]: value
-    });
+    };
+
+    // Auto-populate Student ID when email changes
+    if (name === 'email') {
+      const extractedStudentId = extractStudentIdFromEmail(value);
+      updatedFormData.studentId = extractedStudentId;
+
+      // Clear both email and studentId errors when email changes
+      if (fieldErrors.email || fieldErrors.studentId) {
+        setFieldErrors(prev => ({
+          ...prev,
+          email: '',
+          studentId: ''
+        }));
+      }
+
+      // Trigger email validation with debounce
+      setTimeout(() => {
+        validateEmail(value);
+      }, 500);
+    } else {
+      // Clear field error when user starts typing
+      if (fieldErrors[name]) {
+        setFieldErrors(prev => ({
+          ...prev,
+          [name]: ''
+        }));
+      }
+    }
+
+    setFormData(updatedFormData);
   };
   
+
+
   // Handle multi-select changes
   const handleMultiSelectChange = (event, fieldName) => {
     const { value } = event.target;
@@ -131,6 +330,14 @@ const Register = () => {
       ...formData,
       [fieldName]: typeof value === 'string' ? value.split(',') : value
     });
+
+    // Clear field error when user makes selection
+    if (fieldErrors[fieldName]) {
+      setFieldErrors(prev => ({
+        ...prev,
+        [fieldName]: ''
+      }));
+    }
   };
 
   // Handle birth date change
@@ -147,70 +354,200 @@ const Register = () => {
   const handleCheckboxChange = (item, fieldName) => {
     const currentItems = [...formData[fieldName]];
     const currentIndex = currentItems.indexOf(item);
-    
+
     if (currentIndex === -1) {
       currentItems.push(item);
     } else {
       currentItems.splice(currentIndex, 1);
     }
-    
+
     setFormData({
       ...formData,
       [fieldName]: currentItems
     });
+
+    // Clear field error when user makes selection
+    if (fieldErrors[fieldName]) {
+      setFieldErrors(prev => ({
+        ...prev,
+        [fieldName]: ''
+      }));
+    }
+
+    // Special handling for available_days - clear time slots for removed days
+    if (fieldName === 'available_days') {
+      const updatedHours = { ...formData.available_hours };
+      // Remove time slots for days that are no longer selected
+      Object.keys(updatedHours).forEach(day => {
+        if (!currentItems.includes(day)) {
+          delete updatedHours[day];
+        }
+      });
+      setFormData(prev => ({
+        ...prev,
+        [fieldName]: currentItems,
+        available_hours: updatedHours
+      }));
+      return;
+    }
   };
-  
-  // Calculate password strength
-  const calculatePasswordStrength = (password) => {
-    if (!password) return 0;
-    
-    let strength = 0;
-    // Length check
-    if (password.length >= 8) strength += 25;
-    // Contains lowercase letters
-    if (/[a-z]/.test(password)) strength += 25;
-    // Contains uppercase letters
-    if (/[A-Z]/.test(password)) strength += 25;
-    // Contains numbers or special characters
-    if (/[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) strength += 25;
-    
-    return strength;
+
+  // Handle time slot toggle for a specific day
+  const handleTimeSlotToggle = (day, timeSlotId) => {
+    const availableHours = { ...formData.available_hours };
+    if (!availableHours[day]) availableHours[day] = [];
+
+    const slotIndex = availableHours[day].indexOf(timeSlotId);
+    if (slotIndex === -1) {
+      // Add time slot
+      availableHours[day].push(timeSlotId);
+    } else {
+      // Remove time slot
+      availableHours[day].splice(slotIndex, 1);
+      if (availableHours[day].length === 0) {
+        delete availableHours[day];
+      }
+    }
+
+    setFormData({
+      ...formData,
+      available_hours: availableHours
+    });
+
+    // Clear available_hours error when user makes selection
+    if (fieldErrors.available_hours) {
+      setFieldErrors(prev => ({
+        ...prev,
+        available_hours: ''
+      }));
+    }
   };
-  
-  const passwordStrength = calculatePasswordStrength(formData.password);
-  
-  const getPasswordStrengthColor = () => {
-    if (passwordStrength < 50) return 'error';
-    if (passwordStrength < 75) return 'warning';
-    return 'success';
-  };
-  
+
   const validateForm = () => {
-    // Email domain validation
-    if (!formData.email.endsWith('@student.uitm.edu.my')) {
-      setError('Only @student.uitm.edu.my email addresses are allowed');
-      return false;
+    const errors = {};
+    let isValid = true;
+
+    // Basic required fields validation
+    if (!formData.email.trim()) {
+      errors.email = 'Email is required';
+      isValid = false;
+    } else {
+      // Email domain validation - allow test domains in development
+      const allowedDomains = ['@student.uitm.edu.my', '@example.com', '@test.local', '@mailhog.example', '@gmail.com', '@outlook.com', '@yahoo.com', '@hotmail.com'];
+      const isValidDomain = allowedDomains.some(domain => formData.email.endsWith(domain));
+      if (!isValidDomain) {
+        errors.email = 'Only @student.uitm.edu.my email addresses are allowed (test domains: @example.com, @test.local, @mailhog.example, @gmail.com, @outlook.com, @yahoo.com, @hotmail.com)';
+        isValid = false;
+      }
     }
-    
-    // Password match validation
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return false;
+
+    if (!formData.fullName.trim()) {
+      errors.fullName = 'Full name is required';
+      isValid = false;
     }
-    
-    // Password strength validation
-    if (passwordStrength < 50) {
-      setError('Password is too weak. Please include uppercase letters, numbers, or special characters.');
-      return false;
+
+    if (!formData.username.trim()) {
+      errors.username = 'Username is required';
+      isValid = false;
     }
-    
+
+    if (!formData.studentId.trim()) {
+      errors.studentId = 'Student ID is required - please enter an email that starts with your student ID number';
+      isValid = false;
+    }
+    // TEMPORARY: Allow alphanumeric characters for testing with non-student email domains
+    // TODO: Restore numeric-only validation for production
+
+    if (!formData.faculty) {
+      errors.faculty = 'Faculty selection is required';
+      isValid = false;
+    }
+
+    if (!formData.state) {
+      errors.state = 'State selection is required';
+      isValid = false;
+    }
+
+    if (!formData.gender) {
+      errors.gender = 'Gender selection is required';
+      isValid = false;
+    }
+
+    if (!formData.birth_date) {
+      errors.birth_date = 'Birth date is required';
+      isValid = false;
+    }
+
+    if (!formData.duration_preference) {
+      errors.duration_preference = 'Preferred duration is required';
+      isValid = false;
+    }
+
+    // Sports preferences validation
+    if (!formData.sport_preferences || formData.sport_preferences.length === 0) {
+      errors.sport_preferences = 'At least one sport must be selected';
+      isValid = false;
+    }
+
+    // Play style validation (should always have a default, but check anyway)
+    if (!formData.play_style) {
+      errors.play_style = 'Play style selection is required';
+      isValid = false;
+    }
+
+    // Availability validation
+    if (!formData.available_days || formData.available_days.length === 0) {
+      errors.available_days = 'At least one available day must be selected';
+      isValid = false;
+    }
+
+    // Available hours validation
+    const hasTimeSlots = formData.available_days.some(day =>
+      formData.available_hours[day] && formData.available_hours[day].length > 0
+    );
+    if (formData.available_days.length > 0 && !hasTimeSlots) {
+      errors.available_hours = 'At least one time slot must be selected for your available days';
+      isValid = false;
+    }
+
+    // Preferred facilities validation
+    if (!formData.preferred_facilities || formData.preferred_facilities.length === 0) {
+      errors.preferred_facilities = 'At least one preferred facility must be selected';
+      isValid = false;
+    }
+
+    // Password validation
+    if (!formData.password) {
+      errors.password = 'Password is required';
+      isValid = false;
+    } else if (passwordStrength < 50) {
+      errors.password = 'Password is too weak. Please include uppercase letters, numbers, or special characters.';
+      isValid = false;
+    }
+
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = 'Password confirmation is required';
+      isValid = false;
+    } else if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+      isValid = false;
+    }
+
     // Terms agreement validation
     if (!agreeToTerms) {
-      setError('You must agree to the Terms and Conditions');
-      return false;
+      errors.terms = 'You must agree to the Terms and Conditions';
+      isValid = false;
     }
-    
-    return true;
+
+    setFieldErrors(errors);
+
+    if (!isValid) {
+      setError('Please complete all required fields before creating your account.');
+    } else {
+      setError('');
+    }
+
+    return isValid;
   };
   
   // Add a handler for adding sports with skill levels
@@ -284,13 +621,32 @@ const Register = () => {
     
     try {
       // Format the sport preferences data properly
-      const sport_preferences = formData.sport_preferences.map(sport => ({
-        name: sport.name,
-        level: sport.level
-      }));
-      
-      // Separate user data (goes to users table) from preferences (goes to user_preferences table)
+      const sport_preferences = formData.sport_preferences.map(sport =>
+        typeof sport === 'string' ? sport : sport.name || sport
+      );
+
+      // Convert available_hours to the format expected by the backend
+      const convertedHours = [];
+      Object.keys(formData.available_hours).forEach(day => {
+        formData.available_hours[day].forEach(timeSlotId => {
+          const timeSlot = TIME_SLOTS.find(slot => slot.id === timeSlotId);
+          if (timeSlot) {
+            convertedHours.push({
+              day: day,
+              start: timeSlot.start,
+              end: timeSlot.end
+            });
+          }
+        });
+      });
+
+      // Calculate age from birth date
+      const age = formData.birth_date ?
+        new Date().getFullYear() - formData.birth_date.getFullYear() : 20;
+
+      // Comprehensive user metadata for database trigger
       const userData = {
+        // Basic user information
         full_name: formData.fullName,
         username: formData.username,
         student_id: formData.studentId,
@@ -298,60 +654,52 @@ const Register = () => {
         campus: formData.state, // Use state field for campus value
         gender: formData.gender,
         play_style: formData.play_style,
-        avatar: formData.avatar,
-        avatarUrl: formData.avatarUrl
-      };
-
-      // Preferences data (will be stored in user_preferences table after successful registration)
-      const preferencesData = {
-        sport_preferences: sport_preferences,
-        available_days: formData.available_days,
-        preferred_facilities: formData.preferred_facilities,
-        duration_preference: formData.duration_preference,
-        age: formData.age,
+        age: age,
         birth_date: formData.birth_date ? formData.birth_date.toISOString().split('T')[0] : null,
-        time_preferences: {
+        duration_preference: formData.duration_preference,
+
+        // Sports and preferences data
+        sport_preferences: JSON.stringify(sport_preferences),
+        available_days: JSON.stringify(formData.available_days),
+        available_hours: JSON.stringify(formData.available_hours),
+        preferred_facilities: JSON.stringify(formData.preferred_facilities),
+
+        // Time preferences for recommendation system
+        time_preferences: JSON.stringify({
           days: formData.available_days,
-          hours: []
-        },
-        location_preferences: formData.preferred_facilities
+          hours: convertedHours
+        })
       };
       
       const { data, error } = await signUp(formData.email, formData.password, userData);
-      
+
       if (error) {
-        // Check if this is a case of unverified existing account
-        if (error.includes('User already registered') ||
-            error.toLowerCase().includes('already exists')) {
-          setNeedsVerification(true);
-          setExistingEmail(formData.email);
-          throw new Error('This email is already registered but not verified.');
+        // Check if this is a case of existing account
+        const errorMessage = typeof error === 'string' ? error : error.message || error.toString();
+
+        if (errorMessage.includes('User already registered') ||
+            errorMessage.toLowerCase().includes('already exists') ||
+            errorMessage.includes('already been registered')) {
+
+          // Show the email dialog with suggestions
+          setShowEmailDialog(true);
+          throw new Error('This email address is already registered. Please try logging in instead.');
         }
-        throw new Error(error);
+
+        throw new Error(errorMessage);
       }
 
-      // Store user preferences if registration was successful
+      // Registration successful - database trigger will handle profile creation
       if (data?.user) {
-        try {
-          const { error: prefError } = await supabase
-            .from('user_preferences')
-            .insert({
-              user_id: data.user.id,
-              ...preferencesData
-            });
+        console.log('Registration successful for user:', data.user.email);
+        console.log('Database trigger will create user profile automatically');
 
-          if (prefError) {
-            console.error('Error storing user preferences:', prefError);
-            // Don't throw error here as the main registration was successful
-          }
-        } catch (prefErr) {
-          console.error('Exception storing user preferences:', prefErr);
-          // Don't throw error here as the main registration was successful
-        }
+        // Set verification sent flag to show verification pending screen
+        setVerificationSent(true);
+        setRegisteredEmail(formData.email);
+      } else {
+        throw new Error('Registration failed - no user data returned');
       }
-
-      // Set verification sent flag to show verification pending screen
-      setVerificationSent(true);
     } catch (err) {
       setError(err.message || 'Failed to create account. Please try again.');
     } finally {
@@ -426,7 +774,7 @@ const Register = () => {
           </Typography>
           
           <Typography variant="body1" sx={{ mb: 3, textAlign: 'center' }}>
-            We sent a verification link to <strong>{formData.email}</strong>
+            We sent a verification link to <strong>{registeredEmail || formData.email}</strong>
           </Typography>
           
           <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
@@ -543,6 +891,12 @@ const Register = () => {
         )}
         
         <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
           {/* Personal Information Section */}
           <Typography variant="h6" sx={{ mt: 2, mb: 2 }}>Personal Information</Typography>
           
@@ -557,8 +911,24 @@ const Register = () => {
             autoFocus
             value={formData.email}
             onChange={handleChange}
-            placeholder="student@student.uitm.edu.my"
-            helperText="Must be a valid @student.uitm.edu.my email"
+            placeholder="student@student.uitm.edu.my or test@example.com"
+            helperText={
+              emailValidation.isChecking
+                ? "Checking email availability..."
+                : emailValidation.error
+                  ? emailValidation.error
+                  : fieldErrors.email
+                    ? fieldErrors.email
+                    : "Must be a valid @student.uitm.edu.my email (test domains: @example.com, @test.local, @mailhog.example, @gmail.com, @outlook.com, @yahoo.com, @hotmail.com)"
+            }
+            error={!!fieldErrors.email || !!emailValidation.error}
+            InputProps={{
+              endAdornment: emailValidation.isChecking ? (
+                <InputAdornment position="end">
+                  <CircularProgress size={20} />
+                </InputAdornment>
+              ) : null
+            }}
             sx={{ mb: 2 }}
           />
           
@@ -572,6 +942,8 @@ const Register = () => {
             autoComplete="name"
             value={formData.fullName}
             onChange={handleChange}
+            helperText={fieldErrors.fullName}
+            error={!!fieldErrors.fullName}
             sx={{ mb: 2 }}
           />
           
@@ -585,7 +957,8 @@ const Register = () => {
             autoComplete="username"
             value={formData.username}
             onChange={handleChange}
-            helperText="Choose a unique username (not your student ID)"
+            helperText={fieldErrors.username || "Choose a unique username (not your student ID)"}
+            error={!!fieldErrors.username}
             sx={{ mb: 2 }}
           />
           
@@ -598,18 +971,30 @@ const Register = () => {
             name="studentId"
             value={formData.studentId}
             onChange={handleChange}
-            sx={{ mb: 2 }}
+            disabled={false}
+            helperText={fieldErrors.studentId || "Auto-populated from email, but can be edited for testing"}
+            error={!!fieldErrors.studentId}
+            sx={{
+              mb: 2,
+              '& .MuiInputBase-input.Mui-disabled': {
+                backgroundColor: '#f5f5f5',
+                WebkitTextFillColor: '#666666'
+              },
+              '& .MuiOutlinedInput-root.Mui-disabled': {
+                backgroundColor: '#f5f5f5'
+              }
+            }}
           />
           
-          <FormControl fullWidth margin="normal" sx={{ mb: 2 }}>
-            <InputLabel id="faculty-label">Faculty</InputLabel>
+          <FormControl fullWidth margin="normal" sx={{ mb: 2 }} error={!!fieldErrors.faculty}>
+            <InputLabel id="faculty-label">Faculty *</InputLabel>
             <Select
               labelId="faculty-label"
               id="faculty"
               name="faculty"
               value={formData.faculty}
               onChange={handleChange}
-              label="Faculty"
+              label="Faculty *"
             >
               <MenuItem value="">Select Faculty</MenuItem>
               {facultyOptions.map((faculty) => (
@@ -618,17 +1003,18 @@ const Register = () => {
                 </MenuItem>
               ))}
             </Select>
+            {fieldErrors.faculty && <FormHelperText>{fieldErrors.faculty}</FormHelperText>}
           </FormControl>
           
-          <FormControl fullWidth margin="normal" sx={{ mb: 2 }}>
-            <InputLabel id="state-label">State</InputLabel>
+          <FormControl fullWidth margin="normal" sx={{ mb: 2 }} error={!!fieldErrors.state}>
+            <InputLabel id="state-label">State *</InputLabel>
             <Select
               labelId="state-label"
               id="state"
               name="state"
               value={formData.state}
               onChange={handleChange}
-              label="State"
+              label="State *"
             >
               <MenuItem value="">Select State</MenuItem>
               {stateOptions.map((state) => (
@@ -637,17 +1023,18 @@ const Register = () => {
                 </MenuItem>
               ))}
             </Select>
+            {fieldErrors.state && <FormHelperText>{fieldErrors.state}</FormHelperText>}
           </FormControl>
           
-          <FormControl fullWidth margin="normal" sx={{ mb: 2 }}>
-            <InputLabel id="gender-label">Gender</InputLabel>
+          <FormControl fullWidth margin="normal" sx={{ mb: 2 }} error={!!fieldErrors.gender}>
+            <InputLabel id="gender-label">Gender *</InputLabel>
             <Select
               labelId="gender-label"
               id="gender"
               name="gender"
               value={formData.gender}
               onChange={handleChange}
-              label="Gender"
+              label="Gender *"
             >
               <MenuItem value="">Select Gender</MenuItem>
               <MenuItem value="Male">Male</MenuItem>
@@ -655,11 +1042,12 @@ const Register = () => {
               <MenuItem value="Other">Other</MenuItem>
               <MenuItem value="Prefer not to say">Prefer not to say</MenuItem>
             </Select>
+            {fieldErrors.gender && <FormHelperText>{fieldErrors.gender}</FormHelperText>}
           </FormControl>
           
           <Box sx={{ mb: 2 }}>
             <DatePicker
-              label="Birth Date"
+              label="Birth Date *"
               value={formData.birth_date}
               onChange={handleBirthDateChange}
               minDate={getMinBirthDate()}
@@ -672,7 +1060,9 @@ const Register = () => {
                   fullWidth: true,
                   margin: "normal",
                   variant: "outlined",
-                  helperText: formData.age ? `Age: ${formData.age} years` : "Select your birth date (must be 18-65 years old)",
+                  required: true,
+                  error: !!fieldErrors.birth_date,
+                  helperText: fieldErrors.birth_date || (formData.age ? `Age: ${formData.age} years` : "Select your birth date (must be 18-65 years old)"),
                   InputProps: {
                     startAdornment: (
                       <InputAdornment position="start">
@@ -685,15 +1075,15 @@ const Register = () => {
             />
           </Box>
           
-          <FormControl fullWidth margin="normal" sx={{ mb: 2 }}>
-            <InputLabel id="duration-label">Preferred Duration</InputLabel>
+          <FormControl fullWidth margin="normal" sx={{ mb: 2 }} error={!!fieldErrors.duration_preference}>
+            <InputLabel id="duration-label">Preferred Duration *</InputLabel>
             <Select
               labelId="duration-label"
               id="duration_preference"
               name="duration_preference"
               value={formData.duration_preference}
               onChange={handleChange}
-              label="Preferred Duration"
+              label="Preferred Duration *"
             >
               <MenuItem value="">Select Duration</MenuItem>
               {durationOptions.map((duration) => (
@@ -702,6 +1092,7 @@ const Register = () => {
                 </MenuItem>
               ))}
             </Select>
+            {fieldErrors.duration_preference && <FormHelperText>{fieldErrors.duration_preference}</FormHelperText>}
           </FormControl>
           
           {/* Preferences Section */}
@@ -713,15 +1104,15 @@ const Register = () => {
               </Box>
             </AccordionSummary>
             <AccordionDetails>
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel id="sports-preferences-label">Sports You Enjoy</InputLabel>
+              <FormControl fullWidth sx={{ mb: 2 }} error={!!fieldErrors.sport_preferences}>
+                <InputLabel id="sports-preferences-label">Sports You Enjoy *</InputLabel>
                 <Select
                   labelId="sports-preferences-label"
                   id="sport_preferences"
                   multiple
                   value={formData.sport_preferences}
                   onChange={(e) => handleMultiSelectChange(e, 'sport_preferences')}
-                  input={<OutlinedInput label="Sports You Enjoy" />}
+                  input={<OutlinedInput label="Sports You Enjoy *" />}
                   renderValue={(selected) => (
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                       {selected.map((value) => {
@@ -742,11 +1133,13 @@ const Register = () => {
                     ))
                   )}
                 </Select>
-                <FormHelperText>Select sports you're interested in playing</FormHelperText>
+                <FormHelperText error={!!fieldErrors.sport_preferences}>
+                  {fieldErrors.sport_preferences || "Select sports you're interested in playing"}
+                </FormHelperText>
               </FormControl>
               
-              <FormControl component="fieldset" sx={{ mb: 2, width: '100%' }}>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>Play Style</Typography>
+              <FormControl component="fieldset" sx={{ mb: 2, width: '100%' }} error={!!fieldErrors.play_style}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>Play Style *</Typography>
                 <RadioGroup
                   row
                   name="play_style"
@@ -756,7 +1149,9 @@ const Register = () => {
                   <FormControlLabel value="casual" control={<Radio />} label="Casual" />
                   <FormControlLabel value="competitive" control={<Radio />} label="Competitive" />
                 </RadioGroup>
-                <FormHelperText>How do you prefer to play?</FormHelperText>
+                <FormHelperText error={!!fieldErrors.play_style}>
+                  {fieldErrors.play_style || "How do you prefer to play?"}
+                </FormHelperText>
               </FormControl>
             </AccordionDetails>
           </Accordion>
@@ -769,7 +1164,7 @@ const Register = () => {
               </Box>
             </AccordionSummary>
             <AccordionDetails>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>Days Available</Typography>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Days Available *</Typography>
               <Grid container spacing={1} sx={{ mb: 2 }}>
                 {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
                   <Grid item key={day}>
@@ -782,7 +1177,56 @@ const Register = () => {
                   </Grid>
                 ))}
               </Grid>
-              <FormHelperText>Select days when you're typically available to play</FormHelperText>
+              <FormHelperText error={!!fieldErrors.available_days}>
+                {fieldErrors.available_days || "Select days when you're typically available to play"}
+              </FormHelperText>
+
+              {/* Time Slots Section */}
+              <Typography variant="subtitle2" sx={{ mt: 3, mb: 1 }}>Available Time Slots *</Typography>
+              {formData.available_days.length === 0 ? (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Please select available days first to set your available time slots.
+                </Alert>
+              ) : (
+                <Box sx={{ mb: 2 }}>
+                  {formData.available_days.map(day => (
+                    <Paper key={day} variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                        {day.charAt(0).toUpperCase() + day.slice(1)}
+                        {formData.available_hours[day]?.length > 0 &&
+                          ` (${formData.available_hours[day].length} slot${formData.available_hours[day].length !== 1 ? 's' : ''} selected)`
+                        }
+                      </Typography>
+                      <Grid container spacing={1}>
+                        {TIME_SLOTS.map(timeSlot => {
+                          const isSelected = formData.available_hours[day]?.includes(timeSlot.id) || false;
+                          return (
+                            <Grid item xs={12} sm={6} md={4} key={timeSlot.id}>
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onChange={() => handleTimeSlotToggle(day, timeSlot.id)}
+                                    color="primary"
+                                  />
+                                }
+                                label={
+                                  <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                                    {timeSlot.label}
+                                  </Typography>
+                                }
+                              />
+                            </Grid>
+                          );
+                        })}
+                      </Grid>
+                    </Paper>
+                  ))}
+                </Box>
+              )}
+              <FormHelperText error={!!fieldErrors.available_hours}>
+                {fieldErrors.available_hours || "Select time slots when you're available to play"}
+              </FormHelperText>
             </AccordionDetails>
           </Accordion>
           
@@ -794,15 +1238,15 @@ const Register = () => {
               </Box>
             </AccordionSummary>
             <AccordionDetails>
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel id="facilities-label">Preferred Facilities</InputLabel>
+              <FormControl fullWidth sx={{ mb: 2 }} error={!!fieldErrors.preferred_facilities}>
+                <InputLabel id="facilities-label">Preferred Facilities *</InputLabel>
                 <Select
                   labelId="facilities-label"
                   id="preferred_facilities"
                   multiple
                   value={formData.preferred_facilities}
                   onChange={(e) => handleMultiSelectChange(e, 'preferred_facilities')}
-                  input={<OutlinedInput label="Preferred Facilities" />}
+                  input={<OutlinedInput label="Preferred Facilities *" />}
                   renderValue={(selected) => (
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                       {selected.map((value) => {
@@ -823,90 +1267,14 @@ const Register = () => {
                     ))
                   )}
                 </Select>
-                <FormHelperText>Select facilities where you prefer to play</FormHelperText>
+                <FormHelperText error={!!fieldErrors.preferred_facilities}>
+                  {fieldErrors.preferred_facilities || "Select facilities where you prefer to play"}
+                </FormHelperText>
               </FormControl>
             </AccordionDetails>
           </Accordion>
           
-          {/* Sports Selection */}
-          <Accordion defaultExpanded sx={{ mb: 3, borderRadius: 2, overflow: 'hidden' }}>
-            <AccordionSummary
-              expandIcon={<ExpandMore />}
-              aria-controls="sports-content"
-              id="sports-header"
-              sx={{ backgroundColor: 'background.light' }}
-            >
-              <Typography sx={{ display: 'flex', alignItems: 'center' }}>
-                <SportsBasketball sx={{ mr: 1 }} />
-                Sports Preferences
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel id="add-sport-label">Add Sport</InputLabel>
-                <Select
-                  labelId="add-sport-label"
-                  id="add-sport"
-                  value=""
-                  onChange={(e) => handleAddSport(e.target.value)}
-                  label="Add Sport"
-                >
-                  {sports
-                    .filter(sport => !formData.sports.includes(sport.id))
-                    .map(sport => (
-                      <MenuItem key={sport.id} value={sport.id}>
-                        {sport.name}
-                      </MenuItem>
-                    ))
-                  }
-                </Select>
-              </FormControl>
-              
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>Selected Sports:</Typography>
-              
-              {formData.sports.length === 0 ? (
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  No sports selected
-                </Typography>
-              ) : (
-                <Grid container spacing={2} sx={{ mb: 2 }}>
-                  {formData.sports.map(sportId => {
-                    const sport = sports.find(s => s.id === sportId);
-                    return sport ? (
-                      <Grid item xs={12} key={sport.id}>
-                        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                            <Typography variant="subtitle1">{sport.name}</Typography>
-                            <Button 
-                              size="small" 
-                              color="error" 
-                              onClick={() => handleRemoveSport(sport.id)}
-                            >
-                              Remove
-                            </Button>
-                          </Box>
-                          
-                          <FormControl component="fieldset">
-                            <Typography variant="subtitle2" gutterBottom>Skill Level:</Typography>
-                            <RadioGroup
-                              row
-                              value={formData.skillLevels[sport.id] || 'Beginner'}
-                              onChange={(e) => handleSkillLevelChange(sport.id, e.target.value)}
-                            >
-                              <FormControlLabel value="Beginner" control={<Radio size="small" />} label="Beginner" />
-                              <FormControlLabel value="Intermediate" control={<Radio size="small" />} label="Intermediate" />
-                              <FormControlLabel value="Advanced" control={<Radio size="small" />} label="Advanced" />
-                            </RadioGroup>
-                          </FormControl>
-                        </Paper>
-                      </Grid>
-                    ) : null;
-                  })}
-                </Grid>
-              )}
-            </AccordionDetails>
-          </Accordion>
-          
+
           {/* Password Section */}
           <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>Security</Typography>
           
@@ -921,6 +1289,8 @@ const Register = () => {
             autoComplete="new-password"
             value={formData.password}
             onChange={handleChange}
+            helperText={fieldErrors.password}
+            error={!!fieldErrors.password}
             sx={{ mb: 1 }}
           />
           
@@ -949,38 +1319,61 @@ const Register = () => {
             autoComplete="new-password"
             value={formData.confirmPassword}
             onChange={handleChange}
+            helperText={fieldErrors.confirmPassword}
+            error={!!fieldErrors.confirmPassword}
             sx={{ mb: 3 }}
           />
           
-          <FormControlLabel
-            control={
-              <Checkbox 
-                checked={agreeToTerms} 
-                onChange={(e) => setAgreeToTerms(e.target.checked)} 
-                color="primary"
-              />
-            }
-            label={
-              <Typography variant="caption">
-                I agree to the {' '}
-                <Link component={RouterLink} to="/terms" color="primary">
-                  Terms and Conditions
-                </Link>
-              </Typography>
-            }
-            sx={{ mb: 3 }}
-          />
+          <FormControl error={!!fieldErrors.terms} sx={{ mb: 1 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={agreeToTerms}
+                  onChange={(e) => {
+                    setAgreeToTerms(e.target.checked);
+                    // Clear terms error when user checks the box
+                    if (fieldErrors.terms) {
+                      setFieldErrors(prev => ({
+                        ...prev,
+                        terms: ''
+                      }));
+                    }
+                  }}
+                  color="primary"
+                />
+              }
+              label={
+                <Typography variant="caption">
+                  I agree to the {' '}
+                  <Link component={RouterLink} to="/terms" color="primary">
+                    Terms and Conditions
+                  </Link>
+                </Typography>
+              }
+            />
+            {fieldErrors.terms && <FormHelperText>{fieldErrors.terms}</FormHelperText>}
+          </FormControl>
           
           <Button
             type="submit"
             fullWidth
             variant="contained"
             size="large"
-            disabled={isLoading}
-            sx={{ mb: 2, height: 48 }}
+            disabled={isLoading || !isFormValid}
+            sx={{
+              mb: 2,
+              height: 48,
+              opacity: (!isFormValid && !isLoading) ? 0.6 : 1
+            }}
           >
             {isLoading ? <CircularProgress size={24} color="inherit" /> : 'Create Account'}
           </Button>
+
+          {!isFormValid && !isLoading && (
+            <Typography variant="caption" color="error" sx={{ display: 'block', textAlign: 'center', mb: 2 }}>
+              Please complete all required fields to create your account
+            </Typography>
+          )}
           
           <Box sx={{ textAlign: 'center', mt: 2 }}>
             <Typography variant="body1">
@@ -992,6 +1385,56 @@ const Register = () => {
           </Box>
         </Box>
       </Paper>
+
+      {/* Email Already Exists Dialog */}
+      <Dialog
+        open={showEmailDialog}
+        onClose={() => setShowEmailDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Email Already Registered
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            The email address <strong>{formData.email}</strong> is already registered and confirmed.
+          </Typography>
+          {emailValidation.suggestions?.message && (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {emailValidation.suggestions.message}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowEmailDialog(false)}>
+            Cancel
+          </Button>
+          {emailValidation.suggestions?.secondaryAction && (
+            <Button
+              onClick={() => {
+                setShowEmailDialog(false);
+                navigate(emailValidation.suggestions.secondaryAction.url);
+              }}
+              color="secondary"
+            >
+              {emailValidation.suggestions.secondaryAction.text}
+            </Button>
+          )}
+          {emailValidation.suggestions?.primaryAction && (
+            <Button
+              onClick={() => {
+                setShowEmailDialog(false);
+                navigate(emailValidation.suggestions.primaryAction.url);
+              }}
+              variant="contained"
+              color="primary"
+            >
+              {emailValidation.suggestions.primaryAction.text}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

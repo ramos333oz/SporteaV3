@@ -141,15 +141,15 @@ const MainLayout = () => {
             
             <Divider />
             <Box sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
-              <Avatar 
+              <Avatar
                 src={user?.user_metadata?.avatar_url}
                 sx={{ mr: 2, bgcolor: 'primary.main' }}
               >
-                {user?.user_metadata?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                {user?.user_metadata?.username?.charAt(0) || user?.user_metadata?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
               </Avatar>
               <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
                 <Typography variant="subtitle2" noWrap>
-                  {user?.user_metadata?.full_name || user?.email}
+                  {user?.user_metadata?.username || user?.user_metadata?.full_name || user?.email}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" noWrap>
                   {user?.email}

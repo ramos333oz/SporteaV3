@@ -152,7 +152,7 @@ const UserRecommendationCard = ({
             sx={{ cursor: 'pointer' }}
             onClick={handleViewProfile}
           >
-            {user.full_name || user.username}
+            {user.username || user.full_name}
           </Typography>
           
           {user.username && user.full_name && (

@@ -59,6 +59,7 @@ const UserRecommendationCard = ({
   const {
     id,
     full_name,
+    username,
     avatar_url,
     faculty,
     campus,
@@ -197,7 +198,7 @@ const UserRecommendationCard = ({
             fontWeight: 'bold'
           }}
         >
-          {!avatar_url && (full_name?.charAt(0)?.toUpperCase() || '?')}
+          {!avatar_url && ((username || full_name)?.charAt(0)?.toUpperCase() || '?')}
         </Avatar>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -213,7 +214,7 @@ const UserRecommendationCard = ({
               whiteSpace: 'nowrap'
             }}
           >
-            {full_name}
+            {username || full_name}
           </Typography>
 
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -379,7 +380,7 @@ const UserRecommendationCard = ({
                 mb: 1
               }}
             >
-              {full_name} shares {similarityPercentage}% similarity with your sports preferences and profile.
+              {username || full_name} shares {similarityPercentage}% similarity with your sports preferences and profile.
             </Typography>
 
             {play_style && (

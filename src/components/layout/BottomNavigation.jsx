@@ -132,7 +132,7 @@ const BottomNavigation = () => {
               <UserAvatarWithLevel
                 user={{
                   avatar_url: user?.user_metadata?.avatar_url,
-                  full_name: user?.user_metadata?.full_name,
+                  full_name: user?.user_metadata?.username || user?.user_metadata?.full_name,
                   level: user?.level || 1
                 }}
                 size={28}

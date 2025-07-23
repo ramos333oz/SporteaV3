@@ -563,12 +563,12 @@ const Friends = () => {
               }
             >
               <ListItemAvatar>
-                <Avatar src={request.avatar_url} alt={request.full_name || request.username}>
-                  {(request.full_name || request.username || '?')[0].toUpperCase()}
+                <Avatar src={request.avatar_url} alt={request.username || request.full_name}>
+                  {(request.username || request.full_name || '?')[0].toUpperCase()}
                 </Avatar>
               </ListItemAvatar>
               <ListItemText
-                primary={request.full_name || request.username}
+                primary={request.username || request.full_name}
                 secondary={`@${request.username || 'unknown'} · Sent ${new Date(request.created_at).toLocaleDateString()}`}
               />
             </ListItem>

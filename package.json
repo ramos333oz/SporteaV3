@@ -71,7 +71,8 @@
     "deploy:netlify": "npm run build:prod && netlify deploy --prod --dir=dist",
     "supabase:deploy": "supabase functions deploy --no-verify-jwt",
     "supabase:db:push": "supabase db push",
-    "health-check": "node scripts/health-check.js"
+    "health-check": "node scripts/health-check.js",
+    "test:auth": "node test-auth-flow.js"
   },
   "browserslist": {
     "production": [

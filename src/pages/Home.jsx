@@ -244,7 +244,7 @@ const Home = () => {
       <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box>
           <Typography variant="h1" component="h1" gutterBottom>
-            Welcome, {user?.user_metadata?.full_name || 'Athlete'}!
+            Welcome, {user?.user_metadata?.username || user?.user_metadata?.full_name || 'Athlete'}!
           </Typography>
           <Typography variant="body1" color="text.secondary">
             Find matches, join games, and connect with fellow UiTM students.

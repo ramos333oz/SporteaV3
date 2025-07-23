@@ -27,6 +27,10 @@ verify_jwt = false
 [functions.get-recommendations-diagnostic]
 verify_jwt = false
 
+# Disable JWT verification for user profile creation during registration
+[functions.create-user-profile]
+verify_jwt = false
+
 # Content Moderation Function with ML Integration
 [functions.moderate-match-content]
 verify_jwt = false

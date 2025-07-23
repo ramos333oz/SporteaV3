@@ -271,7 +271,7 @@ const Profile = () => {
         // Transform data to match the expected format
         const formattedProfile = {
           id: profileData.id,
-          fullName: profileData.full_name || profileData.username || 'UiTM Student',
+          fullName: profileData.username || profileData.full_name || 'UiTM Student', // Use username as primary display name
           email: profileData.email || '',
           studentId: profileData.student_id || '',
           username: profileData.username || profileData.email?.split('@')[0] || '',
@@ -279,15 +279,8 @@ const Profile = () => {
           avatarUrl: normalizeAvatarUrl(profileData.avatar_url),
           faculty: profileData.faculty || '',
           campus: profileData.campus || '', // Will be displayed as State
-          // Parse sports preferences or default to empty array
-          sports: Array.isArray(profileData.sport_preferences) 
-            ? profileData.sport_preferences.map((sport, index) => ({
-                id: index + 1,
-                name: sport.name,
-                level: sport.level || 'Beginner',
-                icon: getSportIcon(sport.name)
-              }))
-            : [],
+          // Parse sports preferences - will be populated after fetching sport names
+          sports: [],
           // Add preference fields from userData and userPreferences
           available_days: userData?.available_days || [],
           available_hours: userData?.available_hours || {},
@@ -299,7 +292,29 @@ const Profile = () => {
           age: userPreferences?.age || '',
           duration_preference: userPreferences?.duration_preference || ''
         };
-        
+
+        // Fetch actual sport names and combine with skill levels
+        if (Array.isArray(profileData.sport_preferences) && profileData.sport_preferences.length > 0) {
+          try {
+            const { data: sportsData, error: sportsError } = await supabase
+              .from('sports')
+              .select('id, name')
+              .in('id', profileData.sport_preferences);
+
+            if (!sportsError && sportsData) {
+              const skillLevels = userPreferences?.skill_level_preferences || {};
+              formattedProfile.sports = sportsData.map((sport, index) => ({
+                id: index + 1,
+                name: sport.name,
+                level: skillLevels[sport.name] || 'Beginner',
+                icon: getSportIcon(sport.name)
+              }));
+            }
+          } catch (sportsErr) {
+            console.error('Error fetching sports data:', sportsErr);
+          }
+        }
+
         setProfile(formattedProfile);
         
         // Fetch matches hosted by the profile owner (not the current user)

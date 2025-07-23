@@ -100,7 +100,9 @@ async function getRecommendations(userId, options = {}) {
     log('Using local calculation fallback');
 
     // Get user preferences and profile
+    log(`Attempting to get user profile for userId: ${userId}`);
     const userProfile = await getUserProfile(userId);
+    log(`User profile result:`, userProfile);
     if (!userProfile) {
       throw new Error('User profile not found');
     }

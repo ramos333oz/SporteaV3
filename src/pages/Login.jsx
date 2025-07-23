@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { 
-  Box, 
-  Typography, 
-  TextField, 
-  Button, 
-  Paper, 
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Paper,
   Link,
   Container,
   CircularProgress,
@@ -25,10 +25,19 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
   
-  const { signIn, signUp, loading: authLoading, user, setUser } = useAuth();
+  const { signIn, signUp, loading: authLoading, user, setUser, ensureUserProfile, supabase } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
+  // Handle verification success message from AuthCallback
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      // Clear the state to prevent the message from persisting on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   // Function to resend verification email
   const handleResendVerification = async () => {
     setIsLoading(true);
@@ -61,8 +70,12 @@ const Login = () => {
     setSuccessMessage('');
     setIsLoading(true);
     
-    if (!email.endsWith('@student.uitm.edu.my')) {
-      setError('Only @student.uitm.edu.my email addresses are allowed');
+    // Email domain validation - allow test domains in development
+    const allowedDomains = ['@student.uitm.edu.my', '@example.com', '@test.local', '@mailhog.example', '@gmail.com', '@outlook.com', '@yahoo.com', '@hotmail.com'];
+    const isValidDomain = allowedDomains.some(domain => email.endsWith(domain));
+
+    if (!isValidDomain) {
+      setError('Only @student.uitm.edu.my email addresses are allowed (test domains: @example.com, @test.local, @mailhog.example, @gmail.com, @outlook.com, @yahoo.com, @hotmail.com)');
       setIsLoading(false);
       return;
     }
@@ -117,19 +130,18 @@ const Login = () => {
       
       console.log('Login: Sign in successful, waiting for auth state to update');
       
-      // Check if we need to create a profile for this user
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
-      
-      if (!userData) {
-        console.log('Login: User profile not found, creating one');
-        // Get the user ID from the session
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (sessionData?.session?.user) {
-          await createUserProfile(sessionData.session.user.id, email);
+      // Enhanced profile creation with backup mechanism
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session?.user) {
+        console.log('Login: Ensuring user profile exists');
+        const profileResult = await ensureUserProfile(sessionData.session.user.id, email);
+
+        if (!profileResult.success) {
+          console.error('Login: Failed to ensure user profile:', profileResult.error);
+          // Don't block login, but log the issue
+          setError('Profile creation failed, but login successful. Some features may not work properly.');
+        } else if (profileResult.created) {
+          console.log(`Login: Profile created via ${profileResult.method}`);
         }
       }
       
