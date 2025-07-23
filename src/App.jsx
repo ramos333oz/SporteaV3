@@ -29,6 +29,8 @@ import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import AuthCallback from './pages/Auth/AuthCallback';
+import ForgotPassword from './pages/Auth/ForgotPassword';
+import ResetPassword from './pages/Auth/ResetPassword';
 import ErrorDebug from './pages/ErrorDebug';
 import AuthDebug from './pages/AuthDebug';
 import DirectHome from './pages/DirectHome';
@@ -360,7 +362,8 @@ function App() {
                       {/* Auth routes (not requiring authentication) */}
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
-                      <Route path="/forgot-password" element={<Login />} />
+                      <Route path="/forgot-password" element={<ForgotPassword />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/auth/callback" element={<AuthCallback />} />
                       <Route path="/not-found" element={<NotFound />} />
                       <Route path="/debug" element={<ErrorDebug />} />
