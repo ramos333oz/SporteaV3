@@ -65,6 +65,9 @@ function setCachedResult(text: string, result: any): void {
 const HUGGINGFACE_API_URL = 'https://api-inference.huggingface.co/models'
 const HUGGINGFACE_API_KEY = Deno.env.get('HUGGINGFACE_API_KEY') || ''
 
+// ML Integration Configuration - Fixed missing constant
+const ML_TIMEOUT_MS = parseInt(Deno.env.get('ML_TIMEOUT_MS') || '10000') // Default 10 seconds
+
 // Tier-specific timeouts for <3 second total processing
 const TIER_TIMEOUTS = {
   PRIMARY: 2000,    // Malaysian SFW - 2 seconds
@@ -803,10 +806,12 @@ async function detectToxicContentML_Confidence(text: string, settings: Moderatio
   const xlmStartTime = Date.now();
 
   try {
+    // Use dynamic timeout from settings instead of hard-coded 4000ms
+    const dynamicTimeout = settings.ml_timeout_ms || ML_TIMEOUT_MS;
     xlmResult = await Promise.race([
       detectToxicContentML_Enhanced(text, settings),
       new Promise<MLResult>((_, reject) =>
-        setTimeout(() => reject(new Error('XLM-RoBERTa timeout after 4 seconds')), 4000)
+        setTimeout(() => reject(new Error(`XLM-RoBERTa timeout after ${dynamicTimeout}ms`)), dynamicTimeout)
       )
     ]);
     xlmTime = Date.now() - xlmStartTime;
@@ -1717,7 +1722,7 @@ serve(async (req) => {
         strict_mode: true,  // Enable strict mode for educational environment
         ml_enabled: true,
         ml_confidence_threshold: 0.5, // Confidence threshold for XLM-RoBERTa acceptance
-        ml_timeout_ms: 4000, // XLM-RoBERTa timeout (matches confidence-based implementation)
+        ml_timeout_ms: 10000, // XLM-RoBERTa timeout (matches database setting for better reliability)
         ml_primary_model: 'unitary/multilingual-toxic-xlm-roberta',
         ml_fallback_model: 'enhanced-lexicon', // Lexicon-based fallback (not toxic-bert)
         ml_tertiary_model: 'local-processing', // Emergency fallback

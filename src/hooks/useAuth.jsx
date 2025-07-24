@@ -48,8 +48,41 @@ export const AuthProvider = ({ children }) => {
             setUser(null);
           }
         } else {
-          console.log('No active session');
-          setUser(null);
+          // Check for session-only storage (non-persistent sessions)
+          const sessionOnlyData = sessionStorage.getItem('sportea_auth_session');
+          if (sessionOnlyData) {
+            try {
+              const sessionData = JSON.parse(sessionOnlyData);
+              console.log('Found session-only data, restoring non-persistent session');
+
+              // Restore the session
+              const { data, error: setSessionError } = await supabase.auth.setSession({
+                access_token: sessionData.access_token,
+                refresh_token: sessionData.refresh_token
+              });
+
+              if (setSessionError) {
+                console.error('Error restoring session-only data:', setSessionError);
+                sessionStorage.removeItem('sportea_auth_session');
+                setUser(null);
+              } else if (data.session) {
+                console.log('Session-only data restored successfully');
+                const currentUser = await getCurrentUser();
+                if (currentUser) {
+                  setUser(currentUser);
+                } else {
+                  setUser(null);
+                }
+              }
+            } catch (parseError) {
+              console.error('Error parsing session-only data:', parseError);
+              sessionStorage.removeItem('sportea_auth_session');
+              setUser(null);
+            }
+          } else {
+            console.log('No active session');
+            setUser(null);
+          }
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -198,25 +231,36 @@ export const AuthProvider = ({ children }) => {
   };
 
 // Sign in with email and password
-const signIn = async (email, password) => {
-  console.log('Signing in user:', email);
+const signIn = async (email, password, rememberMe = true) => {
+  console.log('Signing in user:', email, 'Remember Me:', rememberMe);
   setLoading(true);
   setError(null); // Reset any previous errors
-  
+
   try {
+    // Configure session persistence based on rememberMe preference
+    let authOptions = { email, password };
+
+    // If rememberMe is false, we need to use a different approach
+    // We'll still sign in normally but handle session storage differently
+    if (!rememberMe) {
+      // For non-persistent sessions, we'll clear the session from localStorage after sign in
+      // and rely on sessionStorage or in-memory storage
+      console.log('Non-persistent session requested');
+    }
+
     // First attempt direct sign in which is the most common case
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    
+    const { data, error } = await supabase.auth.signInWithPassword(authOptions);
+
     if (error) {
       console.error('Sign in error:', error);
-      
+
       // If the error is invalid credentials, check if it might be due to missing profile
       if (error.message?.includes('Invalid login credentials')) {
         // Unfortunately we can't check auth.users directly from client code
         // But we can check if the error is specifically about missing profile vs wrong password
         console.log('Invalid credentials error - could be missing profile or wrong password');
       }
-      
+
       setError(error);
       return { error };
     }
@@ -271,10 +315,37 @@ const signIn = async (email, password) => {
           }
         }
       }
-      
+
       // Set user in state
       setUser(data.user);
-      
+
+      // Handle session persistence based on rememberMe preference
+      if (!rememberMe && data.session) {
+        console.log('Configuring non-persistent session');
+
+        // Store session data in sessionStorage instead of localStorage
+        // This will make the session expire when the browser is closed
+        const sessionData = {
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+          expires_at: data.session.expires_at,
+          user: data.session.user
+        };
+
+        // Clear the persistent storage
+        localStorage.removeItem('sportea_auth');
+        localStorage.removeItem('sb-fcwwuiitsghknsvnsrxp-auth-token');
+
+        // Store in sessionStorage (expires when browser closes)
+        sessionStorage.setItem('sportea_auth_session', JSON.stringify(sessionData));
+
+        console.log('Session configured for browser-session only (non-persistent)');
+      } else {
+        console.log('Session configured for persistent storage');
+        // Remove any session-only storage if remember me is enabled
+        sessionStorage.removeItem('sportea_auth_session');
+      }
+
       // Return success
       return { data, error: null };
     } else {
@@ -296,9 +367,14 @@ const signOut = async () => {
   try {
     setLoading(true);
     const { error } = await supabase.auth.signOut();
-    
+
     if (error) throw error;
-    
+
+    // Clear both persistent and session-only storage
+    localStorage.removeItem('sportea_auth');
+    localStorage.removeItem('sb-fcwwuiitsghknsvnsrxp-auth-token');
+    sessionStorage.removeItem('sportea_auth_session');
+
     setUser(null);
     return { error: null };
   } catch (error) {

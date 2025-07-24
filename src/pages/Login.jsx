@@ -93,8 +93,8 @@ const Login = () => {
       // Note: We can't directly check auth.users table from client-side code
       // We'll rely on the sign-in response and handle profile creation if needed
       
-      // Attempt to sign in
-      const result = await signIn(email, password);
+      // Attempt to sign in with rememberMe preference
+      const result = await signIn(email, password, rememberMe);
       
       // Handle different response formats
       const error = result?.error || (typeof result === 'object' && 'error' in result ? result.error : null);
