@@ -210,10 +210,9 @@ const InstagramStyleUserCard = ({
           </Box>
 
           <Typography
-            variant="subtitle2"
+            variant="h6"
             onClick={handleViewProfile}
             sx={{
-              fontWeight: 600,
               color: '#111827',
               textAlign: 'center',
               fontSize: '0.8rem',

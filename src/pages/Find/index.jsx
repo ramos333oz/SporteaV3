@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  Box, 
-  Container, 
-  Typography, 
-  Tabs, 
-  Tab, 
+import {
+  Box,
+  Container,
+  Typography,
+  Tabs,
+  Tab,
   Paper,
   InputBase,
   IconButton,
@@ -17,6 +17,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import TuneIcon from '@mui/icons-material/Tune';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import { useSearchParams } from 'react-router-dom';
 import FindGames from './FindGames';
 import FindPlayers from './FindPlayers';
 import { supabase, sportService, matchService } from '../../services/supabase';
@@ -44,7 +45,15 @@ const useDebounce = (value, delay) => {
 const Find = () => {
   const { user } = useAuth();
   const { connectionState } = useProductionRealtime();
-  const [activeTab, setActiveTab] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Initialize activeTab based on URL parameter
+  const getInitialTab = () => {
+    const tabParam = searchParams.get('tab');
+    return tabParam === 'players' ? 1 : 0;
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab);
   const [searchQuery, setSearchQuery] = useState('');
   const [sports, setSports] = useState([]);
   const [matches, setMatches] = useState([]);
@@ -93,6 +102,15 @@ const Find = () => {
     }
   }, [activeTab]);
   
+  // Sync tab state with URL parameter changes
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    const newTab = tabParam === 'players' ? 1 : 0;
+    if (newTab !== activeTab) {
+      setActiveTab(newTab);
+    }
+  }, [searchParams]);
+
   // Initial data load
   useEffect(() => {
     fetchData();
@@ -178,6 +196,14 @@ const Find = () => {
   
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
+    // Update URL parameter
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (newValue === 1) {
+      newSearchParams.set('tab', 'players');
+    } else {
+      newSearchParams.delete('tab');
+    }
+    setSearchParams(newSearchParams);
   };
   
   const handleSearchChange = (event) => {

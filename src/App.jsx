@@ -91,46 +91,110 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: "'Inter', 'Roboto', 'Helvetica', 'Arial', sans-serif",
+    // Font families for the Elegant Luxury theme
+    fontFamily: "'Poppins', 'Inter', 'Roboto', 'Helvetica', 'Arial', sans-serif",
+
+    // Headings use Libre Baskerville for elegance
     h1: {
-      fontSize: '28px',
+      fontFamily: "'Libre Baskerville', serif",
+      fontSize: '2rem',        // 32px
       fontWeight: 700,
-      lineHeight: '34px',
-      letterSpacing: '-0.2px',
+      lineHeight: 1.2,
+      letterSpacing: '-0.02em',
     },
     h2: {
-      fontSize: '24px',
+      fontFamily: "'Libre Baskerville', serif",
+      fontSize: '1.75rem',     // 28px
       fontWeight: 700,
-      lineHeight: '30px',
-      letterSpacing: '-0.2px',
+      lineHeight: 1.3,
+      letterSpacing: '-0.01em',
     },
     h3: {
-      fontSize: '20px',
+      fontFamily: "'Libre Baskerville', serif",
+      fontSize: '1.5rem',      // 24px
       fontWeight: 600,
-      lineHeight: '26px',
-      letterSpacing: '-0.1px',
+      lineHeight: 1.3,
+      letterSpacing: '0',
     },
+    h4: {
+      fontFamily: "'Libre Baskerville', serif",
+      fontSize: '1.25rem',     // 20px
+      fontWeight: 600,
+      lineHeight: 1.4,
+      letterSpacing: '0',
+    },
+    h5: {
+      fontFamily: "'Libre Baskerville', serif",
+      fontSize: '1.125rem',    // 18px
+      fontWeight: 600,
+      lineHeight: 1.4,
+      letterSpacing: '0',
+    },
+    h6: {
+      fontFamily: "'Libre Baskerville', serif",
+      fontSize: '1rem',        // 16px
+      fontWeight: 600,
+      lineHeight: 1.4,
+      letterSpacing: '0',
+    },
+
+    // Body text uses Poppins for readability
     body1: {
-      fontSize: '15px',
-      lineHeight: '22px',
+      fontFamily: "'Poppins', sans-serif",
+      fontSize: '1rem',        // 16px
+      fontWeight: 400,
+      lineHeight: 1.5,
+      letterSpacing: '0',
     },
     body2: {
-      fontSize: '13px',
-      lineHeight: '18px',
-      letterSpacing: '0.1px',
+      fontFamily: "'Poppins', sans-serif",
+      fontSize: '0.875rem',    // 14px
+      fontWeight: 400,
+      lineHeight: 1.43,
+      letterSpacing: '0.01em',
     },
-    button: {
-      fontSize: '16px',
+
+    // Subtitles for UI elements
+    subtitle1: {
+      fontFamily: "'Poppins', sans-serif",
+      fontSize: '1rem',        // 16px
       fontWeight: 500,
-      lineHeight: '24px',
-      letterSpacing: '0.1px',
+      lineHeight: 1.5,
+      letterSpacing: '0.01em',
+    },
+    subtitle2: {
+      fontFamily: "'Poppins', sans-serif",
+      fontSize: '0.875rem',    // 14px
+      fontWeight: 600,
+      lineHeight: 1.43,
+      letterSpacing: '0.01em',
+    },
+
+    // UI elements
+    button: {
+      fontFamily: "'Poppins', sans-serif",
+      fontSize: '0.875rem',    // 14px
+      fontWeight: 500,
+      lineHeight: 1.43,
+      letterSpacing: '0.02em',
       textTransform: 'none',
     },
     caption: {
-      fontSize: '12px',
+      fontFamily: "'Poppins', sans-serif",
+      fontSize: '0.75rem',     // 12px
       fontWeight: 500,
-      lineHeight: '16px',
-      letterSpacing: '0.2px',
+      lineHeight: 1.33,
+      letterSpacing: '0.03em',
+    },
+
+    // Technical elements (for future use)
+    overline: {
+      fontFamily: "'IBM Plex Mono', monospace",
+      fontSize: '0.75rem',     // 12px
+      fontWeight: 400,
+      lineHeight: 1.33,
+      letterSpacing: '0.08em',
+      textTransform: 'uppercase',
     },
   },
   shape: {

@@ -19,6 +19,19 @@ export default defineConfig(({ command, mode }) => {
       }
     },
     optimizeDeps: {
+      force: true,
+      include: [
+        'react',
+        'react-dom',
+        'react/jsx-dev-runtime',
+        'react/jsx-runtime',
+        '@emotion/react',
+        '@emotion/styled',
+        '@mui/material',
+        '@mui/icons-material',
+        '@mui/material/styles',
+        '@mui/material/utils'
+      ],
       esbuildOptions: {
         loader: {
           '.js': 'jsx'

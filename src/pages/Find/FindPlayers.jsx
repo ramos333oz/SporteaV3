@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Paper, 
+import {
+  Box,
+  Typography,
+  Paper,
   Grid,
   Card,
   CardContent,
   CardActions,
+  CardHeader,
   Avatar,
   Button,
   Chip,
@@ -20,7 +21,9 @@ import {
   MenuItem,
   InputLabel,
   Snackbar,
-  Alert
+  Alert,
+  IconButton,
+  Badge
 } from '@mui/material';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import SportsBasketballIcon from '@mui/icons-material/SportsBasketball';
@@ -34,11 +37,123 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import CheckIcon from '@mui/icons-material/Check';
 import CancelIcon from '@mui/icons-material/Cancel';
 import BlockIcon from '@mui/icons-material/Block';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import StarIcon from '@mui/icons-material/Star';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import SchoolIcon from '@mui/icons-material/School';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, friendshipService } from '../../services/supabase';
 import blockingService from '../../services/blockingService';
 import { useToast } from '../../contexts/ToastContext';
+
+// Admin account emails to filter out
+const ADMIN_EMAILS = [
+  'sporteadmin@gmail.com',
+  'admin@sportea.com',
+  'administrator@sportea.com'
+];
+
+/**
+ * Helper function to resolve sport names from different data structures
+ * Matches the pattern used in InstagramStyleUserCard
+ */
+const resolveSportName = (sport) => {
+  // Handle string sports
+  if (typeof sport === 'string') {
+    // Check if it's a UUID string that needs mapping
+    const sportIdMap = {
+      '4746e9c1-f772-4515-8d08-6c28563fbfc9': 'Football',
+      'dd400853-7ce6-47bc-aee6-2ee241530f79': 'Basketball',
+      'd662bc78-9e50-4785-ac71-d1e591e4a9ce': 'Futsal',
+      '66e9893a-2be7-47f0-b7d3-d7191901dd77': 'Volleyball',
+      '9a304214-6c57-4c33-8c5f-3f1955b63caf': 'Tennis',
+      '845d3461-42fc-45c2-a403-8efcaf237c17': 'Table Tennis',
+      'badminton': 'Badminton',
+      'squash': 'Squash'
+    };
+    return sportIdMap[sport] || sport; // Return mapped name or original string
+  }
+
+  // Handle objects with name property
+  if (sport && sport.name) return sport.name;
+
+  // Handle legacy integer IDs (fallback)
+  if (sport && typeof sport.id === 'number') {
+    const legacySportMap = {
+      1: 'Football',
+      2: 'Basketball',
+      3: 'Futsal',
+      4: 'Badminton',
+      5: 'Volleyball',
+      6: 'Tennis'
+    };
+    return legacySportMap[sport.id] || 'Unknown Sport';
+  }
+
+  // Handle UUID-based sport IDs (current system)
+  if (sport && sport.id) {
+    const sportIdMap = {
+      '4746e9c1-f772-4515-8d08-6c28563fbfc9': 'Football',
+      'dd400853-7ce6-47bc-aee6-2ee241530f79': 'Basketball',
+      'd662bc78-9e50-4785-ac71-d1e591e4a9ce': 'Futsal',
+      '66e9893a-2be7-47f0-b7d3-d7191901dd77': 'Volleyball',
+      '9a304214-6c57-4c33-8c5f-3f1955b63caf': 'Tennis',
+      '845d3461-42fc-45c2-a403-8efcaf237c17': 'Table Tennis'
+    };
+    return sportIdMap[sport.id] || 'Unknown Sport';
+  }
+
+  return 'Unknown Sport';
+};
+
+/**
+ * Helper function to resolve faculty/campus names from IDs
+ */
+const resolveFacultyName = (faculty) => {
+  if (!faculty) return null;
+
+  // If it's already a readable name, return it
+  if (typeof faculty === 'string' && !faculty.includes('-')) {
+    return faculty;
+  }
+
+  // Map common faculty IDs to names (add more as needed)
+  const facultyIdMap = {
+    'computer-science': 'Computer Science',
+    'engineering': 'Engineering',
+    'business': 'Business Administration',
+    'medicine': 'Medicine',
+    'law': 'Law',
+    'education': 'Education'
+  };
+
+  return facultyIdMap[faculty] || faculty;
+};
+
+/**
+ * Helper function to resolve campus names from IDs
+ */
+const resolveCampusName = (campus) => {
+  if (!campus) return null;
+
+  // If it's already a readable name, return it
+  if (typeof campus === 'string' && !campus.includes('-')) {
+    return campus;
+  }
+
+  // Map common campus IDs to names (add more as needed)
+  const campusIdMap = {
+    'shah-alam': 'Shah Alam',
+    'puncak-alam': 'Puncak Alam',
+    'selangor': 'Selangor',
+    'kuala-lumpur': 'Kuala Lumpur',
+    'johor': 'Johor',
+    'penang': 'Penang'
+  };
+
+  return campusIdMap[campus] || campus;
+};
 
 // Sport icon mapping function
 const getSportIcon = (sportName) => {
@@ -80,7 +195,9 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
         const handlePropPlayers = async () => {
           setLoading(true);
           try {
-            let initialPlayers = propPlayers.filter(player => player.id !== user.id);
+            let initialPlayers = propPlayers.filter(player =>
+              player.id !== user.id && !isAdminUser(player.email)
+            );
 
             // Filter out blocked users
             initialPlayers = await blockingService.filterBlockedUsers(initialPlayers, user.id);
@@ -144,10 +261,15 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
     }
   };
 
+  // Helper function to check if user is admin
+  const isAdminUser = (email) => {
+    return ADMIN_EMAILS.includes(email?.toLowerCase());
+  };
+
   const fetchPlayers = async () => {
     setLoading(true);
     try {
-      // Fetch all users except current user
+      // Fetch all users except current user and admin accounts
       const { data, error } = await supabase
         .from('users')  // Using the correct table name 'users'
         .select(`
@@ -159,14 +281,18 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
           faculty,
           campus,
           sport_preferences,
-          skill_levels
+          skill_levels,
+          email
         `)
-        .neq('id', user.id); // Exclude current user
+        .neq('id', user.id) // Exclude current user
+        .not('email', 'in', `(${ADMIN_EMAILS.map(email => `"${email}"`).join(',')})`); // Exclude admin accounts
 
       if (error) throw error;
 
-      // Double check to ensure current user is not in the results
-      let filteredData = data ? data.filter(player => player.id !== user.id) : [];
+      // Double check to ensure current user and admin accounts are not in the results
+      let filteredData = data ? data.filter(player =>
+        player.id !== user.id && !isAdminUser(player.email)
+      ) : [];
 
       // Filter out blocked users (both users blocked by current user and users who blocked current user)
       filteredData = await blockingService.filterBlockedUsers(filteredData, user.id);
@@ -381,43 +507,90 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
     switch (friendshipStatus) {
       case 'not-friends':
         return (
-          <Button 
-            variant="contained" 
-            color="primary"
+          <Button
+            variant="contained"
             startIcon={<PersonAddIcon />}
             onClick={() => handleSendFriendRequest(userId)}
             disabled={isActionDisabled}
-            fullWidth
+            size="small"
+            sx={{
+              flex: 1,
+              backgroundColor: '#dc2626',
+              color: 'white',
+              fontSize: '0.8rem',
+              py: 0.8,
+              minHeight: '32px',
+              textTransform: 'none',
+              fontWeight: 500,
+              '&:hover': { backgroundColor: '#b91c1c' },
+              '&:disabled': { backgroundColor: '#9ca3af' }
+            }}
           >
             {isCurrentAction ? 'Sending...' : 'Add Friend'}
           </Button>
         );
-        
+
       case 'friends':
         return (
-          <Button 
-            variant="outlined" 
-            color="primary"
-            startIcon={<PeopleIcon />}
+          <Button
+            variant="outlined"
+            startIcon={<CheckCircleIcon />}
             onClick={() => handleRemoveFriend(userId)}
             disabled={isActionDisabled}
-            fullWidth
+            size="small"
+            sx={{
+              flex: 1,
+              borderColor: '#4caf50',
+              color: '#4caf50',
+              fontSize: '0.8rem',
+              py: 0.8,
+              minHeight: '32px',
+              textTransform: 'none',
+              fontWeight: 500,
+              '&:hover': {
+                borderColor: '#388e3c',
+                backgroundColor: 'rgba(76, 175, 80, 0.04)',
+                color: '#388e3c',
+              },
+              '&:disabled': {
+                borderColor: 'rgba(76, 175, 80, 0.3)',
+                color: 'rgba(76, 175, 80, 0.3)',
+              }
+            }}
           >
             {isCurrentAction ? 'Removing...' : 'Friends'}
           </Button>
         );
-        
+
       case 'request-sent':
         return (
-          <Button 
-            variant="outlined" 
-            color="secondary"
+          <Button
+            variant="outlined"
             startIcon={<HourglassEmptyIcon />}
             onClick={() => handleCancelFriendRequest(userId)}
             disabled={isActionDisabled}
-            fullWidth
+            size="small"
+            sx={{
+              flex: 1,
+              borderColor: '#ff9800',
+              color: '#ff9800',
+              fontSize: '0.8rem',
+              py: 0.8,
+              minHeight: '32px',
+              textTransform: 'none',
+              fontWeight: 500,
+              '&:hover': {
+                borderColor: '#f57c00',
+                backgroundColor: 'rgba(255, 152, 0, 0.04)',
+                color: '#f57c00',
+              },
+              '&:disabled': {
+                borderColor: 'rgba(255, 152, 0, 0.3)',
+                color: 'rgba(255, 152, 0, 0.3)',
+              }
+            }}
           >
-            {isCurrentAction ? 'Cancelling...' : 'Cancel Request'}
+            {isCurrentAction ? 'Cancelling...' : 'Pending'}
           </Button>
         );
         
@@ -531,60 +704,136 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
   const renderSportPreferences = (preferences) => {
     if (!preferences || !Array.isArray(preferences) || preferences.length === 0) {
       return (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          No sport preferences
-        </Typography>
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: 2,
+          borderRadius: 2,
+          backgroundColor: 'rgba(211, 47, 47, 0.05)',
+          border: '1px dashed rgba(211, 47, 47, 0.2)'
+        }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              fontStyle: 'italic'
+            }}
+          >
+            No sports selected yet
+          </Typography>
+        </Box>
       );
     }
 
     return (
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
-        {preferences.slice(0, 3).map((sport, index) => {
-          // Ensure sport is a string, not an object
-          const sportName = typeof sport === 'object' ? sport.name : sport;
-          return (
-            <Chip 
-              key={index}
-              icon={getSportIcon(sportName)}
-              label={sportName}
+      <Box>
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 600,
+            color: '#d32f2f',
+            textTransform: 'uppercase',
+            letterSpacing: 0.5,
+            mb: 1,
+            display: 'block'
+          }}
+        >
+          Sports ({preferences.length})
+        </Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.8 }}>
+          {preferences.slice(0, 3).map((sport, index) => {
+            // Ensure sport is a string, not an object
+            const sportName = typeof sport === 'object' ? sport.name : sport;
+            return (
+              <Chip
+                key={index}
+                icon={getSportIcon(sportName)}
+                label={sportName}
+                size="small"
+                sx={{
+                  backgroundColor: 'rgba(211, 47, 47, 0.1)',
+                  color: '#d32f2f',
+                  fontWeight: 500,
+                  border: '1px solid rgba(211, 47, 47, 0.2)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(211, 47, 47, 0.15)',
+                  }
+                }}
+              />
+            );
+          })}
+          {preferences.length > 3 && (
+            <Chip
+              label={`+${preferences.length - 3}`}
               size="small"
-              variant="outlined"
+              sx={{
+                backgroundColor: 'rgba(158, 158, 158, 0.1)',
+                color: '#666',
+                fontWeight: 500,
+                border: '1px solid rgba(158, 158, 158, 0.2)'
+              }}
             />
-          );
-        })}
-        {preferences.length > 3 && (
-          <Chip 
-            label={`+${preferences.length - 3} more`}
-            size="small"
-            variant="outlined"
-          />
-        )}
+          )}
+        </Box>
       </Box>
     );
   };
 
   const renderSkillLevel = (skillLevels, sport) => {
     // Handle case where sport might be an object
-    const sportName = typeof sport === 'object' ? sport.name : sport;
-    
+    const sportName = resolveSportName(sport);
+
     if (!skillLevels || !sportName || !skillLevels[sportName]) {
       return null;
     }
-    
-    const level = skillLevels[sportName];
+
+    const level = parseInt(skillLevels[sportName]) || 0;
+    const skillLabels = ['Beginner', 'Novice', 'Intermediate', 'Advanced', 'Expert'];
+    const skillLabel = skillLabels[level - 1] || 'Unrated';
+
     return (
-      <Tooltip title={`${sportName} skill level: ${level}/5`}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
-            {sportName}:
+      <Box sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        p: 1,
+        borderRadius: 2,
+        backgroundColor: 'rgba(220, 38, 38, 0.05)',
+        border: '1px solid rgba(220, 38, 38, 0.1)'
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 600,
+              color: '#374151',
+              fontSize: '0.75rem'
+            }}
+          >
+            {sportName}
           </Typography>
-          <Rating 
-            value={parseInt(level) || 0} 
-            readOnly 
-            size="small" 
+          <Chip
+            label={skillLabel}
+            size="small"
+            sx={{
+              height: 18,
+              backgroundColor: level >= 4 ? '#4caf50' : level >= 3 ? '#ff9800' : '#2196f3',
+              color: 'white',
+              fontWeight: 500,
+              fontSize: '0.65rem',
+              '& .MuiChip-label': { px: 0.5 }
+            }}
           />
         </Box>
-      </Tooltip>
+        <Rating
+          value={level}
+          readOnly
+          size="small"
+          icon={<StarIcon sx={{ color: '#dc2626', fontSize: '0.9rem' }} />}
+          emptyIcon={<StarIcon sx={{ color: 'rgba(220, 38, 38, 0.2)', fontSize: '0.9rem' }} />}
+        />
+      </Box>
     );
   };
 
@@ -657,66 +906,211 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
             </Paper>
           ) : (
             <Grid container spacing={3}>
-              {filteredPlayers.map(player => (
-                <Grid item xs={12} sm={6} md={4} key={player.id}>
-                  <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                    <CardContent sx={{ flexGrow: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <Avatar 
-                          src={player.avatar_url} 
-                          alt={player.full_name || player.username}
-                          sx={{ width: 50, height: 50 }}
-                        >
-                          {(player.full_name?.[0] || player.username?.[0] || '?').toUpperCase()}
-                        </Avatar>
-                        <Box sx={{ ml: 2 }}>
-                          <Typography variant="h6" component="div" noWrap>
-                            {player.full_name || player.username || 'Anonymous User'}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" noWrap>
-                            {player.username ? `@${player.username}` : ''}
-                            {player.faculty && player.campus ? ` • ${player.faculty}, ${player.campus}` : 
-                             player.faculty ? ` • ${player.faculty}` : 
-                             player.campus ? ` • ${player.campus}` : ''}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      
-                      {player.bio && (
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          {player.bio.length > 100 ? `${player.bio.substring(0, 100)}...` : player.bio}
-                        </Typography>
-                      )}
-                      
-                      <Divider sx={{ my: 1 }} />
-                      
-                      {renderSportPreferences(player.sport_preferences)}
-                      
-                      {player.sport_preferences && 
-                       player.sport_preferences.length > 0 && 
-                       player.skill_levels && 
-                       renderSkillLevel(player.skill_levels, player.sport_preferences[0])}
-                    </CardContent>
-                    
-                    <CardActions sx={{ p: 2, pt: 0 }}>
-                      <Grid container spacing={1}>
-                        <Grid item xs={7}>
-                          {renderFriendshipButton(player.id)}
-                        </Grid>
-                        <Grid item xs={5}>
-                          <Button 
-                            variant="outlined"
+              {filteredPlayers.map(player => {
+                // Extract player information with proper name resolution
+                const {
+                  full_name,
+                  username,
+                  avatar_url,
+                  faculty,
+                  campus,
+                  sport_preferences = [],
+                  skill_levels,
+                  bio
+                } = player;
+
+                const displayName = full_name || username || 'Unknown User';
+                const resolvedFaculty = resolveFacultyName(faculty);
+                const resolvedCampus = resolveCampusName(campus);
+                const topSports = (sport_preferences || []).slice(0, 2);
+
+                return (
+                  <Grid item xs={12} sm={6} md={4} key={player.id}>
+                    <Card
+                      sx={{
+                        width: '100%',
+                        height: 380,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        background: 'linear-gradient(135deg, #fef2f2 0%, #fef3c7 100%)',
+                        border: '1px solid #fecaca',
+                        borderRadius: 3,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                          transform: 'scale(1.02)'
+                        }
+                      }}
+                    >
+                      <CardContent sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        {/* User Avatar and Basic Info */}
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
+                          <Box sx={{ position: 'relative', mb: 1.5 }}>
+                            <Avatar
+                              src={avatar_url}
+                              onClick={() => handleViewProfile(player.id)}
+                              sx={{
+                                width: 80,
+                                height: 80,
+                                border: '2px solid #fecaca',
+                                cursor: 'pointer',
+                                fontSize: '1.5rem',
+                                fontWeight: 'bold',
+                                backgroundColor: '#fef2f2',
+                                color: '#b91c1c',
+                                '&:hover': {
+                                  borderColor: '#fca5a5'
+                                }
+                              }}
+                            >
+                              {displayName.charAt(0).toUpperCase()}
+                            </Avatar>
+
+                            {/* Sports Count Badge */}
+                            {(sport_preferences || []).length > 0 && (
+                              <Chip
+                                label={(sport_preferences || []).length}
+                                size="small"
+                                sx={{
+                                  position: 'absolute',
+                                  bottom: -2,
+                                  right: -2,
+                                  width: 24,
+                                  height: 24,
+                                  backgroundColor: '#dc2626',
+                                  color: 'white',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 'bold',
+                                  '& .MuiChip-label': { px: 0 }
+                                }}
+                              />
+                            )}
+                          </Box>
+
+                          <Typography
+                            variant="h6"
                             onClick={() => handleViewProfile(player.id)}
-                            fullWidth
+                            sx={{
+                              color: '#111827',
+                              textAlign: 'center',
+                              lineHeight: 1.2,
+                              mb: 0.5,
+                              cursor: 'pointer',
+                              '&:hover': { color: '#dc2626' }
+                            }}
+                          >
+                            {displayName}
+                          </Typography>
+
+                          {username && full_name && (
+                            <Typography variant="caption" sx={{
+                              color: '#6b7280',
+                              mb: 1,
+                              fontSize: '0.8rem'
+                            }}>
+                              @{username}
+                            </Typography>
+                          )}
+                        </Box>
+
+                        {/* User Details */}
+                        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, fontSize: '0.8rem' }}>
+                          {/* Bio */}
+                          {bio && (
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: '#6b7280',
+                                fontSize: '0.8rem',
+                                fontStyle: 'italic',
+                                textAlign: 'center',
+                                mb: 1,
+                                lineHeight: 1.3
+                              }}
+                            >
+                              "{bio.length > 60 ? `${bio.substring(0, 60)}...` : bio}"
+                            </Typography>
+                          )}
+
+                          {/* Faculty/Campus */}
+                          {resolvedFaculty && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#6b7280' }}>
+                              <SchoolIcon sx={{ fontSize: 14, color: '#dc2626' }} />
+                              <Typography variant="caption" sx={{
+                                fontSize: '0.8rem',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}>
+                                {resolvedFaculty}
+                              </Typography>
+                            </Box>
+                          )}
+
+                          {resolvedCampus && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#6b7280' }}>
+                              <LocationOnIcon sx={{ fontSize: 14, color: '#dc2626' }} />
+                              <Typography variant="caption" sx={{
+                                fontSize: '0.8rem',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}>
+                                {resolvedCampus}
+                              </Typography>
+                            </Box>
+                          )}
+
+                          {/* Sports Preferences */}
+                          {topSports.length > 0 && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#6b7280' }}>
+                              <StarIcon sx={{ fontSize: 14, color: '#dc2626' }} />
+                              <Typography variant="caption" sx={{
+                                fontSize: '0.8rem',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}>
+                                {topSports.map(sport => resolveSportName(sport)).join(', ')}
+                              </Typography>
+                            </Box>
+                          )}
+
+                          {/* Skill Level for Primary Sport */}
+                          {(sport_preferences || []).length > 0 && skill_levels && (
+                            <Box sx={{ mt: 1 }}>
+                              {renderSkillLevel(skill_levels, (sport_preferences || [])[0])}
+                            </Box>
+                          )}
+                        </Box>
+
+                        {/* Action Buttons */}
+                        <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                          {renderFriendshipButton(player.id)}
+                          <Button
+                            onClick={() => handleViewProfile(player.id)}
+                            variant="outlined"
+                            size="small"
+                            sx={{
+                              flex: 1,
+                              borderColor: '#fecaca',
+                              color: '#b91c1c',
+                              fontSize: '0.8rem',
+                              py: 0.8,
+                              minHeight: '32px',
+                              textTransform: 'none',
+                              fontWeight: 500,
+                              '&:hover': {
+                                backgroundColor: '#fef2f2',
+                                borderColor: '#fca5a5'
+                              }
+                            }}
                           >
                             View Profile
                           </Button>
-                        </Grid>
-                      </Grid>
-                    </CardActions>
-                  </Card>
-                </Grid>
-              ))}
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                );
+              })}
             </Grid>
           )}
         </>

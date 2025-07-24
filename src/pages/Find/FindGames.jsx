@@ -4149,7 +4149,10 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
           onClose={handleSportFilterClose}
           MenuListProps={{
             'aria-labelledby': 'sport-filter-button',
-            sx: { maxHeight: 300 }
+            sx: {
+              maxHeight: 300,
+              overflow: 'auto' // Enable scrolling for menu items
+            }
           }}
           PaperProps={{
             elevation: 4,
@@ -4158,7 +4161,7 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
               width: 220,
               maxHeight: 400,
               borderRadius: 2,
-              overflow: 'hidden',
+              overflow: 'visible', // Changed from 'hidden' to 'visible' to allow scrolling
               animation: 'fadeIn 0.3s ease',
               '@keyframes fadeIn': {
                 '0%': {
