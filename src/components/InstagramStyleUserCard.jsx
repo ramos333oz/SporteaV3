@@ -13,6 +13,70 @@ import {
 import { UserPlus, X, MapPin, GraduationCap, Trophy } from 'lucide-react';
 
 /**
+ * Helper function to resolve sport names from different data structures
+ */
+const resolveSportName = (sport) => {
+  // Handle string sports
+  if (typeof sport === 'string') {
+    // Check if it's a UUID string that needs mapping
+    const sportIdMap = {
+      '4746e9c1-f772-4515-8d08-6c28563fbfc9': 'Football',
+      'dd400853-7ce6-47bc-aee6-2ee241530f79': 'Basketball',
+      'd662bc78-9e50-4785-ac71-d1e591e4a9ce': 'Futsal',
+      '66e9893a-2be7-47f0-b7d3-d7191901dd77': 'Volleyball',
+      '9a304214-6c57-4c33-8c5f-3f1955b63caf': 'Tennis',
+      '845d3461-42fc-45c2-a403-8efcaf237c17': 'Table Tennis'
+    };
+    return sportIdMap[sport] || sport; // Return mapped name or original string
+  }
+
+  // Handle objects with name property
+  if (sport && sport.name) return sport.name;
+
+  // Handle legacy integer IDs (fallback)
+  if (sport && typeof sport.id === 'number') {
+    const legacySportMap = {
+      1: 'Football',
+      2: 'Basketball',
+      3: 'Futsal',
+      4: 'Badminton',
+      5: 'Volleyball',
+      6: 'Tennis'
+    };
+    return legacySportMap[sport.id] || 'Unknown Sport';
+  }
+
+  // Handle UUID-based sport IDs (current system)
+  if (sport && sport.id) {
+    const sportIdMap = {
+      '4746e9c1-f772-4515-8d08-6c28563fbfc9': 'Football',
+      'dd400853-7ce6-47bc-aee6-2ee241530f79': 'Basketball',
+      'd662bc78-9e50-4785-ac71-d1e591e4a9ce': 'Futsal',
+      '66e9893a-2be7-47f0-b7d3-d7191901dd77': 'Volleyball',
+      '9a304214-6c57-4c33-8c5f-3f1955b63caf': 'Tennis',
+      '845d3461-42fc-45c2-a403-8efcaf237c17': 'Table Tennis'
+    };
+    return sportIdMap[sport.id] || 'Unknown Sport';
+  }
+
+  return 'Unknown Sport';
+};
+
+/**
+ * Helper function to resolve location names from UUIDs
+ */
+const resolveLocationName = (locationId) => {
+  if (!locationId) return 'Unknown Location';
+
+  const locationIdMap = {
+    '6e46484a-688d-44bc-9dee-7d989f7c863a': 'Court Perindu A (Futsal)',
+    // Add more location mappings as needed
+  };
+
+  return locationIdMap[locationId] || 'Unknown Location';
+};
+
+/**
  * Instagram-style compact user recommendation card
  * Designed for horizontal scrolling with maximum visual impact in minimal space
  */
@@ -211,7 +275,7 @@ const InstagramStyleUserCard = ({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, color: '#6b7280' }}>
               <Trophy size={10} style={{ color: '#dc2626' }} />
               <Typography variant="caption" sx={{ fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {topSports.map(sport => sport.name || sport).join(', ')}
+                {topSports.map(sport => resolveSportName(sport)).join(', ')}
               </Typography>
             </Box>
           )}

@@ -293,25 +293,47 @@ const Profile = () => {
           duration_preference: userPreferences?.duration_preference || ''
         };
 
-        // Fetch actual sport names and combine with skill levels
+        // Process sport preferences - handle different data formats
         if (Array.isArray(profileData.sport_preferences) && profileData.sport_preferences.length > 0) {
           try {
-            const { data: sportsData, error: sportsError } = await supabase
-              .from('sports')
-              .select('id, name')
-              .in('id', profileData.sport_preferences);
+            console.log('Processing sport preferences:', profileData.sport_preferences);
 
-            if (!sportsError && sportsData) {
-              const skillLevels = userPreferences?.skill_level_preferences || {};
-              formattedProfile.sports = sportsData.map((sport, index) => ({
-                id: index + 1,
+            // Check if sport preferences already have names (new format)
+            const sportsWithNames = profileData.sport_preferences.filter(sport => sport.name);
+
+            if (sportsWithNames.length > 0) {
+              // New format: sports already have names and levels
+              formattedProfile.sports = sportsWithNames.map((sport, index) => ({
+                id: sport.id || index + 1,
                 name: sport.name,
-                level: skillLevels[sport.name] || 'Beginner',
+                level: sport.level || 'Beginner',
                 icon: getSportIcon(sport.name)
               }));
+            } else {
+              // Old format: need to fetch sport names by IDs
+              const sportIds = profileData.sport_preferences
+                .map(sport => sport.id || sport)
+                .filter(id => id);
+
+              if (sportIds.length > 0) {
+                const { data: sportsData, error: sportsError } = await supabase
+                  .from('sports')
+                  .select('id, name')
+                  .in('id', sportIds);
+
+                if (!sportsError && sportsData) {
+                  const skillLevels = userPreferences?.skill_level_preferences || {};
+                  formattedProfile.sports = sportsData.map((sport, index) => ({
+                    id: index + 1,
+                    name: sport.name,
+                    level: skillLevels[sport.name] || 'Beginner',
+                    icon: getSportIcon(sport.name)
+                  }));
+                }
+              }
             }
           } catch (sportsErr) {
-            console.error('Error fetching sports data:', sportsErr);
+            console.error('Error processing sports data:', sportsErr);
           }
         }
 

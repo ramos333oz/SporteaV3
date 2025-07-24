@@ -46,7 +46,7 @@ const ConnectionStatus = () => {
         
         if (wsConnected) {
           setIsConnected(true);
-          setStatusMessage('Live Updates Active');
+          setStatusMessage('Connected');
           return;
         }
       }
@@ -59,7 +59,7 @@ const ConnectionStatus = () => {
         
         if (transportConnected) {
           setIsConnected(true);
-          setStatusMessage('Live Updates Active');
+          setStatusMessage('Connected');
           return;
         }
       }
@@ -69,7 +69,7 @@ const ConnectionStatus = () => {
         const state = supabase.realtime.getState();
         if (state === 'CONNECTED') {
           setIsConnected(true);
-          setStatusMessage('Live Updates Active');
+          setStatusMessage('Connected');
           return;
         }
       }
@@ -83,7 +83,7 @@ const ConnectionStatus = () => {
       if (activeChannels > 0) {
         console.log(`Found ${activeChannels} active channels, assuming connection is active`);
         setIsConnected(true);
-        setStatusMessage('Live Updates Active');
+        setStatusMessage('Connected');
         return;
       }
       
@@ -213,7 +213,7 @@ const ConnectionStatus = () => {
       if (newState === 'CONNECTED') {
         setIsConnected(true);
         setConnectionAttempts(0); // Reset attempts counter on successful connection
-        setStatusMessage('Live Updates Active');
+        setStatusMessage('Connected');
         
         // Clear any pending reconnect timeout
         if (reconnectTimeout.current) {

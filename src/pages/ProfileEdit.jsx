@@ -30,7 +30,8 @@ import { userService, locationService } from '../services/supabase';
 import { useToast } from '../contexts/ToastContext';
 import PhotoCamera from '@mui/icons-material/PhotoCamera';
 import DeleteIcon from '@mui/icons-material/Delete';
-import RestoreIcon from '@mui/icons-material/Restore';
+import UndoIcon from '@mui/icons-material/Undo';
+import Tooltip from '@mui/material/Tooltip';
 import AddIcon from '@mui/icons-material/Add';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import SportsBasketballIcon from '@mui/icons-material/SportsBasketball';
@@ -131,7 +132,8 @@ const ProfileEdit = () => {
   // File upload state
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
-  const [originalAvatarUrl, setOriginalAvatarUrl] = useState(null); // Store original avatar URL
+  const [originalAvatarUrl, setOriginalAvatarUrl] = useState(null);
+  const [avatarState, setAvatarState] = useState('normal'); // 'normal' | 'marked-for-deletion' // Store original avatar URL
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef(null); // Ref for file input
@@ -206,41 +208,93 @@ const ProfileEdit = () => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) return;
-      
+
       try {
         setLoading(true);
         setError(null);
-        
+
         // Get profile data from userService
         const profileData = await userService.getProfile(user.id);
-        
+
         // Get user data from the users table (all valid columns only)
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select('available_days, available_hours, preferred_facilities, faculty, campus, home_location, play_style, gender')
           .eq('id', user.id)
           .single();
-        
+
         if (userError) {
           console.error('Error fetching user data:', userError);
         }
-        
+
         // Also fetch user preferences from user_preferences table
         const { data: userPreferences, error: preferencesError } = await supabase
           .from('user_preferences')
           .select('*')
           .eq('user_id', user.id)
           .single();
-        
+
         if (preferencesError && preferencesError.code !== 'PGRST116') {
           console.error('Error fetching user preferences:', preferencesError);
         }
-        
+
+        // Fetch all sports for mapping IDs to names
+        const { data: sportsData, error: sportsError } = await supabase
+          .from('sports')
+          .select('id, name');
+
+        if (sportsError) {
+          console.error('Error fetching sports data:', sportsError);
+        }
+
+        // Create a mapping of sport IDs to names
+        const sportsMap = {};
+        if (sportsData) {
+          sportsData.forEach(sport => {
+            sportsMap[sport.id] = sport.name;
+            // Also handle numeric IDs for legacy data
+            if (sport.name === 'Football') sportsMap[1] = sport.name;
+            if (sport.name === 'Basketball') sportsMap[2] = sport.name;
+            if (sport.name === 'Tennis') sportsMap[3] = sport.name;
+            if (sport.name === 'Badminton') sportsMap[4] = sport.name;
+            if (sport.name === 'Volleyball') sportsMap[5] = sport.name;
+          });
+        }
+
         // Log values to see what's happening
         console.log('Profile Data:', profileData);
         console.log('User Data:', userData);
         console.log('User Preferences:', userPreferences);
-        
+        console.log('Sports Map:', sportsMap);
+
+        // Helper function to process sport preferences
+        const processSportPreferences = (sportPrefs) => {
+          if (!Array.isArray(sportPrefs)) return [];
+
+          return sportPrefs.map((sport, index) => {
+            // Handle different data formats
+            if (sport.name) {
+              // Already has name property
+              return {
+                id: sport.id || index + 1,
+                name: sport.name,
+                level: sport.level || 'Beginner'
+              };
+            } else if (sport.id && sportsMap[sport.id]) {
+              // Has ID that needs to be mapped to name
+              return {
+                id: sport.id,
+                name: sportsMap[sport.id],
+                level: sport.level || 'Beginner'
+              };
+            } else {
+              // Fallback for unknown format
+              console.warn('Unknown sport preference format:', sport);
+              return null;
+            }
+          }).filter(Boolean); // Remove null entries
+        };
+
         // Prepare combined data from all sources
         setFormData({
           username: profileData.username || '',
@@ -248,25 +302,15 @@ const ProfileEdit = () => {
           bio: profileData.bio || '',
           avatarUrl: profileData.avatar_url || null,
           faculty: userData?.faculty || '',
-          campus: userData?.campus || '', 
+          campus: userData?.campus || '',
           state: userData?.campus || '', // Map campus to state for the form
           gender: userData?.gender || '',
           age: userPreferences?.age || '',
           birth_date: userPreferences?.birth_date ? new Date(userPreferences.birth_date) : null,
           duration_preference: userPreferences?.duration_preference || '',
-          sports: Array.isArray(profileData.sport_preferences) 
-            ? profileData.sport_preferences.map((sport, index) => ({
-                id: index + 1,
-                name: sport.name,
-                level: sport.level || 'Beginner'
-              }))
-            : userPreferences?.sport_preferences 
-              ? userPreferences.sport_preferences.map((sport, index) => ({
-                  id: index + 1,
-                  name: sport.name,
-                  level: sport.level || 'Beginner'
-                }))
-              : [],
+          sports: processSportPreferences(profileData.sport_preferences) ||
+                  processSportPreferences(userPreferences?.sport_preferences) ||
+                  [],
           // Add new preference fields from user data and user_preferences
           available_days: userData?.available_days || userPreferences?.time_preferences?.days || [],
           available_hours: {
@@ -280,8 +324,13 @@ const ProfileEdit = () => {
         });
         
         if (profileData.avatar_url) {
+          console.log('Setting avatar preview from profile data:', profileData.avatar_url);
           setAvatarPreview(profileData.avatar_url);
           setOriginalAvatarUrl(profileData.avatar_url); // Store original for restore functionality
+          setAvatarState('normal'); // Reset avatar state
+        } else {
+          console.log('No avatar URL found in profile data');
+          setAvatarState('normal'); // Reset avatar state
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -337,6 +386,7 @@ const ProfileEdit = () => {
     if (!validateImageFile(file)) return;
 
     setAvatarFile(file);
+    setAvatarState('normal'); // Reset avatar state when new file is selected
 
     // Create preview
     const reader = new FileReader();
@@ -344,6 +394,12 @@ const ProfileEdit = () => {
       setAvatarPreview(reader.result);
     };
     reader.readAsDataURL(file);
+
+    // Clear removal flag if it was set
+    setFormData(prev => ({
+      ...prev,
+      removeAvatar: false
+    }));
   };
 
   const handleAvatarChange = (e) => {
@@ -375,8 +431,10 @@ const ProfileEdit = () => {
   
   // Remove avatar
   const handleRemoveAvatar = () => {
+    console.log('Avatar removal initiated');
     setAvatarFile(null);
     setAvatarPreview(null);
+    setAvatarState('marked-for-deletion');
 
     // Reset file input
     if (fileInputRef.current) {
@@ -384,15 +442,22 @@ const ProfileEdit = () => {
     }
 
     // Mark avatar for deletion by setting a flag
-    setFormData(prev => ({
-      ...prev,
-      avatarUrl: null,
-      removeAvatar: true // Flag to indicate avatar should be removed
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        avatarUrl: null,
+        removeAvatar: true // Flag to indicate avatar should be removed
+      };
+      console.log('Avatar removal state updated:', { removeAvatar: newData.removeAvatar });
+      return newData;
+    });
   };
 
   // Restore avatar (undo removal)
-  const handleRestoreAvatar = () => {
+  const handleUndoRemoval = () => {
+    console.log('Avatar removal undone, originalAvatarUrl:', originalAvatarUrl);
+    setAvatarState('normal');
+
     // Reset file input and avatar file state
     setAvatarFile(null);
     if (fileInputRef.current) {
@@ -405,8 +470,11 @@ const ProfileEdit = () => {
     }));
 
     // If there was an original avatar, restore the preview
-    if (formData.avatarUrl) {
-      setAvatarPreview(formData.avatarUrl);
+    if (originalAvatarUrl) {
+      setAvatarPreview(originalAvatarUrl);
+      console.log('Avatar preview restored to:', originalAvatarUrl);
+    } else {
+      console.log('No original avatar URL to restore');
     }
   };
 
@@ -773,24 +841,35 @@ const ProfileEdit = () => {
                 >
                   {formData.fullName?.charAt(0) || formData.username?.charAt(0) || 'U'}
                 </Avatar>
-                {formData.removeAvatar && (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      bgcolor: 'error.main',
-                      color: 'white',
-                      px: 1,
-                      py: 0.5,
-                      borderRadius: 1,
-                      fontSize: '0.75rem',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    Will be removed
-                  </Box>
+                {avatarState === 'marked-for-deletion' && (
+                  <>
+                    {/* Red overlay for deletion state */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(244, 67, 54, 0.3)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '2px solid #f44336'
+                      }}
+                    >
+                      <DeleteIcon
+                        sx={{
+                          color: '#f44336',
+                          fontSize: '2rem',
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          borderRadius: '50%',
+                          p: 0.5
+                        }}
+                      />
+                    </Box>
+                  </>
                 )}
                 <Box sx={{
                   position: 'absolute',
@@ -818,18 +897,23 @@ const ProfileEdit = () => {
                   >
                     <PhotoCamera />
                   </IconButton>
-                  {(avatarPreview || formData.removeAvatar) && (
-                    <IconButton
-                      color={formData.removeAvatar ? "primary" : "error"}
-                      onClick={formData.removeAvatar ? handleRestoreAvatar : handleRemoveAvatar}
-                      sx={{
-                        bgcolor: 'background.paper',
-                        boxShadow: 1
-                      }}
-                      title={formData.removeAvatar ? "Restore avatar" : "Remove avatar"}
-                    >
-                      {formData.removeAvatar ? <RestoreIcon /> : <DeleteIcon />}
-                    </IconButton>
+                  {(avatarPreview || avatarState === 'marked-for-deletion') && (
+                    <Tooltip title={avatarState === 'marked-for-deletion' ? "Undo removal" : "Remove photo"}>
+                      <IconButton
+                        color={avatarState === 'marked-for-deletion' ? "primary" : "error"}
+                        onClick={avatarState === 'marked-for-deletion' ? handleUndoRemoval : handleRemoveAvatar}
+                        sx={{
+                          bgcolor: 'background.paper',
+                          boxShadow: 1,
+                          '&:hover': {
+                            boxShadow: 2
+                          }
+                        }}
+                        aria-label={avatarState === 'marked-for-deletion' ? "Undo photo removal" : "Remove profile photo"}
+                      >
+                        {avatarState === 'marked-for-deletion' ? <UndoIcon /> : <DeleteIcon />}
+                      </IconButton>
+                    </Tooltip>
                   )}
                 </Box>
                 {isDragOver && (
@@ -848,6 +932,28 @@ const ProfileEdit = () => {
                   </Typography>
                 )}
               </Box>
+
+              {/* Status messages */}
+              {avatarState === 'marked-for-deletion' && (
+                <Box sx={{ mt: 2, textAlign: 'center' }}>
+                  <Typography
+                    variant="body2"
+                    color="error"
+                    sx={{
+                      fontWeight: 500,
+                      mb: 0.5
+                    }}
+                  >
+                    Photo marked for deletion
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Changes will be saved when you click Save Profile
+                  </Typography>
+                </Box>
+              )}
             </Grid>
             
             {/* Basic Info */}

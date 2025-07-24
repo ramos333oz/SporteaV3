@@ -266,7 +266,7 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
         Select Location
       </Typography>
       <Typography variant="body1" color="text.secondary" paragraph>
-        Choose a venue for your {matchData.sport} match. The available locations support your selected sport and have the necessary facilities.
+        Choose a venue for your {sports[matchData.sport] || matchData.sportName || matchData.sport} match. The available locations support your selected sport and have the necessary facilities.
       </Typography>
       
       {/* Search Bar */}
@@ -321,7 +321,7 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
                 No locations found
               </Typography>
               <Typography variant="body1" color="text.secondary">
-                There are no available venues for {matchData.sport} that match your search criteria.
+                There are no available venues for {sports[matchData.sport] || matchData.sportName || matchData.sport} that match your search criteria.
               </Typography>
             </Paper>
           </Grid>
