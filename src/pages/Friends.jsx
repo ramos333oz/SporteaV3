@@ -252,8 +252,13 @@ const Friends = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('[Friends] useEffect triggered with user:', user?.id || 'No user');
+
     if (user) {
-      fetchFriends();
+      // Add a small delay to ensure auth session is fully established
+      const timer = setTimeout(() => {
+        fetchFriends();
+      }, 100);
     }
 
     // Listen for friendship status changes
@@ -265,21 +270,113 @@ const Friends = () => {
       }
     };
 
+    // Listen for friend request sent events for real-time UI updates
+    const handleFriendRequestSent = async (event) => {
+      console.log('[Friends] ✅ Friend request sent event received:', event.detail);
+      const { userId, requestData } = event.detail;
+
+      if (!userId || !requestData) {
+        console.error('[Friends] ❌ Invalid event data:', { userId, requestData });
+        return;
+      }
+
+      try {
+        console.log('[Friends] 🔍 Fetching user details for userId:', userId);
+
+        // Fetch the user details for the sent request
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('id, username, full_name, email, avatar_url')
+          .eq('id', userId)
+          .single();
+
+        if (error) {
+          console.error('[Friends] ❌ Error fetching user data:', error);
+          throw error;
+        }
+
+        if (userData) {
+          console.log('[Friends] ✅ User data fetched:', userData);
+
+          // Add to sent requests immediately for real-time UI update
+          const newSentRequest = {
+            addressee_id: userId,
+            status: 'pending',
+            created_at: new Date().toISOString(),
+            ...userData,
+            id: requestData.id // Ensure friendship ID is preserved after spread
+          };
+
+          console.log('[Friends] 🔍 New sent request structure:', {
+            friendshipId: requestData.id,
+            userId: userId,
+            addresseeId: userId,
+            finalId: newSentRequest.id
+          });
+
+          console.log('[Friends] 📝 Adding new sent request to UI:', newSentRequest);
+          setSentRequests(prev => {
+            // Check if this friend request already exists to prevent duplicates
+            const existingRequest = prev.find(req =>
+              req.addressee_id === userId ||
+              req.friend_id === userId ||
+              req.id === userId ||
+              (req.username === userData.username && req.full_name === userData.full_name)
+            );
+
+            if (existingRequest) {
+              console.log('[Friends] ⚠️ Friend request already exists, skipping duplicate:', existingRequest);
+              return prev; // Return unchanged state
+            }
+
+            const updated = [newSentRequest, ...prev];
+            console.log('[Friends] 📊 Updated sent requests:', updated);
+            return updated;
+          });
+
+          console.log('[Friends] ✅ Real-time UI update completed successfully');
+        } else {
+          console.error('[Friends] ❌ No user data returned');
+        }
+      } catch (error) {
+        console.error('[Friends] ❌ Error handling friend request sent event:', error);
+        // Fallback to full refresh if real-time update fails
+        console.log('[Friends] 🔄 Falling back to full refresh');
+        fetchFriends();
+      }
+    };
+
+    console.log('[Friends] 🎧 Registering event listeners for user:', user?.id);
+
     window.addEventListener('sportea:friendship_status_changed', handleFriendshipStatusChange);
+    window.addEventListener('sportea:friend-request-sent', handleFriendRequestSent);
+
+    console.log('[Friends] ✅ Event listeners registered successfully');
 
     return () => {
+      console.log('[Friends] 🧹 Cleaning up event listeners for user:', user?.id);
       window.removeEventListener('sportea:friendship_status_changed', handleFriendshipStatusChange);
+      window.removeEventListener('sportea:friend-request-sent', handleFriendRequestSent);
     };
   }, [user]);
 
-  const fetchFriends = async () => {
-    setLoading(true);
+  const fetchFriends = async (retryCount = 0) => {
+    // Only set loading to true for the initial call, not for retries
+    if (retryCount === 0) {
+      setLoading(true);
+    }
     setError(null);
     try {
       // Get friends
       const friendsResult = await friendshipService.getFriends();
       if (!friendsResult.success) {
-        throw new Error(friendsResult.error || 'Failed to fetch friends');
+        // Check if this is an authentication timing issue
+        if (friendsResult.message && friendsResult.message.includes('Auth session missing') && retryCount < 3) {
+          console.log(`[Friends] Auth session not ready, retrying in ${(retryCount + 1) * 1000}ms (attempt ${retryCount + 1}/3)`);
+          setTimeout(() => fetchFriends(retryCount + 1), (retryCount + 1) * 1000);
+          return;
+        }
+        throw new Error(friendsResult.message || friendsResult.error || 'Failed to fetch friends');
       }
       setFriends(friendsResult.data || []);
       
@@ -359,18 +456,27 @@ const Friends = () => {
   };
 
   const handleCancelFriendRequest = async (friendshipId) => {
+    console.log('[Friends] 🚫 Cancel friend request called with ID:', friendshipId);
     setActionLoading(friendshipId);
     try {
+      console.log('[Friends] 🔄 Calling friendshipService.removeFriend with ID:', friendshipId);
       const { success } = await friendshipService.removeFriend(friendshipId);
-      
+
+      console.log('[Friends] 📋 Remove friend result:', { success });
+
       if (success) {
+        console.log('[Friends] ✅ Friend request canceled successfully');
         showSuccessToast('Friend request canceled');
         fetchFriends(); // Refresh the lists
+      } else {
+        console.log('[Friends] ❌ Friend request cancellation failed');
+        showErrorToast('Failed to cancel friend request');
       }
     } catch (error) {
-      console.error('Error canceling friend request:', error);
+      console.error('[Friends] ❌ Error canceling friend request:', error);
       showErrorToast('Failed to cancel friend request');
     } finally {
+      console.log('[Friends] 🏁 Cancel friend request operation completed');
       setActionLoading(null);
     }
   };
@@ -570,7 +676,11 @@ const Friends = () => {
                   variant="outlined"
                   color="error"
                   startIcon={<CancelIcon />}
-                  onClick={() => handleCancelFriendRequest(request.id)}
+                  onClick={() => {
+                    console.log('[Friends] 🖱️ Cancel button clicked for request:', request);
+                    console.log('[Friends] 🆔 Request ID being passed:', request.id);
+                    handleCancelFriendRequest(request.id);
+                  }}
                   disabled={actionLoading === request.id}
                 >
                   {actionLoading === request.id ? <CircularProgress size={24} /> : 'Cancel Request'}
@@ -729,7 +839,17 @@ const Friends = () => {
       if (result.success) {
         showSuccessToast(`Friend request sent to ${userData.full_name || userData.username || userData.email}`);
         handleCloseAddDialog();
-        fetchFriends(); // Reload all friend data
+
+        // Emit event for real-time UI update
+        window.dispatchEvent(new CustomEvent('sportea:friend-request-sent', {
+          detail: {
+            userId: userData.id,
+            requestData: result.data
+          }
+        }));
+
+        // Also refresh all friend data as fallback
+        fetchFriends();
       } else {
         showErrorToast(result.message || 'Failed to send friend request');
       }

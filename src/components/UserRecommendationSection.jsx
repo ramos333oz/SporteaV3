@@ -28,13 +28,6 @@ const UserRecommendationSection = ({
   const [loading, setLoading] = useState(false);
   const [connectingUsers, setConnectingUsers] = useState(new Set());
 
-  // Load recommendations on component mount
-  useEffect(() => {
-    if (user?.id) {
-      loadRecommendations();
-    }
-  }, [user?.id]);
-
   const loadRecommendations = async () => {
     if (!user?.id) return;
 
@@ -61,17 +54,36 @@ const UserRecommendationSection = ({
 
   const handleConnect = async (userId) => {
     setConnectingUsers(prev => new Set([...prev, userId]));
-    
+
     try {
       // Import friendship service dynamically to avoid circular dependencies
       const { friendshipService } = await import('../services/supabase');
-      
-      await friendshipService.sendFriendRequest(userId);
-      
-      // Remove the user from recommendations after successful connection
-      setRecommendations(prev => prev.filter(rec => rec.id !== userId));
-      
-      showToast('Friend request sent successfully!', 'success');
+
+      const result = await friendshipService.sendFriendRequest(userId);
+
+      if (result.success) {
+        // Remove the user from recommendations after successful connection
+        setRecommendations(prev => prev.filter(rec => rec.id !== userId));
+
+        // Emit event to notify Friends page about the new friend request
+        console.log('[UserRecommendationSection] Dispatching friend-request-sent event:', {
+          userId,
+          requestData: result.data
+        });
+
+        window.dispatchEvent(new CustomEvent('sportea:friend-request-sent', {
+          detail: {
+            userId,
+            requestData: result.data
+          }
+        }));
+
+        console.log('[UserRecommendationSection] Friend-request-sent event dispatched successfully');
+
+        showToast('Friend request sent successfully!', 'success');
+      } else {
+        throw new Error(result.error || 'Failed to send friend request');
+      }
     } catch (error) {
       console.error('Error sending friend request:', error);
       showToast('Failed to send friend request', 'error');
@@ -87,6 +99,27 @@ const UserRecommendationSection = ({
   const handleDismiss = (userId) => {
     setRecommendations(prev => prev.filter(rec => rec.id !== userId));
   };
+
+  // Load recommendations on component mount
+  useEffect(() => {
+    if (user?.id) {
+      loadRecommendations();
+    }
+  }, [user?.id]);
+
+  // Listen for master refresh event from Home page
+  useEffect(() => {
+    const handleMasterRefresh = () => {
+      console.log('[UserRecommendationSection] Master refresh triggered, reloading recommendations');
+      loadRecommendations();
+    };
+
+    window.addEventListener('sportea:master-refresh', handleMasterRefresh);
+
+    return () => {
+      window.removeEventListener('sportea:master-refresh', handleMasterRefresh);
+    };
+  }, []);
 
   if (!user?.id) {
     return null;

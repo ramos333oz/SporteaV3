@@ -376,6 +376,15 @@ const RecommendationsList = React.memo(({ limit = 5, onError = () => {} }) => {
     fetchRecommendations();
   }, [fetchRecommendations]);
 
+  // Master refresh handler for Home page master refresh button
+  const handleMasterRefresh = useCallback(() => {
+    if (import.meta.env.DEV) {
+      console.log('[RecommendationsList] Master refresh triggered, refreshing recommendations');
+    }
+    clearCache(); // Clear all cache for fresh data
+    fetchRecommendations();
+  }, [fetchRecommendations]);
+
   // Real-time update listener for automatic recommendation refresh
   useEffect(() => {
     if (!user?.id) return;
@@ -383,13 +392,15 @@ const RecommendationsList = React.memo(({ limit = 5, onError = () => {} }) => {
     // Listen for custom events
     window.addEventListener('sportea:user-preferences-updated', handleUserPreferenceUpdate);
     window.addEventListener('sportea:match-updated', handleMatchUpdate);
+    window.addEventListener('sportea:master-refresh', handleMasterRefresh);
 
     // Cleanup listeners
     return () => {
       window.removeEventListener('sportea:user-preferences-updated', handleUserPreferenceUpdate);
       window.removeEventListener('sportea:match-updated', handleMatchUpdate);
+      window.removeEventListener('sportea:master-refresh', handleMasterRefresh);
     };
-  }, [user?.id, handleUserPreferenceUpdate, handleMatchUpdate]);
+  }, [user?.id, handleUserPreferenceUpdate, handleMatchUpdate, handleMasterRefresh]);
 
   if (loading) {
     return (
@@ -612,19 +623,6 @@ const RecommendationsList = React.memo(({ limit = 5, onError = () => {} }) => {
             onFeedback={onFeedback}
           />
         ))}
-      </Box>
-      
-
-      
-      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-        <Button 
-          variant="outlined" 
-          color="primary" 
-          onClick={generateEmbeddings}
-          startIcon={<Refresh />}
-        >
-          Update Recommendations
-        </Button>
       </Box>
       
       <Snackbar

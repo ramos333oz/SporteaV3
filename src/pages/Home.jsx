@@ -239,6 +239,27 @@ const Home = () => {
     };
   }, [connectionState.isConnected]);
 
+  // Master refresh function to refresh all data on the page
+  const handleMasterRefresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Refresh all data sources
+      await Promise.all([
+        fetchUpcomingMatches(),
+        fetchJoinedMatches()
+      ]);
+
+      // Trigger refresh for child components
+      window.dispatchEvent(new CustomEvent('sportea:master-refresh'));
+
+      console.log('[Home] Master refresh completed');
+    } catch (error) {
+      console.error('[Home] Master refresh failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchUpcomingMatches, fetchJoinedMatches]);
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -251,9 +272,27 @@ const Home = () => {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <IconButton color="primary" onClick={fetchUpcomingMatches} disabled={loading}>
-            <RefreshIcon />
-          </IconButton>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleMasterRefresh}
+            disabled={loading}
+            startIcon={<RefreshIcon />}
+            sx={{
+              borderRadius: 3,
+              px: 3,
+              py: 1.5,
+              fontWeight: 600,
+              textTransform: 'none',
+              boxShadow: '0px 4px 12px rgba(138, 21, 56, 0.3)',
+              '&:hover': {
+                boxShadow: '0px 6px 16px rgba(138, 21, 56, 0.4)',
+                transform: 'translateY(-2px)',
+              }
+            }}
+          >
+            {loading ? 'Refreshing...' : 'Refresh All'}
+          </Button>
         </Box>
       </Box>
       

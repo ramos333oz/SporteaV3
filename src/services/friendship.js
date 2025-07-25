@@ -370,9 +370,28 @@ export const friendshipService = {
   // Get all friends for a user
   getFriends: async (userId = null) => {
     try {
-      const { data: currentUser } = await supabase.auth.getUser();
-      
+      console.log('[Friendship Service] Getting friends for user:', userId);
+
+      // Get current user with better error handling
+      const { data: currentUser, error: authError } = await supabase.auth.getUser();
+
+      console.log('[Friendship Service] Auth result:', {
+        hasUser: !!currentUser?.user,
+        userId: currentUser?.user?.id,
+        authError: authError?.message
+      });
+
+      if (authError) {
+        console.error('[Friendship Service] Authentication error:', authError);
+        return {
+          success: false,
+          message: `Authentication error: ${authError.message}`,
+          data: []
+        };
+      }
+
       if (!currentUser || !currentUser.user) {
+        console.error('[Friendship Service] No authenticated user found');
         return {
           success: false,
           message: 'You must be logged in to view friends',
@@ -381,7 +400,8 @@ export const friendshipService = {
       }
       
       const targetUserId = userId || currentUser.user.id;
-      
+      console.log('[Friendship Service] Target user ID:', targetUserId);
+
       // Get all accepted friendships where the user is either sender or receiver
       const { data: friendships, error } = await supabase
         .from('friendships')
@@ -395,14 +415,22 @@ export const friendshipService = {
         .eq('status', 'accepted')
         .or(`user_id.eq.${targetUserId},friend_id.eq.${targetUserId}`);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Friendship Service] Database error fetching friendships:', error);
+        throw error;
+      }
+
+      console.log('[Friendship Service] Found friendships:', friendships?.length || 0);
 
       // Get user details for all friends
       const friendIds = friendships.map(friendship =>
         friendship.user_id === targetUserId ? friendship.friend_id : friendship.user_id
       );
 
+      console.log('[Friendship Service] Friend IDs to fetch:', friendIds);
+
       if (friendIds.length === 0) {
+        console.log('[Friendship Service] No friends found, returning empty array');
         return {
           success: true,
           data: []
@@ -414,7 +442,12 @@ export const friendshipService = {
         .select('id, username, full_name, avatar_url')
         .in('id', friendIds);
 
-      if (userError) throw userError;
+      if (userError) {
+        console.error('[Friendship Service] Database error fetching user details:', userError);
+        throw userError;
+      }
+
+      console.log('[Friendship Service] Fetched user details for:', friendUsers?.length || 0, 'friends');
 
       // Process the results to always return the friend details (not the user)
       const processedFriends = friendships.map(friendship => {
@@ -436,10 +469,10 @@ export const friendshipService = {
         data: processedFriends
       };
     } catch (error) {
-      console.error('Error getting friends:', error);
+      console.error('[Friendship Service] Error getting friends:', error);
       return {
         success: false,
-        message: 'Failed to get friends',
+        message: `Failed to get friends: ${error.message || 'Unknown error'}`,
         data: [],
         error
       };
