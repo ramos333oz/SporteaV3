@@ -339,10 +339,18 @@ export const matchService = {
         }
       }
 
-      // Get the current authenticated user
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData?.user) {
+      // Get the current authenticated user with session validation
+      // First check if we have a session, then validate the user
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
         throw new Error('You must be logged in to create a match');
+      }
+
+      // Validate the session by getting the user (this checks JWT validity)
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData?.user) {
+        console.error('Session validation failed:', authError);
+        throw new Error('Your session has expired. Please log in again.');
       }
 
       // Ensure we're using the current authenticated user's ID as host_id
@@ -710,10 +718,18 @@ export const matchService = {
   // Validate match creation without actually creating it
   validateMatchCreation: async (matchData) => {
     try {
-      // Get the current authenticated user
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData?.user) {
+      // Get the current authenticated user with session validation
+      // First check if we have a session, then validate the user
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
         throw new Error('You must be logged in to validate match creation');
+      }
+
+      // Validate the session by getting the user (this checks JWT validity)
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData?.user) {
+        console.error('Session validation failed:', authError);
+        throw new Error('Your session has expired. Please log in again.');
       }
 
       const host_id = authData.user.id;

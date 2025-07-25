@@ -1829,8 +1829,10 @@ const ContentModerationTab = ({ adminUser }) => {
     }
   };
 
-  const handleReview = (queueId) => {
-    setSelectedQueueId(queueId);
+  const handleReview = (queueId, matchId = null) => {
+    // Use queueId if available, otherwise use matchId for auto-approved items
+    const reviewId = queueId || matchId;
+    setSelectedQueueId(reviewId);
     setReviewModalOpen(true);
   };
 
@@ -2106,7 +2108,7 @@ const ContentModerationTab = ({ adminUser }) => {
                             <Button
                               variant="outlined"
                               size="small"
-                              onClick={() => handleReview(item.queue_id)}
+                              onClick={() => handleReview(item.queue_id, item.match_id)}
                               disabled={item.status === 'approved' || item.status === 'rejected'}
                             >
                               Review

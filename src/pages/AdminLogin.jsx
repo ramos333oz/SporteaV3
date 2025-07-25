@@ -120,16 +120,27 @@ const AdminLogin = () => {
         >
           <Card elevation={0} sx={{ background: 'transparent' }}>
             <CardContent sx={{ p: 5 }}>
-              <Box sx={{ textAlign: 'center', mb: 4 }}>
+              <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                mb: 4,
+                width: '100%'
+              }}>
                 <Box
                   component="img"
                   src="/Sportea_logo/Sportea.png"
                   alt="Sportea Logo"
                   sx={{
-                    height: 120,
+                    height: 300,
                     width: 'auto',
                     mb: 3,
-                    filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+                    filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))',
+                    display: 'block',
+                    maxWidth: '100%',
+                    objectFit: 'contain'
                   }}
                 />
                 <Typography
@@ -241,30 +252,7 @@ const AdminLogin = () => {
                 </Button>
               </Box>
 
-              <Box
-                sx={{
-                  mt: 3,
-                  p: 3,
-                  bgcolor: 'rgba(102, 126, 234, 0.05)',
-                  borderRadius: 2,
-                  border: '1px solid rgba(102, 126, 234, 0.1)'
-                }}
-              >
-                <Typography
-                  variant="body2"
-                  color="primary.main"
-                  display="block"
-                  sx={{ fontWeight: 600, mb: 1 }}
-                >
-                  Demo Credentials
-                </Typography>
-                <Typography variant="body2" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-                  Email: 2022812796@student.uitm.edu.my
-                </Typography>
-                <Typography variant="body2" color="text.secondary" display="block">
-                  Password: (use your regular password)
-                </Typography>
-              </Box>
+
             </CardContent>
           </Card>
         </Paper>

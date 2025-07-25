@@ -255,6 +255,21 @@ const Friends = () => {
     if (user) {
       fetchFriends();
     }
+
+    // Listen for friendship status changes
+    const handleFriendshipStatusChange = (event) => {
+      console.log('[Friends] Received friendship status change:', event.detail);
+      // Refresh friends data when friendship status changes
+      if (user) {
+        fetchFriends();
+      }
+    };
+
+    window.addEventListener('sportea:friendship_status_changed', handleFriendshipStatusChange);
+
+    return () => {
+      window.removeEventListener('sportea:friendship_status_changed', handleFriendshipStatusChange);
+    };
   }, [user]);
 
   const fetchFriends = async () => {

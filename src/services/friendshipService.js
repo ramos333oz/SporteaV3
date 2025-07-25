@@ -309,19 +309,44 @@ const friendshipService = {
 
       if (error) throw error;
 
+      // Mark the original friend request notification as read and processed
+      await supabase
+        .from('notifications')
+        .update({
+          is_read: true,
+          processed: true
+        })
+        .eq('user_id', currentUser.id)
+        .eq('type', 'friend_request')
+        .contains('content', JSON.stringify({ sender_id: friendship.user_id }));
+
       // Create notification for the requester
       await supabase
         .from('notifications')
         .insert({
           user_id: friendship.requester_id,
           type: 'friend_request_accepted',
-          data: {
-            friendship_id: data.id,
-            addressee_id: currentUser.id,
-            addressee_name: currentUser.user_metadata?.full_name || currentUser.email
-          },
-          read: false
+          title: 'Friend Request Accepted',
+          content: JSON.stringify({
+            message: `${currentUser.user_metadata?.full_name || currentUser.email} accepted your friend request.`,
+            accepter_id: currentUser.id,
+            accepter_name: currentUser.user_metadata?.full_name || currentUser.email
+          }),
+          is_read: false
         });
+
+      // Broadcast friendship status change event for real-time updates
+      window.dispatchEvent(new CustomEvent('sportea:friendship_status_changed', {
+        detail: {
+          friendshipId: data.id,
+          requester_id: friendship.user_id,
+          addressee_id: friendship.friend_id,
+          status: 'accepted',
+          action: 'accepted'
+        }
+      }));
+
+      console.log(`[FriendshipService] Friend request accepted: ${friendshipId}`);
 
       return { success: true, data };
     } catch (error) {
@@ -371,6 +396,30 @@ const friendshipService = {
         .single();
 
       if (error) throw error;
+
+      // Mark the original friend request notification as read and processed
+      await supabase
+        .from('notifications')
+        .update({
+          is_read: true,
+          processed: true
+        })
+        .eq('user_id', currentUser.id)
+        .eq('type', 'friend_request')
+        .contains('content', JSON.stringify({ sender_id: friendship.user_id }));
+
+      // Broadcast friendship status change event for real-time updates
+      window.dispatchEvent(new CustomEvent('sportea:friendship_status_changed', {
+        detail: {
+          friendshipId: data.id,
+          requester_id: friendship.user_id,
+          addressee_id: friendship.friend_id,
+          status: 'declined',
+          action: 'declined'
+        }
+      }));
+
+      console.log(`[FriendshipService] Friend request declined: ${friendshipId}`);
 
       return { success: true, data };
     } catch (error) {

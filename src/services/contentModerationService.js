@@ -1009,14 +1009,18 @@ async function rejectMatch(queueId, adminId, actionReason, notes = '') {
 
 /**
  * Get detailed match information for review modal
+ * Enhanced to handle both queue items and direct match IDs
  */
 async function getMatchReviewDetails(queueId) {
   try {
     log(`=== FETCHING MATCH REVIEW DETAILS ===`);
     log(`Queue ID: ${queueId}`);
 
-    // First get the queue item with moderation result
-    const { data: queueData, error: queueError } = await supabase
+    let queueData = null;
+    let matchId = null;
+
+    // First try to get the queue item with moderation result
+    const { data: queueResult, error: queueError } = await supabase
       .from('admin_review_queue')
       .select(`
         *,
@@ -1025,26 +1029,52 @@ async function getMatchReviewDetails(queueId) {
       .eq('id', queueId)
       .single();
 
-    if (queueError) {
-      logError('Error fetching queue data:', queueError);
-      throw new Error(`Queue query error: ${queueError.message}`);
+    if (queueResult) {
+      // Found queue item
+      queueData = queueResult;
+      matchId = queueData.match_id;
+      log(`Queue data fetched for match: ${matchId}`);
+    } else {
+      // No queue item found - this might be a direct match ID or auto-approved item
+      // Try to treat queueId as a match ID and get moderation data directly
+      log(`No queue item found for ID ${queueId}, trying as direct match ID`);
+
+      const { data: moderationResult, error: moderationError } = await supabase
+        .from('content_moderation_results')
+        .select('*')
+        .eq('match_id', queueId)
+        .single();
+
+      if (moderationResult) {
+        // Found moderation result for this match ID
+        matchId = queueId;
+        queueData = {
+          id: null,
+          match_id: matchId,
+          priority: moderationResult.overall_risk_level === 'high' ? 'urgent' :
+                   moderationResult.overall_risk_level === 'medium' ? 'high' : 'low',
+          status: moderationResult.requires_review ? 'pending' : 'auto_approved',
+          assigned_admin_id: null,
+          created_at: moderationResult.created_at,
+          admin_notes: null,
+          moderation_result: [moderationResult]
+        };
+        log(`Created synthetic queue data for auto-approved match: ${matchId}`);
+      } else {
+        throw new Error('Neither queue item nor moderation result found for the provided ID');
+      }
     }
 
-    if (!queueData) {
-      throw new Error('Queue item not found');
-    }
-
-    log(`Queue data fetched for match: ${queueData.match_id}`);
-
-    // Then get the match details with related data
+    // Get the match details with related data including host information
     const { data: matchData, error: matchError } = await supabase
       .from('matches')
       .select(`
         *,
         sport:sports(*),
-        location:locations(*)
+        location:locations(*),
+        host:users!matches_host_id_fkey(id, full_name, email, faculty, avatar_url)
       `)
-      .eq('id', queueData.match_id)
+      .eq('id', matchId)
       .single();
 
     if (matchError) {
@@ -1052,25 +1082,21 @@ async function getMatchReviewDetails(queueId) {
       throw new Error(`Match query error: ${matchError.message}`);
     }
 
-    // Get host profile separately
-    const { data: hostData, error: hostError } = await supabase
-      .from('profiles')
-      .select('id, full_name, email, faculty, avatar_url')
-      .eq('id', matchData.host_id)
-      .single();
-
-    if (hostError) {
-      logError('Error fetching host data:', hostError);
-      // Don't throw here, just log the error and continue without host data
-      log('Continuing without host data due to error');
-    }
+    // Flatten host data for easier access in the modal
+    const hostData = matchData.host;
 
     // Combine all data
     const combinedData = {
       ...queueData,
       match: {
         ...matchData,
-        host: hostData || null
+        host_id: matchData.host_id,
+        host_name: hostData?.full_name,
+        host_email: hostData?.email,
+        host_faculty: hostData?.faculty,
+        host_avatar: hostData?.avatar_url,
+        sport_name: matchData.sport?.name,
+        location_name: matchData.location?.name
       }
     };
 

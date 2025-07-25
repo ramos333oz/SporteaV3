@@ -57,8 +57,9 @@ const EnhancedReviewModal = ({ open, onClose, queueId, adminUser, onActionComple
       setError(null);
       
       const result = await getMatchReviewDetails(queueId);
-      
+
       if (result.success) {
+        console.log('Review data received:', result.data);
         setReviewData(result.data);
       } else {
         setError(result.error);
@@ -139,11 +140,60 @@ const EnhancedReviewModal = ({ open, onClose, queueId, adminUser, onActionComple
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString();
+    if (!dateString) return 'Invalid Date';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
   const formatScore = (score) => {
-    return score ? (score * 100).toFixed(1) + '%' : 'N/A';
+    if (score === null || score === undefined) return 'N/A';
+
+    // Handle both number and string scores
+    let numScore;
+    if (typeof score === 'number') {
+      numScore = score;
+    } else if (typeof score === 'string') {
+      numScore = parseFloat(score);
+    } else {
+      return 'N/A';
+    }
+
+    if (isNaN(numScore)) return 'N/A';
+
+    // Convert to percentage (multiply by 100 if score is between 0-1, otherwise assume it's already a percentage)
+    const percentage = numScore <= 1 ? numScore * 100 : numScore;
+    return percentage.toFixed(1) + '%';
+  };
+
+  const getModelUsed = (reviewData) => {
+    // Handle both array and direct object structures
+    const moderationResult = reviewData?.moderation_result?.[0] || reviewData?.moderation_result;
+    const modelInfo = moderationResult?.model_confidence;
+
+    if (!modelInfo) return 'Unknown';
+
+    if (modelInfo.ml_model_used === 'lexicon-confidence-fallback' ||
+        modelInfo.primary_model === 'lexicon') {
+      return 'Lexicon Fallback';
+    }
+
+    if (modelInfo.xlm_attempted && modelInfo.xlm_confidence !== 'low') {
+      return 'XLM-RoBERTa';
+    }
+
+    return modelInfo.system_version || 'Unknown';
   };
 
   if (!open) return null;
@@ -217,7 +267,13 @@ const EnhancedReviewModal = ({ open, onClose, queueId, adminUser, onActionComple
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                         <ScheduleIcon sx={{ mr: 1, color: 'text.secondary' }} />
                         <Typography variant="body2">
-                          <strong>Date & Time:</strong> {formatDate(reviewData.match?.date_time)}
+                          <strong>Date & Time:</strong> {reviewData.match?.start_time ?
+                            formatDate(reviewData.match.start_time) + ' - ' +
+                            new Date(reviewData.match.end_time).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true
+                            }) : 'Not specified'}
                         </Typography>
                       </Box>
                     </Grid>
@@ -239,29 +295,30 @@ const EnhancedReviewModal = ({ open, onClose, queueId, adminUser, onActionComple
                   </Typography>
                   
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar 
-                      src={reviewData.match?.host?.avatar_url} 
+                    <Avatar
+                      src={reviewData.match?.host_avatar}
                       sx={{ width: 56, height: 56 }}
                     >
-                      {reviewData.match?.host?.full_name?.charAt(0)}
+                      {reviewData.match?.host_name?.charAt(0) || 'U'}
                     </Avatar>
                     <Box sx={{ flexGrow: 1 }}>
                       <Typography variant="h6">
-                        {reviewData.match?.host?.full_name}
+                        {reviewData.match?.host_name || 'Unknown Host'}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {reviewData.match?.host?.email}
+                        {reviewData.match?.host_email || 'Email not available'}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Faculty: {reviewData.match?.host?.faculty || 'Not specified'}
+                        Faculty: {reviewData.match?.host_faculty || 'Not specified'}
                       </Typography>
                     </Box>
                     <Tooltip title="View Host Profile">
-                      <IconButton 
-                        component={Link} 
-                        href={`/profile/${reviewData.match?.host?.id}`}
+                      <IconButton
+                        component={Link}
+                        href={`/profile/${reviewData.match?.host_id}`}
                         target="_blank"
                         rel="noopener noreferrer"
+                        disabled={!reviewData.match?.host_id}
                       >
                         <OpenInNewIcon />
                       </IconButton>
@@ -288,9 +345,9 @@ const EnhancedReviewModal = ({ open, onClose, queueId, adminUser, onActionComple
                       size="small"
                       sx={{ mr: 1, mb: 1 }}
                     />
-                    <Chip 
-                      label={`${reviewData.moderation_result?.overall_risk_level?.toUpperCase()} RISK`}
-                      color={getRiskLevelColor(reviewData.moderation_result?.overall_risk_level)}
+                    <Chip
+                      label={`${(reviewData.moderation_result?.[0]?.overall_risk_level || reviewData.moderation_result?.overall_risk_level || 'UNKNOWN')?.toUpperCase()} RISK`}
+                      color={getRiskLevelColor(reviewData.moderation_result?.[0]?.overall_risk_level || reviewData.moderation_result?.overall_risk_level)}
                       size="small"
                       sx={{ mb: 1 }}
                     />
@@ -299,27 +356,26 @@ const EnhancedReviewModal = ({ open, onClose, queueId, adminUser, onActionComple
                   {/* Scores */}
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" gutterBottom>
-                      <strong>Toxic Score:</strong> {formatScore(reviewData.moderation_result?.inappropriate_score)}
-                    </Typography>
-                    <Typography variant="body2" gutterBottom>
-                      <strong>Consistency Score:</strong> {formatScore(reviewData.moderation_result?.consistency_score)}
-                    </Typography>
-                    <Typography variant="body2" gutterBottom>
-                      <strong>Sports Validation:</strong> {formatScore(reviewData.moderation_result?.sports_validation_score)}
+                      <strong>Toxic Score:</strong> {formatScore(
+                        reviewData.moderation_result?.[0]?.inappropriate_score ??
+                        reviewData.moderation_result?.inappropriate_score
+                      )}
                     </Typography>
                   </Box>
 
                   <Divider sx={{ my: 2 }} />
 
                   {/* Flagged Content */}
-                  {reviewData.moderation_result?.flagged_content?.toxic_words?.length > 0 && (
+                  {((reviewData.moderation_result?.[0]?.flagged_content?.toxic_words ||
+                     reviewData.moderation_result?.flagged_content?.toxic_words)?.length > 0) && (
                     <Box sx={{ mb: 2 }}>
                       <Typography variant="subtitle2" gutterBottom color="error">
                         Flagged Words:
                       </Typography>
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {reviewData.moderation_result.flagged_content.toxic_words.map((word, index) => (
-                          <Chip 
+                        {(reviewData.moderation_result?.[0]?.flagged_content?.toxic_words ||
+                          reviewData.moderation_result?.flagged_content?.toxic_words || []).map((word, index) => (
+                          <Chip
                             key={index}
                             label={word}
                             size="small"
@@ -332,19 +388,23 @@ const EnhancedReviewModal = ({ open, onClose, queueId, adminUser, onActionComple
                   )}
 
                   {/* Risk Factors */}
-                  {reviewData.moderation_result?.flagged_content?.risk_factors && (
+                  {(reviewData.moderation_result?.[0]?.flagged_content?.risk_factors ||
+                    reviewData.moderation_result?.flagged_content?.risk_factors) && (
                     <Box sx={{ mb: 2 }}>
                       <Typography variant="subtitle2" gutterBottom>
                         Risk Factors:
                       </Typography>
                       <List dense>
-                        {Object.entries(reviewData.moderation_result.flagged_content.risk_factors).map(([factor, value]) => (
+                        {Object.entries(
+                          reviewData.moderation_result?.[0]?.flagged_content?.risk_factors ||
+                          reviewData.moderation_result?.flagged_content?.risk_factors || {}
+                        ).map(([factor, value]) => (
                           value && (
                             <ListItem key={factor} sx={{ py: 0 }}>
                               <ListItemIcon sx={{ minWidth: 20 }}>
                                 <WarningIcon fontSize="small" color="warning" />
                               </ListItemIcon>
-                              <ListItemText 
+                              <ListItemText
                                 primary={factor.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                                 primaryTypographyProps={{ variant: 'body2' }}
                               />
@@ -361,10 +421,13 @@ const EnhancedReviewModal = ({ open, onClose, queueId, adminUser, onActionComple
                     <strong>Queued:</strong> {formatDate(reviewData.created_at)}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    <strong>Processing Time:</strong> {reviewData.moderation_result?.processing_time_ms}ms
+                    <strong>Processing Time:</strong> {
+                      reviewData.moderation_result?.[0]?.processing_time_ms ||
+                      reviewData.moderation_result?.processing_time_ms || 0
+                    }ms
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    <strong>System Version:</strong> {reviewData.moderation_result?.model_confidence?.system_version}
+                    <strong>Model Used:</strong> {getModelUsed(reviewData)}
                   </Typography>
                 </CardContent>
               </Card>

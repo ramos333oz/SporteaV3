@@ -169,8 +169,8 @@ const NotificationPanel = () => {
 
         setNotifications(data || []);
 
-        // Count unread notifications
-        const unread = data ? data.filter(n => !n.is_read).length : 0;
+        // Count unread notifications (exclude processed notifications)
+        const unread = data ? data.filter(n => !n.is_read && !n.processed).length : 0;
         console.log('[NotificationPanel] Setting unread count:', unread, 'from', data?.length, 'total notifications');
         setUnreadCount(unread);
       } catch (err) {
@@ -202,7 +202,7 @@ const NotificationPanel = () => {
         if (error) throw error;
 
         setNotifications(data || []);
-        const unread = data ? data.filter(n => !n.is_read).length : 0;
+        const unread = data ? data.filter(n => !n.is_read && !n.processed).length : 0;
         setUnreadCount(unread);
       } catch (err) {
         console.error('Error refreshing notifications:', err);
@@ -265,10 +265,43 @@ const NotificationPanel = () => {
         }
     };
     
+    // Handle friendship status changes
+    const handleFriendshipStatusChange = (event) => {
+      console.log('[NotificationPanel] Received friendship status change:', event.detail);
+
+      const { requester_id, addressee_id, status, action } = event.detail;
+
+      // If current user is the addressee and the request was processed, update notifications
+      if (addressee_id === user.id && (action === 'accepted' || action === 'declined')) {
+        setNotifications(prev =>
+          prev.map(n => {
+            // Mark friend request notifications from this requester as processed
+            if (n.type === 'friend_request') {
+              try {
+                const content = typeof n.content === 'string' ? JSON.parse(n.content) : n.content;
+                if (content.sender_id === requester_id) {
+                  return { ...n, is_read: true, processed: true };
+                }
+              } catch (e) {
+                console.error('Error parsing notification content:', e);
+              }
+            }
+            return n;
+          })
+        );
+
+        // Recalculate unread count
+        setTimeout(() => {
+          updateUnreadCount();
+        }, 100);
+      }
+    };
+
     // Subscribe to production-optimized notification events
     window.addEventListener('sportea:notification', handleNotification);
+    window.addEventListener('sportea:friendship_status_changed', handleFriendshipStatusChange);
     console.log(`[NotificationPanel] Subscribed to production notification events`);
-    
+
     // Refresh notifications on connection change
     if (connectionState.isConnected) {
       const fetchNotifications = async () => {
@@ -289,7 +322,7 @@ const NotificationPanel = () => {
           
           if (data && data.length > 0) {
             setNotifications(data);
-            const unread = data.filter(n => !n.is_read).length;
+            const unread = data.filter(n => !n.is_read && !n.processed).length;
             setUnreadCount(unread);
           }
         } catch (err) {
@@ -303,6 +336,7 @@ const NotificationPanel = () => {
     return () => {
       console.log(`[NotificationPanel] Cleaning up notification subscription`);
       window.removeEventListener('sportea:notification', handleNotification);
+      window.removeEventListener('sportea:friendship_status_changed', handleFriendshipStatusChange);
     };
   }, [user, showInfoToast]);
 
@@ -343,6 +377,32 @@ const NotificationPanel = () => {
 
     return () => clearInterval(interval);
   }, [user]);
+
+  // Fetch notifications function
+  const fetchNotifications = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select(`
+          *,
+          sender:users(id, full_name, username, avatar_url)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      setNotifications(data || []);
+      const unread = data ? data.filter(n => !n.is_read && !n.processed).length : 0;
+      setUnreadCount(unread);
+      console.log('[NotificationPanel] Fetched notifications:', data?.length || 0, 'unread:', unread);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    }
+  };
 
   // Handle click to open notification panel
   const handleClick = (event) => {
@@ -516,9 +576,9 @@ const NotificationPanel = () => {
     }
   };
   
-  // Update unread count
+  // Update unread count (exclude processed notifications from count)
   const updateUnreadCount = () => {
-    const unread = notifications.filter(n => !n.is_read).length;
+    const unread = notifications.filter(n => !n.is_read && !n.processed).length;
     setUnreadCount(unread);
   };
   
@@ -566,16 +626,40 @@ const NotificationPanel = () => {
       // Get the friendship ID from the notification
       const { data: friendship, error: queryError } = await supabase
         .from('friendships')
-        .select('id')
+        .select('id, status')
         .eq('user_id', content.sender_id)
         .eq('friend_id', user.id)
-        .eq('status', 'pending')
         .maybeSingle();
-      
+
       if (queryError) throw queryError;
-      
+
       if (!friendship) {
-        showErrorToast('Friend request not found or already processed');
+        showErrorToast('Friend request not found');
+        return;
+      }
+
+      if (friendship.status !== 'pending') {
+        showErrorToast('Friend request already processed');
+
+        // Mark notification as processed in the database
+        try {
+          await supabase
+            .from('notifications')
+            .update({
+              is_read: true,
+              processed: true
+            })
+            .eq('id', notification.id);
+
+          console.log('[NotificationPanel] Marked notification as processed:', notification.id);
+        } catch (updateError) {
+          console.error('[NotificationPanel] Failed to mark notification as processed:', updateError);
+        }
+
+        // Update local state
+        setNotifications(prev =>
+          prev.map(n => n.id === notification.id ? { ...n, is_read: true, processed: true } : n)
+        );
         return;
       }
       
@@ -609,16 +693,40 @@ const NotificationPanel = () => {
       // Get the friendship ID from the notification
       const { data: friendship, error: queryError } = await supabase
         .from('friendships')
-        .select('id')
+        .select('id, status')
         .eq('user_id', content.sender_id)
         .eq('friend_id', user.id)
-        .eq('status', 'pending')
         .maybeSingle();
-      
+
       if (queryError) throw queryError;
-      
+
       if (!friendship) {
-        showErrorToast('Friend request not found or already processed');
+        showErrorToast('Friend request not found');
+        return;
+      }
+
+      if (friendship.status !== 'pending') {
+        showErrorToast('Friend request already processed');
+
+        // Mark notification as processed in the database
+        try {
+          await supabase
+            .from('notifications')
+            .update({
+              is_read: true,
+              processed: true
+            })
+            .eq('id', notification.id);
+
+          console.log('[NotificationPanel] Marked notification as processed:', notification.id);
+        } catch (updateError) {
+          console.error('[NotificationPanel] Failed to mark notification as processed:', updateError);
+        }
+
+        // Update local state
+        setNotifications(prev =>
+          prev.map(n => n.id === notification.id ? { ...n, is_read: true, processed: true } : n)
+        );
         return;
       }
       
@@ -828,7 +936,7 @@ const NotificationPanel = () => {
                   if (error) throw error;
 
                   setNotifications(data || []);
-                  const unread = data ? data.filter(n => !n.is_read).length : 0;
+                  const unread = data ? data.filter(n => !n.is_read && !n.processed).length : 0;
                   setUnreadCount(unread);
                   console.log('[NotificationPanel] Manual refresh completed, unread count:', unread);
                 } catch (err) {
