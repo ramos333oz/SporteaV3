@@ -209,15 +209,10 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [selectedMatchToJoin, setSelectedMatchToJoin] = useState(null);
 
-  // List of supported sports that align with SportSelection.jsx
+  // List of supported sports that align with LocationMapView.jsx and database sports table
   const supportedSports = [
-    'Football',
-    'Futsal',
-    'Basketball',
-    'Badminton',
-    'Volleyball',
-    'Tennis',
-    'Squash'
+    'Badminton', 'Basketball', 'Football', 'Frisbee', 'Futsal',
+    'Hockey', 'Rugby', 'Squash', 'Table Tennis', 'Tennis', 'Volleyball'
   ];
 
   // Generate sport filters from real data, filtered to only supported sports

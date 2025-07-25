@@ -48,29 +48,29 @@ import { invalidateUserCache } from '../services/simplifiedRecommendationService
 import { clearKNNCache, clearAllKNNCaches } from '../services/knnRecommendationService';
 import { clearUserRecommendationCache } from '../services/userRecommendationService';
 
-// Map sport names to their respective icons (same as in Profile.jsx)
+// Map sport names to their respective icons - matches LocationMapView.jsx supported sports
 const getSportIcon = (sportName) => {
   const sportIcons = {
     'Football': <SportsSoccerIcon />,
-    'Soccer': <SportsSoccerIcon />,
+    'Futsal': <SportsSoccerIcon />,
     'Basketball': <SportsBasketballIcon />,
     'Badminton': <SportsTennisIcon />,
     'Tennis': <SportsTennisIcon />,
+    'Table Tennis': <SportsTennisIcon />,
+    'Squash': <SportsTennisIcon />,
     'Volleyball': <SportsVolleyballIcon />,
-    'Baseball': <SportsBaseballIcon />,
-    'Boxing': <SportsMmaIcon />,
-    'Martial Arts': <SportsMmaIcon />,
-    'Gym': <FitnessCenterIcon />,
-    'Running': <DirectionsRunIcon />
+    'Rugby': <SportsMmaIcon />,
+    'Hockey': <FitnessCenterIcon />,
+    'Frisbee': <DirectionsRunIcon />
   };
-  
+
   return sportIcons[sportName] || <SportsSoccerIcon />;
 };
 
-// Available sports and skill levels for selection
+// Available sports list - matches exactly what LocationMapView.jsx supports and database sports table
 const availableSports = [
-  'Football', 'Basketball', 'Badminton', 'Tennis', 'Volleyball', 
-  'Baseball', 'Boxing', 'Martial Arts', 'Gym', 'Running', 'Soccer'
+  'Badminton', 'Basketball', 'Football', 'Frisbee', 'Futsal',
+  'Hockey', 'Rugby', 'Squash', 'Table Tennis', 'Tennis', 'Volleyball'
 ];
 
 const skillLevels = ['Beginner', 'Intermediate', 'Advanced', 'Professional'];
@@ -200,7 +200,7 @@ const ProfileEdit = () => {
         console.error('Error fetching locations:', error);
       }
     };
-    
+
     fetchLocations();
   }, []);
   

@@ -34,7 +34,17 @@ import {
   Group,
   TrendingUp,
   Star,
-  AccessTime
+  AccessTime,
+  Analytics,
+  Calculate,
+  Functions,
+  Timeline,
+  Place,
+  Sports,
+  Schedule,
+  School,
+  EmojiPeople,
+  Info
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -87,6 +97,7 @@ const EnhancedRecommendationCard = React.memo(({
   const navigate = useNavigate();
   const [feedback, setFeedback] = useState(recommendation?.existingFeedback || null);
   const [expanded, setExpanded] = useState(false);
+  const [scoreBreakdownExpanded, setScoreBreakdownExpanded] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(!!recommendation?.existingFeedback);
 
   // Update feedback state when recommendation changes (e.g., after giving feedback)
@@ -132,6 +143,91 @@ const EnhancedRecommendationCard = React.memo(({
   // Calculate spots remaining - use current_participants field like live matches
   const currentParticipants = match.current_participants || 0;
   const spotsRemaining = match.max_participants - currentParticipants;
+
+  // Score breakdown calculation
+  const scoreBreakdownData = React.useMemo(() => {
+    // Check if we have score_breakdown from the simplified recommendation service
+    if (score_breakdown) {
+      const weights = {
+        sports: 0.40,
+        faculty: 0.25,
+        skill: 0.20,
+        schedule: 0.10,
+        location: 0.05
+      };
+
+      return {
+        factors: [
+          {
+            label: 'Sports Compatibility',
+            icon: <Sports />,
+            score: score_breakdown.sports || 0,
+            weight: weights.sports,
+            weightedScore: (score_breakdown.sports || 0) * weights.sports,
+            description: score_breakdown.sports === 1 ?
+              'Perfect match - this sport is in your preferences' :
+              score_breakdown.sports > 0.7 ?
+              'Good match - similar to your preferred sports' :
+              score_breakdown.sports > 0.3 ?
+              'Moderate match - related sport category' :
+              'Different sport - opportunity to try something new'
+          },
+          {
+            label: 'Faculty Similarity',
+            icon: <School />,
+            score: score_breakdown.faculty || 0,
+            weight: weights.faculty,
+            weightedScore: (score_breakdown.faculty || 0) * weights.faculty,
+            description: score_breakdown.faculty === 1 ?
+              'Same faculty - great for building connections' :
+              score_breakdown.faculty > 0.5 ?
+              'Related faculty - good networking opportunity' :
+              'Different faculty - chance to meet diverse students'
+          },
+          {
+            label: 'Skill Level Match',
+            icon: <Star />,
+            score: score_breakdown.skill || 0,
+            weight: weights.skill,
+            weightedScore: (score_breakdown.skill || 0) * weights.skill,
+            description: score_breakdown.skill === 1 ?
+              'Perfect skill match - ideal playing level' :
+              score_breakdown.skill > 0.7 ?
+              'Good skill match - compatible playing level' :
+              'Different skill level - opportunity to learn or teach'
+          },
+          {
+            label: 'Schedule Compatibility',
+            icon: <AccessTime />,
+            score: score_breakdown.schedule || 0,
+            weight: weights.schedule,
+            weightedScore: (score_breakdown.schedule || 0) * weights.schedule,
+            description: score_breakdown.schedule === 1 ?
+              'Perfect timing - matches your availability' :
+              score_breakdown.schedule > 0.5 ?
+              'Good timing - close to your preferred times' :
+              'Different timing - consider adjusting your schedule'
+          },
+          {
+            label: 'Location Proximity',
+            icon: <LocationOn />,
+            score: score_breakdown.location || 0,
+            weight: weights.location,
+            weightedScore: (score_breakdown.location || 0) * weights.location,
+            description: score_breakdown.location === 1 ?
+              'Same campus - very convenient location' :
+              score_breakdown.location > 0.5 ?
+              'Nearby location - easily accessible' :
+              'Different location - consider travel time'
+          }
+        ],
+        totalScore: displayScore,
+        methodology: 'Weighted scoring system that evaluates multiple compatibility factors'
+      };
+    }
+
+    return null;
+  }, [score_breakdown, displayScore]);
   
   const handleFeedback = async (type) => {
     // If feedback already exists, don't allow changes (locking mechanism)
@@ -346,6 +442,242 @@ const EnhancedRecommendationCard = React.memo(({
           {currentParticipants}/{match.max_participants} players • {spotsRemaining} spots left
         </Typography>
       </Box>
+
+      {/* Score Breakdown Section */}
+      {scoreBreakdownData && (
+        <Box sx={{ mb: 2 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              p: 1.5,
+              borderRadius: 2,
+              backgroundColor: 'rgba(248, 250, 252, 0.8)',
+              border: '1px solid rgba(226, 232, 240, 0.6)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                backgroundColor: 'rgba(248, 250, 252, 1)',
+                border: '1px solid rgba(203, 213, 225, 0.8)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+              }
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setScoreBreakdownExpanded(!scoreBreakdownExpanded);
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Info sx={{ color: '#64748b', fontSize: 18 }} />
+              <Typography
+                variant="body2"
+                sx={{
+                  fontFamily: 'Libre Baskerville, serif',
+                  fontWeight: 500,
+                  color: '#475569',
+                  letterSpacing: '0.01em'
+                }}
+              >
+                Similarities Overview
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: '#64748b',
+                  fontFamily: 'Poppins, sans-serif',
+                  fontSize: '0.75rem',
+                  fontWeight: 500
+                }}
+              >
+                {scoreBreakdownExpanded ? 'Hide breakdown' : 'View breakdown'}
+              </Typography>
+              {scoreBreakdownExpanded ?
+                <ExpandLess sx={{ color: '#64748b', fontSize: 18 }} /> :
+                <ExpandMore sx={{ color: '#64748b', fontSize: 18 }} />
+              }
+            </Box>
+          </Box>
+
+          <Collapse in={scoreBreakdownExpanded}>
+            <Box sx={{
+              mt: 1.5,
+              p: 3,
+              backgroundColor: 'rgba(255, 255, 255, 0.7)',
+              borderRadius: 3,
+              border: '1px solid rgba(226, 232, 240, 0.4)',
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.02)'
+            }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  mb: 3,
+                  fontFamily: 'Poppins, sans-serif',
+                  color: '#64748b',
+                  fontSize: '0.875rem',
+                  lineHeight: 1.6,
+                  textAlign: 'center',
+                  fontWeight: 400
+                }}
+              >
+                {scoreBreakdownData.methodology}
+              </Typography>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                {scoreBreakdownData.factors.map((factor, index) => (
+                  <Box key={index} sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    p: 2.5,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    borderRadius: 2,
+                    border: '1px solid rgba(241, 245, 249, 0.8)',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      boxShadow: '0 2px 12px rgba(0, 0, 0, 0.03)'
+                    }
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 20 }}>
+                      {React.cloneElement(factor.icon, {
+                        sx: { color: '#64748b', fontSize: 20 }
+                      })}
+                    </Box>
+
+                    <Box sx={{ flex: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontFamily: 'Libre Baskerville, serif',
+                            fontWeight: 500,
+                            color: '#334155',
+                            fontSize: '0.9rem',
+                            letterSpacing: '0.01em'
+                          }}
+                        >
+                          {factor.label}
+                        </Typography>
+                        <Chip
+                          label={`${Math.round(factor.weight * 100)}%`}
+                          size="small"
+                          variant="outlined"
+                          sx={{
+                            height: 22,
+                            fontSize: '0.7rem',
+                            fontWeight: 500,
+                            borderColor: 'rgba(148, 163, 184, 0.4)',
+                            color: '#64748b',
+                            backgroundColor: 'rgba(248, 250, 252, 0.8)',
+                            '& .MuiChip-label': {
+                              px: 1
+                            }
+                          }}
+                        />
+                      </Box>
+
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: '#64748b',
+                          fontFamily: 'Poppins, sans-serif',
+                          display: 'block',
+                          mb: 1.5,
+                          fontSize: '0.8rem',
+                          lineHeight: 1.5,
+                          fontWeight: 400
+                        }}
+                      >
+                        {factor.description}
+                      </Typography>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <Box sx={{ flex: 1 }}>
+                          <LinearProgress
+                            variant="determinate"
+                            value={factor.score * 100}
+                            sx={{
+                              height: 6,
+                              borderRadius: 3,
+                              backgroundColor: 'rgba(226, 232, 240, 0.4)',
+                              '& .MuiLinearProgress-bar': {
+                                backgroundColor: factor.score > 0.7 ? 'rgba(34, 197, 94, 0.8)' :
+                                              factor.score > 0.4 ? 'rgba(251, 146, 60, 0.8)' :
+                                              'rgba(239, 68, 68, 0.8)',
+                                borderRadius: 3,
+                                transition: 'all 0.3s ease'
+                              }
+                            }}
+                          />
+                        </Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontFamily: 'IBM Plex Mono, monospace',
+                            fontWeight: 500,
+                            minWidth: 90,
+                            textAlign: 'right',
+                            color: '#475569',
+                            fontSize: '0.75rem',
+                            letterSpacing: '0.02em'
+                          }}
+                        >
+                          {Math.round(factor.score * 100)}% × {Math.round(factor.weight * 100)}% = {Math.round(factor.weightedScore * 100)}%
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+
+              <Divider sx={{ my: 3, borderColor: 'rgba(226, 232, 240, 0.3)' }} />
+
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                p: 2.5,
+                backgroundColor: 'linear-gradient(135deg, rgba(71, 85, 105, 0.95) 0%, rgba(51, 65, 85, 0.95) 100%)',
+                background: 'linear-gradient(135deg, #475569 0%, #334155 100%)',
+                borderRadius: 3,
+                color: 'white',
+                boxShadow: '0 4px 20px rgba(71, 85, 105, 0.15)'
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Calculate sx={{ fontSize: 18, opacity: 0.9 }} />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontFamily: 'Libre Baskerville, serif',
+                      fontWeight: 500,
+                      fontSize: '0.9rem',
+                      letterSpacing: '0.01em',
+                      opacity: 0.95
+                    }}
+                  >
+                    Overall Compatibility
+                  </Typography>
+                </Box>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontFamily: 'IBM Plex Mono, monospace',
+                    fontWeight: 600,
+                    fontSize: '1.1rem',
+                    letterSpacing: '0.02em'
+                  }}
+                >
+                  {Math.round(scoreBreakdownData.totalScore * 100)}%
+                </Typography>
+              </Box>
+            </Box>
+          </Collapse>
+        </Box>
+      )}
       
       {/* Recommendation Factors (Expandable) */}
       {preferenceFactors.length > 0 && (

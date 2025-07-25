@@ -45,7 +45,12 @@ import {
   Schedule,
   Star,
   Person,
-  Info
+  Info,
+  Analytics,
+  Calculate,
+  Functions,
+  Timeline,
+  Place
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 
@@ -106,6 +111,7 @@ const RecommendationCard = memo(({
 
   const [feedback, setFeedback] = useState(null);
   const [expanded, setExpanded] = useState(false);
+  const [scoreBreakdownExpanded, setScoreBreakdownExpanded] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(false);
 
   // Memoize date formatting functions
@@ -126,6 +132,91 @@ const RecommendationCard = memo(({
       hour12: true
     });
   }, []);
+
+  // Memoize score breakdown calculation
+  const scoreBreakdownData = useMemo(() => {
+    // Check if we have score_breakdown from the simplified recommendation service
+    if (score_breakdown) {
+      const weights = {
+        sports: 0.40,
+        faculty: 0.25,
+        skill: 0.20,
+        schedule: 0.10,
+        location: 0.05
+      };
+
+      return {
+        factors: [
+          {
+            label: 'Sports Compatibility',
+            icon: <Sports sx={{ color: '#dc2626' }} />,
+            score: score_breakdown.sports || 0,
+            weight: weights.sports,
+            weightedScore: (score_breakdown.sports || 0) * weights.sports,
+            description: score_breakdown.sports === 1 ?
+              'Perfect match - this sport is in your preferences' :
+              score_breakdown.sports > 0.7 ?
+              'Good match - similar to your preferred sports' :
+              score_breakdown.sports > 0.3 ?
+              'Moderate match - related sport category' :
+              'Different sport - opportunity to try something new'
+          },
+          {
+            label: 'Faculty Similarity',
+            icon: <School sx={{ color: '#dc2626' }} />,
+            score: score_breakdown.faculty || 0,
+            weight: weights.faculty,
+            weightedScore: (score_breakdown.faculty || 0) * weights.faculty,
+            description: score_breakdown.faculty === 1 ?
+              'Same faculty - great for building connections' :
+              score_breakdown.faculty > 0.5 ?
+              'Related faculty - good networking opportunity' :
+              'Different faculty - chance to meet diverse students'
+          },
+          {
+            label: 'Skill Level Match',
+            icon: <TrendingUp sx={{ color: '#dc2626' }} />,
+            score: score_breakdown.skill || 0,
+            weight: weights.skill,
+            weightedScore: (score_breakdown.skill || 0) * weights.skill,
+            description: score_breakdown.skill === 1 ?
+              'Perfect skill match - ideal playing level' :
+              score_breakdown.skill > 0.7 ?
+              'Good skill match - compatible playing level' :
+              'Different skill level - opportunity to learn or teach'
+          },
+          {
+            label: 'Schedule Compatibility',
+            icon: <Schedule sx={{ color: '#dc2626' }} />,
+            score: score_breakdown.schedule || 0,
+            weight: weights.schedule,
+            weightedScore: (score_breakdown.schedule || 0) * weights.schedule,
+            description: score_breakdown.schedule === 1 ?
+              'Perfect timing - matches your availability' :
+              score_breakdown.schedule > 0.5 ?
+              'Good timing - close to your preferred times' :
+              'Different timing - consider adjusting your schedule'
+          },
+          {
+            label: 'Location Proximity',
+            icon: <Place sx={{ color: '#dc2626' }} />,
+            score: score_breakdown.location || 0,
+            weight: weights.location,
+            weightedScore: (score_breakdown.location || 0) * weights.location,
+            description: score_breakdown.location === 1 ?
+              'Same campus - very convenient location' :
+              score_breakdown.location > 0.5 ?
+              'Nearby location - easily accessible' :
+              'Different location - consider travel time'
+          }
+        ],
+        totalScore: displayScore,
+        methodology: 'Weighted scoring system that evaluates multiple compatibility factors'
+      };
+    }
+
+    return null;
+  }, [score_breakdown, displayScore]);
 
   const handleFeedback = useCallback(async (type) => {
     // If already selected, allow toggling off
@@ -626,6 +717,201 @@ const RecommendationCard = memo(({
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {explanation || "Recommended based on your preferences"}
         </Typography>
+
+        {/* Score Breakdown Section */}
+        {scoreBreakdownData && (
+          <Box sx={{ mb: 2 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                p: 1,
+                borderRadius: 1,
+                backgroundColor: 'rgba(220, 38, 38, 0.04)',
+                border: '1px solid rgba(220, 38, 38, 0.12)',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: 'rgba(220, 38, 38, 0.08)',
+                  border: '1px solid rgba(220, 38, 38, 0.2)'
+                }
+              }}
+              onClick={() => setScoreBreakdownExpanded(!scoreBreakdownExpanded)}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Analytics sx={{ color: '#dc2626', fontSize: 20 }} />
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontFamily: 'Libre Baskerville, serif',
+                    fontWeight: 600,
+                    color: '#dc2626'
+                  }}
+                >
+                  How is this {Math.round(displayScore * 100)}% calculated?
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'text.secondary',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}
+                >
+                  {scoreBreakdownExpanded ? 'Hide details' : 'Show details'}
+                </Typography>
+                {scoreBreakdownExpanded ?
+                  <ExpandLess sx={{ color: '#dc2626' }} /> :
+                  <ExpandMore sx={{ color: '#dc2626' }} />
+                }
+              </Box>
+            </Box>
+
+            <Collapse in={scoreBreakdownExpanded}>
+              <Box sx={{
+                mt: 2,
+                p: 2,
+                backgroundColor: '#fef7f0',
+                borderRadius: 2,
+                border: '1px solid #fed7aa'
+              }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    mb: 2,
+                    fontFamily: 'Poppins, sans-serif',
+                    color: 'text.secondary',
+                    fontStyle: 'italic'
+                  }}
+                >
+                  {scoreBreakdownData.methodology}
+                </Typography>
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {scoreBreakdownData.factors.map((factor, index) => (
+                    <Box key={index} sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2,
+                      p: 1.5,
+                      backgroundColor: 'white',
+                      borderRadius: 1,
+                      border: '1px solid #f3f4f6'
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 24 }}>
+                        {factor.icon}
+                      </Box>
+
+                      <Box sx={{ flex: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontFamily: 'Poppins, sans-serif',
+                              fontWeight: 600,
+                              color: 'text.primary'
+                            }}
+                          >
+                            {factor.label}
+                          </Typography>
+                          <Chip
+                            label={`Weight: ${Math.round(factor.weight * 100)}%`}
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              height: 20,
+                              fontSize: '0.65rem',
+                              borderColor: '#dc2626',
+                              color: '#dc2626'
+                            }}
+                          />
+                        </Box>
+
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: 'text.secondary',
+                            fontFamily: 'Poppins, sans-serif',
+                            display: 'block',
+                            mb: 1
+                          }}
+                        >
+                          {factor.description}
+                        </Typography>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Box sx={{ flex: 1 }}>
+                            <LinearProgress
+                              variant="determinate"
+                              value={factor.score * 100}
+                              sx={{
+                                height: 8,
+                                borderRadius: 4,
+                                backgroundColor: '#f3f4f6',
+                                '& .MuiLinearProgress-bar': {
+                                  backgroundColor: factor.score > 0.7 ? '#10b981' :
+                                                factor.score > 0.4 ? '#f59e0b' : '#ef4444',
+                                  borderRadius: 4
+                                }
+                              }}
+                            />
+                          </Box>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontFamily: 'IBM Plex Mono, monospace',
+                              fontWeight: 600,
+                              minWidth: 80,
+                              textAlign: 'right'
+                            }}
+                          >
+                            {Math.round(factor.score * 100)}% × {Math.round(factor.weight * 100)}% = {Math.round(factor.weightedScore * 100)}%
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+
+                <Divider sx={{ my: 2, borderColor: '#fed7aa' }} />
+
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  p: 1.5,
+                  backgroundColor: '#dc2626',
+                  borderRadius: 1,
+                  color: 'white'
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Calculate sx={{ fontSize: 20 }} />
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontFamily: 'Libre Baskerville, serif',
+                        fontWeight: 600
+                      }}
+                    >
+                      Final Calculated Score
+                    </Typography>
+                  </Box>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontFamily: 'IBM Plex Mono, monospace',
+                      fontWeight: 700
+                    }}
+                  >
+                    {Math.round(scoreBreakdownData.totalScore * 100)}%
+                  </Typography>
+                </Box>
+              </Box>
+            </Collapse>
+          </Box>
+        )}
         
         {/* Preference factors */}
         {preferenceFactors && preferenceFactors.length > 0 && (

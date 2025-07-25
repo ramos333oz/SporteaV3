@@ -79,18 +79,25 @@ async function getRecommendations(userId, options = {}) {
       if (edgeResult && edgeResult.recommendations) {
         log(`Edge function returned ${edgeResult.recommendations.length} recommendations`);
 
-        // Format the response to match expected structure
-        const formattedResponse = {
-          recommendations: edgeResult.recommendations,
-          metadata: edgeResult.metadata,
-          type: 'simplified_direct_matching'
-        };
+        // If edge function returns results, use them
+        if (edgeResult.recommendations.length > 0) {
+          // Format the response to match expected structure
+          const formattedResponse = {
+            recommendations: edgeResult.recommendations,
+            metadata: edgeResult.metadata,
+            type: 'simplified_direct_matching'
+          };
 
-        // Cache results
-        cacheResults(userId, formattedResponse);
+          // Cache results
+          cacheResults(userId, formattedResponse);
 
-        log(`=== SIMPLIFIED RECOMMENDATIONS END (Edge Function) ===`);
-        return formattedResponse;
+          log(`=== SIMPLIFIED RECOMMENDATIONS END (Edge Function) ===`);
+          return formattedResponse;
+        } else {
+          // Edge function returned 0 results, fall back to local calculation
+          log('Edge function returned 0 results, falling back to local calculation');
+          throw new Error('Edge function returned no results, using local fallback');
+        }
       }
     } catch (edgeError) {
       log('Edge function failed, falling back to local calculation:', edgeError);
