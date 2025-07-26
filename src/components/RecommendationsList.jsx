@@ -125,7 +125,12 @@ const RecommendationsList = React.memo(({ limit = 5, onError = () => {} }) => {
             existingFeedback: feedbackMap[rec.id] || null
           }));
 
-          setRecommendations(recommendationsWithFeedback);
+          // Sort by similarity score (highest to lowest) for left-to-right display
+          const sortedRecommendations = recommendationsWithFeedback.sort((a, b) =>
+            (b.similarity_score || 0) - (a.similarity_score || 0)
+          );
+
+          setRecommendations(sortedRecommendations);
           setMessage(result.message || 'Based on your preferences');
 
           // If using fallback data from the recommendation service, show an indicator
@@ -393,12 +398,14 @@ const RecommendationsList = React.memo(({ limit = 5, onError = () => {} }) => {
     window.addEventListener('sportea:user-preferences-updated', handleUserPreferenceUpdate);
     window.addEventListener('sportea:match-updated', handleMatchUpdate);
     window.addEventListener('sportea:master-refresh', handleMasterRefresh);
+    window.addEventListener('sportea:participation', handleMasterRefresh); // Refresh when participation changes
 
     // Cleanup listeners
     return () => {
       window.removeEventListener('sportea:user-preferences-updated', handleUserPreferenceUpdate);
       window.removeEventListener('sportea:match-updated', handleMatchUpdate);
       window.removeEventListener('sportea:master-refresh', handleMasterRefresh);
+      window.removeEventListener('sportea:participation', handleMasterRefresh);
     };
   }, [user?.id, handleUserPreferenceUpdate, handleMatchUpdate, handleMasterRefresh]);
 
@@ -612,17 +619,49 @@ const RecommendationsList = React.memo(({ limit = 5, onError = () => {} }) => {
         </IconButton>
       </Box>
       
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {recommendations.map((recommendation) => (
-          <EnhancedRecommendationCard
-            key={recommendation.match.id}
-            recommendation={recommendation}
-            isFallback={usingFallback}
-            metrics={metrics}
-            recommendationType={recommendationType}
-            onFeedback={onFeedback}
-          />
-        ))}
+      {/* Horizontal scrolling match recommendations */}
+      <Box sx={{ position: 'relative' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+            overflowX: 'auto',
+            pb: 2,
+            '&::-webkit-scrollbar': {
+              height: 8,
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: '#f3f4f6',
+              borderRadius: 4,
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: '#d1d5db',
+              borderRadius: 4,
+              '&:hover': {
+                backgroundColor: '#9ca3af',
+              },
+            },
+          }}
+        >
+          {recommendations.map((recommendation) => (
+            <Box
+              key={recommendation.match.id}
+              sx={{
+                minWidth: 320,
+                maxWidth: 320,
+                flexShrink: 0,
+              }}
+            >
+              <EnhancedRecommendationCard
+                recommendation={recommendation}
+                isFallback={usingFallback}
+                metrics={metrics}
+                recommendationType={recommendationType}
+                onFeedback={onFeedback}
+              />
+            </Box>
+          ))}
+        </Box>
       </Box>
       
       <Snackbar

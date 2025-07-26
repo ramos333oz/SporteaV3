@@ -24,6 +24,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { useProductionRealtime } from '../hooks/useProductionRealtime';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, friendshipService } from '../services/supabase';
+import { notificationService } from '../services/notifications';
 import { participantService } from '../services/supabase';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -152,29 +153,20 @@ const NotificationPanel = () => {
       setLoading(true);
 
       try {
-        // Get notifications with more detailed data to help debugging
-        const { data, error } = await supabase
-          .from('notifications')
-          .select(`
-            *,
-            sender:users(id, full_name, username, avatar_url)
-          `)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(20);
+        console.log('[NotificationPanel] Loading initial notifications for user:', user.id);
+        const notifications = await notificationService.getNotifications(user.id);
 
-        if (error) throw error;
+        console.log('[NotificationPanel] Initial notifications loaded:', notifications?.length || 0);
+        setNotifications(notifications || []);
 
-        console.log('[NotificationPanel] Fetched notifications:', data);
-
-        setNotifications(data || []);
-
-        // Count unread notifications (exclude processed notifications)
-        const unread = data ? data.filter(n => !n.is_read && !n.processed).length : 0;
-        console.log('[NotificationPanel] Setting unread count:', unread, 'from', data?.length, 'total notifications');
+        // Calculate unread count
+        const unread = (notifications || []).filter(n => !n.is_read).length;
         setUnreadCount(unread);
+        console.log('[NotificationPanel] Initial unread count:', unread);
       } catch (err) {
-        console.error('Error fetching notifications:', err);
+        console.error('Error loading initial notifications:', err);
+        setNotifications([]);
+        setUnreadCount(0);
       } finally {
         setLoading(false);
       }
@@ -189,21 +181,13 @@ const NotificationPanel = () => {
 
     const fetchNotifications = async () => {
       try {
-        const { data, error } = await supabase
-          .from('notifications')
-          .select(`
-            *,
-            sender:users(id, full_name, username, avatar_url)
-          `)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(20);
+        console.log('[NotificationPanel] Refreshing notifications when panel opened');
+        const notifications = await notificationService.getNotifications(user.id);
 
-        if (error) throw error;
-
-        setNotifications(data || []);
-        const unread = data ? data.filter(n => !n.is_read && !n.processed).length : 0;
+        setNotifications(notifications || []);
+        const unread = (notifications || []).filter(n => !n.is_read).length;
         setUnreadCount(unread);
+        console.log('[NotificationPanel] Refreshed notifications, unread count:', unread);
       } catch (err) {
         console.error('Error refreshing notifications:', err);
       }
@@ -302,34 +286,25 @@ const NotificationPanel = () => {
     window.addEventListener('sportea:friendship_status_changed', handleFriendshipStatusChange);
     console.log(`[NotificationPanel] Subscribed to production notification events`);
 
-    // Refresh notifications on connection change
+    // Refresh notifications on connection change using unified service
     if (connectionState.isConnected) {
       const fetchNotifications = async () => {
         try {
-          const { data, error } = await supabase
-            .from('notifications')
-            .select(`
-              *,
-              sender:users(id, full_name, username, avatar_url)
-            `)
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(20);
-            
-          if (error) throw error;
-          
-          console.log('[NotificationPanel] Refreshed notifications on connection change:', data?.length || 0);
-          
-          if (data && data.length > 0) {
-            setNotifications(data);
-            const unread = data.filter(n => !n.is_read && !n.processed).length;
+          console.log('[NotificationPanel] Refreshing notifications on connection change');
+          const notifications = await notificationService.getNotifications(user.id);
+
+          console.log('[NotificationPanel] Refreshed notifications on connection change:', notifications?.length || 0);
+
+          if (notifications && notifications.length > 0) {
+            setNotifications(notifications);
+            const unread = notifications.filter(n => !n.is_read).length;
             setUnreadCount(unread);
           }
         } catch (err) {
           console.error('[NotificationPanel] Error refreshing notifications:', err);
         }
       };
-      
+
       fetchNotifications();
     }
     
@@ -346,26 +321,22 @@ const NotificationPanel = () => {
 
     const refreshUnreadCount = async () => {
       try {
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('id, is_read')
-          .eq('user_id', user.id)
-          .eq('is_read', false);
+        const result = await notificationService.getUnreadCount();
 
-        if (error) throw error;
+        if (result.success) {
+          const currentUnreadCount = result.count;
+          console.log('[NotificationPanel] Periodic refresh - unread count:', currentUnreadCount);
 
-        const currentUnreadCount = data?.length || 0;
-        console.log('[NotificationPanel] Periodic refresh - unread count:', currentUnreadCount);
-
-        setUnreadCount(prev => {
-          if (prev !== currentUnreadCount) {
-            console.log('[NotificationPanel] Updating unread count from', prev, 'to', currentUnreadCount);
-            return currentUnreadCount;
-          }
-          return prev;
-        });
+          setUnreadCount(prev => {
+            if (prev !== currentUnreadCount) {
+              console.log('[NotificationPanel] Updating unread count from', prev, 'to', currentUnreadCount);
+              return currentUnreadCount;
+            }
+            return prev;
+          });
+        }
       } catch (err) {
-        console.error('[NotificationPanel] Error in periodic refresh:', err);
+        console.error('[NotificationPanel] Error refreshing unread count:', err);
       }
     };
 

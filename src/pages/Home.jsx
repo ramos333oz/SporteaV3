@@ -229,6 +229,32 @@ const Home = () => {
   // Production-optimized real-time subscriptions
   const { connectionState } = useProductionRealtime();
 
+  // Set up global event listeners for cross-component synchronization
+  useEffect(() => {
+    const handleGlobalParticipationUpdate = (event) => {
+      console.log('[Home] Global participation update received:', event.detail);
+      // Refresh joined matches and upcoming matches when participation changes
+      fetchJoinedMatches();
+      fetchUpcomingMatches();
+    };
+
+    const handleGlobalMatchUpdate = (event) => {
+      console.log('[Home] Global match update received:', event.detail);
+      // Refresh upcoming matches when match data changes
+      fetchUpcomingMatches();
+    };
+
+    // Subscribe to global events
+    window.addEventListener('sportea:participation', handleGlobalParticipationUpdate);
+    window.addEventListener('sportea:match-update', handleGlobalMatchUpdate);
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener('sportea:participation', handleGlobalParticipationUpdate);
+      window.removeEventListener('sportea:match-update', handleGlobalMatchUpdate);
+    };
+  }, [fetchJoinedMatches, fetchUpcomingMatches]);
+
   useEffect(() => {
     // Real-time subscriptions are now managed centrally by the production service
     // No need for component-specific subscriptions - events are handled globally
@@ -339,7 +365,7 @@ const Home = () => {
       
       {/* Personalized match recommendations */}
       <RecommendationsList
-        limit={3}
+        limit={5}
         onError={(err) => console.error('Recommendation error:', err)}
       />
 

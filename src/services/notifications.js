@@ -30,7 +30,7 @@ export const notificationService = {
         .order('created_at', { ascending: false });
         
       if (unreadOnly) {
-        query = query.eq('read', false);
+        query = query.eq('is_read', false);
       }
       
       const { data, error } = await query;
@@ -69,7 +69,7 @@ export const notificationService = {
       
       const { data, error } = await supabase
         .from('notifications')
-        .update({ read: true })
+        .update({ is_read: true })
         .eq('id', notificationId)
         .select();
         
@@ -100,9 +100,9 @@ export const notificationService = {
       
       const { data, error } = await supabase
         .from('notifications')
-        .update({ read: true })
+        .update({ is_read: true })
         .eq('user_id', userId)
-        .eq('read', false);
+        .eq('is_read', false);
         
       if (error) {
         console.error('Error marking all notifications as read:', error);
@@ -221,6 +221,120 @@ export const notificationService = {
         message: 'Failed to delete notification',
         error
       };
+    }
+  },
+
+  /**
+   * Create friend request notification
+   * @param {string} recipientId - User ID to receive the notification
+   * @param {string} senderId - User ID sending the friend request
+   * @param {string} senderName - Name of the sender
+   * @returns {Promise<Object>} Result
+   */
+  createFriendRequestNotification: async (recipientId, senderId, senderName) => {
+    try {
+      return await notificationService.createNotification({
+        user_id: recipientId,
+        title: 'Friend Request',
+        type: 'friend_request',
+        content: `${senderName} sent you a friend request`,
+        sender_id: senderId
+      });
+    } catch (error) {
+      console.error('Error creating friend request notification:', error);
+      return { success: false, error };
+    }
+  },
+
+  /**
+   * Create friend request accepted notification
+   * @param {string} recipientId - User ID to receive the notification
+   * @param {string} senderId - User ID who accepted the request
+   * @param {string} senderName - Name of the sender
+   * @returns {Promise<Object>} Result
+   */
+  createFriendRequestAcceptedNotification: async (recipientId, senderId, senderName) => {
+    try {
+      return await notificationService.createNotification({
+        user_id: recipientId,
+        title: 'Friend Request Accepted',
+        type: 'friend_request_accepted',
+        content: `${senderName} accepted your friend request`,
+        sender_id: senderId
+      });
+    } catch (error) {
+      console.error('Error creating friend request accepted notification:', error);
+      return { success: false, error };
+    }
+  },
+
+  /**
+   * Create match invitation notification
+   * @param {string} recipientId - User ID to receive the notification
+   * @param {string} senderId - User ID sending the invitation
+   * @param {string} matchId - Match ID
+   * @param {string} matchTitle - Match title
+   * @param {string} senderName - Name of the sender
+   * @returns {Promise<Object>} Result
+   */
+  createMatchInvitationNotification: async (recipientId, senderId, matchId, matchTitle, senderName) => {
+    try {
+      return await notificationService.createNotification({
+        user_id: recipientId,
+        title: 'Match Invitation',
+        type: 'match_invitation',
+        content: `${senderName} invited you to join "${matchTitle}"`,
+        match_id: matchId,
+        sender_id: senderId
+      });
+    } catch (error) {
+      console.error('Error creating match invitation notification:', error);
+      return { success: false, error };
+    }
+  },
+
+  /**
+   * Subscribe to real-time notifications for a user
+   * @param {string} userId - User ID
+   * @param {Function} callback - Callback function to handle new notifications
+   * @returns {Object} Subscription object
+   */
+  subscribeToNotifications: (userId, callback) => {
+    try {
+      const subscription = supabase
+        .channel(`notifications:${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${userId}`
+          },
+          (payload) => {
+            console.log('New notification received:', payload);
+            callback(payload.new);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${userId}`
+          },
+          (payload) => {
+            console.log('Notification updated:', payload);
+            callback(payload.new, 'UPDATE');
+          }
+        )
+        .subscribe();
+
+      return subscription;
+    } catch (error) {
+      console.error('Error subscribing to notifications:', error);
+      return null;
     }
   }
 };

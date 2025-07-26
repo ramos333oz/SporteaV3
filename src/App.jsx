@@ -279,116 +279,21 @@ class ErrorBoundary extends React.Component {
 // Component to handle root path redirects based on authentication state
 const RootRedirect = () => {
   const { user, loading } = useAuth();
-  const [timeoutElapsed, setTimeoutElapsed] = React.useState(false);
-  const [directSessionCheck, setDirectSessionCheck] = React.useState({ completed: false, hasSession: false });
-  const navigate = useNavigate(); // Now this is inside Router context
-  
-  console.log('RootRedirect - Auth state:', { user, loading, timeoutElapsed, directCheck: directSessionCheck });
-  
-  // FIXED: Check session directly with Supabase
-  React.useEffect(() => {
-    // Only run this check if we're loading and haven't done the direct check yet
-    if (loading && !directSessionCheck.completed) {
-      const checkSessionDirectly = async () => {
-        try {
-          console.log('RootRedirect - Checking session directly with Supabase');
-          const { data } = await supabase.auth.getSession();
-          const hasSession = !!data?.session;
-          console.log('RootRedirect - Direct session check result:', hasSession ? 'Has session' : 'No session');
-          
-          setDirectSessionCheck({ completed: true, hasSession });
-          
-          // If we have a session but context doesn't show user, force navigation
-          if (hasSession && !user) {
-            console.log('RootRedirect - Session exists but context missing, forcing navigation to /home');
-            // Use direct navigate call to bypass React Router issues
-            navigate('/home', { replace: true });
-          }
-        } catch (error) {
-          console.error('RootRedirect - Error checking session:', error);
-          setDirectSessionCheck({ completed: true, hasSession: false });
-        }
-      };
-      
-      checkSessionDirectly();
-    }
-  }, [loading, user, directSessionCheck.completed, navigate]);
-  
-  // Safety timeout to prevent infinite loading
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      if (loading) {
-        console.log('RootRedirect - Safety timeout triggered');
-        setTimeoutElapsed(true);
-        
-        // If timeout elapsed and we haven't done a direct check, force one now
-        if (!directSessionCheck.completed) {
-          supabase.auth.getSession().then(({ data }) => {
-            const hasSession = !!data?.session;
-            console.log('RootRedirect - Timeout expired, emergency session check:', hasSession ? 'Has session' : 'No session');
-            
-            // Force navigation based on direct session check
-            if (hasSession) {
-              console.log('RootRedirect - Emergency navigation to /home');
-              navigate('/home', { replace: true });
-            } else {
-              console.log('RootRedirect - Emergency navigation to /login');
-              navigate('/login', { replace: true });
-            }
-          });
-        }
-      }
-    }, 2000);
-    
-    return () => clearTimeout(timer);
-  }, [loading, directSessionCheck.completed, navigate]);
-  
-  // If direct check completed and we have a session, go to home
-  if (directSessionCheck.completed && directSessionCheck.hasSession) {
-    console.log('RootRedirect - Direct check says we have a session, going to /home');
-    return <Navigate to="/home" replace />;
-  }
-  
-  // If still loading auth state and timeout hasn't elapsed, show a loading indicator
-  if ((loading && !timeoutElapsed) || (!directSessionCheck.completed && !timeoutElapsed)) {
+
+  console.log('RootRedirect - Auth state:', { user: !!user, loading });
+
+  // Show loading while authentication is being determined
+  if (loading) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100vh',
-          backgroundColor: 'background.default'
-        }}
-      >
-        <CircularProgress color="primary" size={60} thickness={4} sx={{ mb: 3 }} />
-        <Typography variant="h2" color="primary" gutterBottom>
-          Sportea
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Loading your sports experience...
-        </Typography>
-        {timeoutElapsed && (
-          <Button 
-            variant="contained" 
-            sx={{ mt: 3 }}
-            onClick={() => {
-              // Force navigation to home if timeout elapsed
-              navigate('/home', { replace: true });
-            }}
-          >
-            Continue to App
-          </Button>
-        )}
+      <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress size={40} />
+        <Typography variant="h6" sx={{ mt: 2 }}>Loading your sports experience...</Typography>
       </Box>
     );
   }
-  
-  // If user is authenticated or we have a session, redirect to home, otherwise to login
-  return user || directSessionCheck.hasSession ? 
-    <Navigate to="/home" replace /> : 
-    <Navigate to="/login" replace />;
+
+  // Redirect based on authentication state
+  return user ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />;
 };
 
 function App() {

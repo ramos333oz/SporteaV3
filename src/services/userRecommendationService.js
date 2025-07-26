@@ -110,20 +110,23 @@ async function getUserRecommendations(userId, options = {}) {
       // Continue without filtering if there's an error
     }
 
-    // Create a set of user IDs that should be excluded (friends and pending requests)
+    // Create a set of user IDs that should be excluded (only active relationships)
     const excludedUserIds = new Set();
     if (existingFriendships) {
       existingFriendships.forEach(friendship => {
-        // Add the other user in the friendship to the excluded set
-        const otherUserId = friendship.user_id === userId ? friendship.friend_id : friendship.user_id;
-        excludedUserIds.add(otherUserId);
+        // Only exclude users with active relationships (pending or accepted)
+        // Allow users with declined requests to appear in recommendations again
+        if (friendship.status === 'pending' || friendship.status === 'accepted') {
+          const otherUserId = friendship.user_id === userId ? friendship.friend_id : friendship.user_id;
+          excludedUserIds.add(otherUserId);
+        }
       });
     }
 
     // Filter out excluded users
     const filteredUserIds = similarUserIds.filter(id => !excludedUserIds.has(id));
 
-    log(`Filtered out ${similarUserIds.length - filteredUserIds.length} users who are already friends or have pending requests`);
+    log(`Filtered out ${similarUserIds.length - filteredUserIds.length} users with active relationships (pending/accepted)`);
     log(`Remaining ${filteredUserIds.length} users for recommendations`);
 
     if (filteredUserIds.length === 0) {

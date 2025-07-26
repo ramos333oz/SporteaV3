@@ -14,131 +14,76 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     console.log('AuthProvider useEffect - Initializing');
 
-    // Simple function to fetch the current user
-    const getCurrentUser = async () => {
-      try {
-        const { data, error } = await supabase.auth.getUser();
-        if (error) {
-          console.error('Error getting current user:', error);
-          return null;
-        }
-        return data.user;
-      } catch (e) {
-        console.error('Exception getting current user:', e);
-        return null;
-      }
-    };
+    let mounted = true; // Track if component is still mounted
 
-    // Initialize auth state
+    // Immediate session check and state update
     const initializeAuth = async () => {
-      setLoading(true);
       try {
-        // First check if we have a session
-        const { data: sessionData } = await supabase.auth.getSession();
-        console.log('Initial session check:', sessionData?.session ? 'Has session' : 'No session');
-        
-        // If we have a session, get the user
-        if (sessionData?.session) {
-          const currentUser = await getCurrentUser();
-          if (currentUser) {
-            console.log('User found:', currentUser.email);
-            setUser(currentUser);
-          } else {
-            console.log('No user found despite having a session');
-            setUser(null);
-          }
-        } else {
-          // Check for session-only storage (non-persistent sessions)
-          const sessionOnlyData = sessionStorage.getItem('sportea_auth_session');
-          if (sessionOnlyData) {
-            try {
-              const sessionData = JSON.parse(sessionOnlyData);
-              console.log('Found session-only data, restoring non-persistent session');
+        console.log('Getting initial session...');
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-              // Restore the session
-              const { data, error: setSessionError } = await supabase.auth.setSession({
-                access_token: sessionData.access_token,
-                refresh_token: sessionData.refresh_token
-              });
+        if (!mounted) return; // Component unmounted, don't update state
 
-              if (setSessionError) {
-                console.error('Error restoring session-only data:', setSessionError);
-                sessionStorage.removeItem('sportea_auth_session');
-                setUser(null);
-              } else if (data.session) {
-                console.log('Session-only data restored successfully');
-                const currentUser = await getCurrentUser();
-                if (currentUser) {
-                  setUser(currentUser);
-                } else {
-                  setUser(null);
-                }
-              }
-            } catch (parseError) {
-              console.error('Error parsing session-only data:', parseError);
-              sessionStorage.removeItem('sportea_auth_session');
-              setUser(null);
-            }
-          } else {
-            console.log('No active session');
-            setUser(null);
-          }
+        if (error) {
+          console.error('Session error:', error);
+          setError(error.message);
+          setUser(null);
+          setLoading(false);
+          return;
         }
+
+        if (session?.user) {
+          console.log('Initial session found for:', session.user.email);
+          setUser(session.user);
+          setError(null);
+        } else {
+          console.log('No initial session found');
+          setUser(null);
+          setError(null);
+        }
+
+        setLoading(false);
+        setAuthInitialized(true);
+
       } catch (error) {
         console.error('Error initializing auth:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-        setAuthInitialized(true); // Mark auth as initialized
+        if (mounted) {
+          setError(error.message);
+          setUser(null);
+          setLoading(false);
+          setAuthInitialized(true);
+        }
       }
     };
 
     // Set up auth state change listener
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log(`Auth state changed: ${event}`, session ? 'Has session' : 'No session');
-      
-      if (event === 'SIGNED_IN') {
-        // When signed in, get and set the user
-        getCurrentUser().then(user => {
-          if (user) {
-            console.log('User signed in:', user.email);
-            setUser(user);
-          }
-          setLoading(false);
-        });
-      } else if (event === 'SIGNED_OUT') {
-        console.log('User signed out');
-        setUser(null);
-        setLoading(false);
-      } else if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
-        // Update user data
-        getCurrentUser().then(user => {
-          if (user) {
-            console.log('User data updated:', user.email);
-            setUser(user);
-          }
-          setLoading(false);
-        });
-      }
-    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('Auth state changed:', event, session ? 'Has session' : 'No session');
 
-    // Initialize right away
+        if (!mounted) return; // Component unmounted, don't update state
+
+        // Immediately update state based on session
+        if (session?.user) {
+          setUser(session.user);
+          setError(null);
+        } else {
+          setUser(null);
+          setError(null);
+        }
+
+        // Ensure loading is false after any auth event
+        setLoading(false);
+      }
+    );
+
+    // Initialize auth immediately
     initializeAuth();
 
-    // Safety timeout to prevent infinite loading
-    const safetyTimeout = setTimeout(() => {
-      if (loading) {
-        console.warn('Auth loading safety timeout reached, forcing loading state to false');
-        setLoading(false);
-      }
-    }, 3000); // 3 second timeout
-
-    // Cleanup on unmount
+    // Cleanup function
     return () => {
-      if (authListener?.subscription) {
-        authListener.subscription.unsubscribe();
-      }
-      clearTimeout(safetyTimeout);
+      mounted = false;
+      subscription?.unsubscribe();
     };
   }, []);
 
@@ -234,22 +179,14 @@ export const AuthProvider = ({ children }) => {
 const signIn = async (email, password, rememberMe = true) => {
   console.log('Signing in user:', email, 'Remember Me:', rememberMe);
   setLoading(true);
-  setError(null); // Reset any previous errors
+  setError(null);
 
   try {
-    // Configure session persistence based on rememberMe preference
-    let authOptions = { email, password };
-
-    // If rememberMe is false, we need to use a different approach
-    // We'll still sign in normally but handle session storage differently
-    if (!rememberMe) {
-      // For non-persistent sessions, we'll clear the session from localStorage after sign in
-      // and rely on sessionStorage or in-memory storage
-      console.log('Non-persistent session requested');
-    }
-
-    // First attempt direct sign in which is the most common case
-    const { data, error } = await supabase.auth.signInWithPassword(authOptions);
+    // Simplified sign in - let Supabase handle session persistence
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
 
     if (error) {
       console.error('Sign in error:', error);
@@ -316,35 +253,9 @@ const signIn = async (email, password, rememberMe = true) => {
         }
       }
 
-      // Set user in state
+      // Set user in state - Supabase handles session persistence automatically
       setUser(data.user);
-
-      // Handle session persistence based on rememberMe preference
-      if (!rememberMe && data.session) {
-        console.log('Configuring non-persistent session');
-
-        // Store session data in sessionStorage instead of localStorage
-        // This will make the session expire when the browser is closed
-        const sessionData = {
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-          expires_at: data.session.expires_at,
-          user: data.session.user
-        };
-
-        // Clear the persistent storage
-        localStorage.removeItem('sportea_auth');
-        localStorage.removeItem('sb-fcwwuiitsghknsvnsrxp-auth-token');
-
-        // Store in sessionStorage (expires when browser closes)
-        sessionStorage.setItem('sportea_auth_session', JSON.stringify(sessionData));
-
-        console.log('Session configured for browser-session only (non-persistent)');
-      } else {
-        console.log('Session configured for persistent storage');
-        // Remove any session-only storage if remember me is enabled
-        sessionStorage.removeItem('sportea_auth_session');
-      }
+      console.log('Sign in successful for:', data.user.email);
 
       // Return success
       return { data, error: null };
@@ -370,15 +281,13 @@ const signOut = async () => {
 
     if (error) throw error;
 
-    // Clear both persistent and session-only storage
-    localStorage.removeItem('sportea_auth');
-    localStorage.removeItem('sb-fcwwuiitsghknsvnsrxp-auth-token');
-    sessionStorage.removeItem('sportea_auth_session');
-
     setUser(null);
+    setError(null);
+    console.log('User signed out successfully');
     return { error: null };
   } catch (error) {
     console.error('Error signing out:', error);
+    setError(error.message);
     return { error: error.message };
   } finally {
     setLoading(false);

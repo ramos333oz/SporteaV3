@@ -675,7 +675,7 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
           <>
             {/* Personalized Recommendations Section - Only shown in List View */}
             <RecommendationsList
-              limit={3}
+              limit={5}
               onError={(err) => console.error('Recommendation error:', err)}
             />
 
@@ -759,23 +759,54 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
                       </Box>
                 </Paper>
               ) : (
-                <Grid container spacing={2}>
-                  {/* Production logging optimization: Temporarily disable all logging for performance testing */}
-                  {/* {import.meta.env.DEV && console.log("Preparing to render filtered matches:", filteredMatches.length)} */}
-                  {/* Use the filteredMatches directly since it already includes user matches */}
-                  {filteredMatches.map((match) => {
-                    const isUserMatch = user && (match.host_id === user.id || match.isUserCreated === true);
-                    // Production logging optimization: Temporarily disable all logging for performance testing
-                    // if (import.meta.env.DEV) {
-                    //   console.log("Rendering match:", match.id, match.title, isUserMatch ? "(User Match)" : "");
-                    // }
-                    return (
-                      <Grid item xs={12} sm={6} md={4} key={match.id}>
-                        {renderMatchCard(match)}
-                      </Grid>
-                    );
-                  })}
-                </Grid>
+                /* Horizontal scrolling available matches (max 5) */
+                <Box sx={{ position: 'relative' }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 2,
+                      overflowX: 'auto',
+                      pb: 2,
+                      '&::-webkit-scrollbar': {
+                        height: 8,
+                      },
+                      '&::-webkit-scrollbar-track': {
+                        backgroundColor: '#f3f4f6',
+                        borderRadius: 4,
+                      },
+                      '&::-webkit-scrollbar-thumb': {
+                        backgroundColor: '#d1d5db',
+                        borderRadius: 4,
+                        '&:hover': {
+                          backgroundColor: '#9ca3af',
+                        },
+                      },
+                    }}
+                  >
+                    {/* Production logging optimization: Temporarily disable all logging for performance testing */}
+                    {/* {import.meta.env.DEV && console.log("Preparing to render filtered matches:", filteredMatches.length)} */}
+                    {/* Use the filteredMatches directly since it already includes user matches, limit to 5 */}
+                    {filteredMatches.slice(0, 5).map((match) => {
+                      const isUserMatch = user && (match.host_id === user.id || match.isUserCreated === true);
+                      // Production logging optimization: Temporarily disable all logging for performance testing
+                      // if (import.meta.env.DEV) {
+                      //   console.log("Rendering match:", match.id, match.title, isUserMatch ? "(User Match)" : "");
+                      // }
+                      return (
+                        <Box
+                          key={match.id}
+                          sx={{
+                            minWidth: 320,
+                            maxWidth: 320,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {renderMatchCard(match)}
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </Box>
               )}
             </Paper>
           </>
@@ -914,6 +945,16 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
 
         // Refresh user participations to ensure consistency
         setTimeout(() => fetchUserParticipations(), 500);
+
+        // Dispatch global event to notify other components about participation change
+        window.dispatchEvent(new CustomEvent('sportea:participation', {
+          detail: {
+            matchId: match.id,
+            userId: user.id,
+            action: 'join',
+            status: 'pending'
+          }
+        }));
       } else {
         setNotification({
           severity: "error",
@@ -1100,6 +1141,16 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
 
       // Refresh user participations to ensure consistency
       setTimeout(() => fetchUserParticipations(), 500);
+
+      // Dispatch global event to notify other components about participation change
+      window.dispatchEvent(new CustomEvent('sportea:participation', {
+        detail: {
+          matchId: match.id,
+          userId: user.id,
+          action: 'leave',
+          status: 'left'
+        }
+      }));
 
       // Track the leave interaction with improved error handling
       try {
@@ -1349,7 +1400,12 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
       isUpdated:
         match.created_at &&
         new Date(match.created_at) > new Date(Date.now() - 10 * 60 * 1000) // Created in last 10 minutes
-    }));
+    })).sort((a, b) => {
+      // Sort by creation date (newest first) for better user experience
+      const dateA = new Date(a.created_at || 0);
+      const dateB = new Date(b.created_at || 0);
+      return dateB - dateA;
+    });
   }, [matches, selectedSportFilter, filters, viewMode, listViewSportFilter, locationFilter, user, userCreatedMatches]);
 
   // Handle filter change
@@ -1544,9 +1600,18 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
             <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
               <LocationOnIcon
                 fontSize="small"
-                sx={{ mr: 1, color: "text.secondary" }}
+                sx={{ mr: 1, color: "text.secondary", flexShrink: 0 }}
               />
-              <Typography variant="body2" color="text.secondary">
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1
+                }}
+              >
                 {location}
               </Typography>
             </Box>

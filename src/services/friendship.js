@@ -25,7 +25,7 @@ export const friendshipService = {
         };
       }
       
-      // Check if a request already exists
+      // Check if an active request already exists (pending or accepted)
       const { data: existingFriendship, error: checkError } = await supabase
         .from('friendships')
         .select('*')
@@ -35,11 +35,28 @@ export const friendshipService = {
       if (checkError) throw checkError;
 
       if (existingFriendship) {
-        return {
-          success: false,
-          message: 'A friendship or request already exists between these users',
-          data: existingFriendship
-        };
+        // Only block if there's an active relationship (pending or accepted)
+        // Allow new requests if the previous one was declined
+        if (existingFriendship.status === 'pending' || existingFriendship.status === 'accepted') {
+          return {
+            success: false,
+            message: 'A friendship or request already exists between these users',
+            data: existingFriendship
+          };
+        }
+
+        // If the existing friendship was declined, delete it and allow a new request
+        if (existingFriendship.status === 'declined') {
+          const { error: deleteError } = await supabase
+            .from('friendships')
+            .delete()
+            .eq('id', existingFriendship.id);
+
+          if (deleteError) {
+            console.error('Error deleting declined friendship:', deleteError);
+            // Continue anyway - we'll try to create a new request
+          }
+        }
       }
 
       // Create new friendship request record

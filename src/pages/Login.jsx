@@ -29,6 +29,15 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Redirect authenticated users
+  useEffect(() => {
+    if (user && !authLoading) {
+      console.log('Login: User is authenticated, redirecting to home');
+      const from = location.state?.from?.pathname || '/home';
+      navigate(from, { replace: true });
+    }
+  }, [user, authLoading, navigate, location]);
+
   // Handle verification success message from AuthCallback
   useEffect(() => {
     if (location.state?.message) {
@@ -114,8 +123,8 @@ const Login = () => {
             console.log('Login: Credentials are valid but profile may be missing, creating profile');
             // Create user profile since it's missing
             await createUserProfile(authData.user.id, email);
-            // Resume normal login flow
-            setTimeout(() => checkAuthAndNavigate(0), 300);
+            // Auth state will update automatically
+            setSuccessMessage('Profile created! Redirecting...');
             return;
           } else {
             throw new Error('Invalid email or password. Please try again.');
@@ -145,10 +154,9 @@ const Login = () => {
         }
       }
       
-      // FIXED: Use a more reliable approach to ensure auth state is updated
-      // 1. Don't navigate immediately - wait for auth state to be fully updated
-      // 2. Use a polling approach to check auth state
-      checkAuthAndNavigate(0);
+      // Login successful - let the auth state change trigger navigation
+      console.log('Login: Sign in successful, auth state will update automatically');
+      setSuccessMessage('Login successful! Redirecting...');
       
     } catch (err) {
       console.error('Login: Caught error:', err);
@@ -192,36 +200,7 @@ const Login = () => {
     }
   };
   
-  // Auth state checking function
-  const checkAuthAndNavigate = async (checkCount) => {
-    const maxChecks = 10;
-    try {
-      // Get fresh auth state from Supabase directly
-      const { data } = await supabase.auth.getSession();
-      console.log('Login: Checking auth state:', data?.session ? 'Has session' : 'No session', 'Attempt:', checkCount + 1);
-      
-      // If we have a session, navigate to home
-      if (data?.session) {
-        console.log('Login: Confirmed session exists, navigating to home');
-        navigate('/home', { replace: true });
-        return;
-      }
-      
-      // If we've checked too many times, navigate anyway
-      if (checkCount >= maxChecks) {
-        console.log('Login: Max checks reached, forcing navigation');
-        navigate('/home', { replace: true });
-        return;
-      }
-      
-      // Otherwise, try again after a delay
-      setTimeout(() => checkAuthAndNavigate(checkCount + 1), 300);
-    } catch (err) {
-      console.error('Login: Error during session check:', err);
-      // Continue navigation to avoid getting stuck
-      navigate('/home', { replace: true });
-    }
-  };
+
   
   return (
     <Container component="main" maxWidth="sm" sx={{ display: 'flex', minHeight: '100vh', alignItems: 'center' }}>

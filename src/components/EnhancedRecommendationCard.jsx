@@ -421,20 +421,32 @@ const EnhancedRecommendationCard = React.memo(({
       </Box>
       
       {/* Key Match Details */}
-      <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-        <Chip 
-          label={`${formattedDate} • ${formattedTime}`}
-          size="small"
-          variant="outlined"
-          icon={<AccessTime />}
-        />
-        <Chip 
+      <Box sx={{ mb: 2 }}>
+        <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: 'wrap', gap: 1 }}>
+          <Chip
+            label={`${formattedDate} • ${formattedTime}`}
+            size="small"
+            variant="outlined"
+            icon={<AccessTime />}
+            sx={{ flexShrink: 0 }}
+          />
+        </Stack>
+        <Chip
           label={match.location?.name || match.locations?.name || 'TBA'}
           size="small"
           variant="outlined"
           icon={<LocationOn />}
+          sx={{
+            maxWidth: '100%',
+            '& .MuiChip-label': {
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              maxWidth: '200px'
+            }
+          }}
         />
-      </Stack>
+      </Box>
       
       {/* Participants Info */}
       <Box sx={{ mb: 2 }}>

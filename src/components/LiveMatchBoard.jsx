@@ -790,6 +790,16 @@ const LiveMatchBoard = React.memo(() => {
 
         // Force refresh of user participations to ensure consistency
         setTimeout(() => fetchUserParticipations(true), 500);
+
+        // Dispatch global event to notify other components about participation change
+        window.dispatchEvent(new CustomEvent('sportea:participation', {
+          detail: {
+            matchId: match.id,
+            userId: user.id,
+            action: 'leave',
+            status: 'left'
+          }
+        }));
       } else {
         showErrorToast('Error', result?.message || 'Failed to leave match');
       }
@@ -825,6 +835,16 @@ const LiveMatchBoard = React.memo(() => {
             delete updated[match.id];
             return updated;
           });
+
+          // Dispatch global event to notify other components about participation change
+          window.dispatchEvent(new CustomEvent('sportea:participation', {
+            detail: {
+              matchId: match.id,
+              userId: user.id,
+              action: 'join',
+              status: 'confirmed'
+            }
+          }));
         } else {
           // Regular join request - user is pending approval
           setUserParticipations(prev => ({
@@ -832,6 +852,16 @@ const LiveMatchBoard = React.memo(() => {
             [match.id]: { status: 'pending', match_id: match.id, user_id: user.id }
           }));
           showSuccessToast('Request Sent', 'Successfully sent request to join match. Waiting for host approval.');
+
+          // Dispatch global event to notify other components about participation change
+          window.dispatchEvent(new CustomEvent('sportea:participation', {
+            detail: {
+              matchId: match.id,
+              userId: user.id,
+              action: 'join',
+              status: 'pending'
+            }
+          }));
         }
       } else {
         showErrorToast('Request Failed', result?.message || 'Failed to send join request');
