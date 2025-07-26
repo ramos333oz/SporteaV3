@@ -75,9 +75,11 @@ const EnhancedReviewModal = ({ open, onClose, queueId, adminUser, onActionComple
   const handleApprove = async () => {
     try {
       setActionLoading(true);
-      
-      const result = await approveMatch(queueId, adminUser.id, adminNotes);
-      
+
+      // Check if queueId is actually a matchId (for auto-approved matches)
+      const isMatchId = reviewData && !reviewData.queue_id;
+      const result = await approveMatch(isMatchId ? null : queueId, adminUser.id, adminNotes, isMatchId ? queueId : null);
+
       if (result.success) {
         onActionComplete('approve', result.message);
         onClose();
@@ -95,9 +97,11 @@ const EnhancedReviewModal = ({ open, onClose, queueId, adminUser, onActionComple
   const handleReject = async () => {
     try {
       setActionLoading(true);
-      
-      const result = await rejectMatch(queueId, adminUser.id, rejectReason, adminNotes);
-      
+
+      // Check if queueId is actually a matchId (for auto-approved matches)
+      const isMatchId = reviewData && !reviewData.queue_id;
+      const result = await rejectMatch(isMatchId ? null : queueId, adminUser.id, rejectReason, adminNotes, isMatchId ? queueId : null);
+
       if (result.success) {
         onActionComplete('reject', result.message);
         onClose();

@@ -1759,10 +1759,11 @@ const ContentModerationTab = ({ adminUser }) => {
 
   const handleApprove = async (queueId, item) => {
     try {
-      setActionLoading(prev => ({ ...prev, [queueId]: true }));
+      setActionLoading(prev => ({ ...prev, [queueId || item.match_id]: true }));
       setError(null);
 
-      const result = await approveMatch(queueId, adminUser.id, '');
+      // Pass matchId when queueId is null (for auto-approved matches)
+      const result = await approveMatch(queueId, adminUser.id, '', queueId ? null : item.match_id);
 
       if (result.success) {
         // Process adaptive learning feedback
@@ -1788,17 +1789,18 @@ const ContentModerationTab = ({ adminUser }) => {
       console.error('Error approving match:', error);
       setError('Failed to approve match');
     } finally {
-      setActionLoading(prev => ({ ...prev, [queueId]: false }));
+      setActionLoading(prev => ({ ...prev, [queueId || item.match_id]: false }));
       setConfirmDialog({ open: false, type: '', queueId: null, item: null });
     }
   };
 
   const handleReject = async (queueId, item, reason = 'Content violates community guidelines') => {
     try {
-      setActionLoading(prev => ({ ...prev, [queueId]: true }));
+      setActionLoading(prev => ({ ...prev, [queueId || item.match_id]: true }));
       setError(null);
 
-      const result = await rejectMatch(queueId, adminUser.id, reason, '');
+      // Pass matchId when queueId is null (for auto-approved matches)
+      const result = await rejectMatch(queueId, adminUser.id, reason, '', queueId ? null : item.match_id);
 
       if (result.success) {
         // Process adaptive learning feedback
@@ -1824,7 +1826,7 @@ const ContentModerationTab = ({ adminUser }) => {
       console.error('Error rejecting match:', error);
       setError('Failed to reject match');
     } finally {
-      setActionLoading(prev => ({ ...prev, [queueId]: false }));
+      setActionLoading(prev => ({ ...prev, [queueId || item.match_id]: false }));
       setConfirmDialog({ open: false, type: '', queueId: null, item: null });
     }
   };
@@ -2090,7 +2092,13 @@ const ContentModerationTab = ({ adminUser }) => {
                               color="success"
                               size="small"
                               onClick={() => openConfirmDialog('approve', item.queue_id, item)}
-                              disabled={item.status === 'approved' || item.status === 'rejected' || actionLoading[item.queue_id]}
+                              disabled={
+                                actionLoading[item.queue_id] ||
+                                // Risk-based logic: Disable approve for low-risk auto-approved matches
+                                (item.overall_risk_level === 'minimal' && item.auto_approved && item.status === 'approved') ||
+                                // Keep disabled for manually approved matches
+                                (item.status === 'approved' && !item.auto_approved)
+                              }
                               startIcon={actionLoading[item.queue_id] ? <CircularProgress size={16} /> : null}
                             >
                               Approve
@@ -2100,7 +2108,13 @@ const ContentModerationTab = ({ adminUser }) => {
                               color="error"
                               size="small"
                               onClick={() => openConfirmDialog('reject', item.queue_id, item)}
-                              disabled={item.status === 'approved' || item.status === 'rejected' || actionLoading[item.queue_id]}
+                              disabled={
+                                actionLoading[item.queue_id] ||
+                                // Risk-based logic: Disable reject for high-risk auto-rejected matches
+                                (item.overall_risk_level === 'high' && item.status === 'rejected') ||
+                                // Keep disabled for manually rejected matches
+                                (item.status === 'rejected' && item.admin_decision === 'reject')
+                              }
                               startIcon={actionLoading[item.queue_id] ? <CircularProgress size={16} /> : null}
                             >
                               Reject
@@ -2109,10 +2123,45 @@ const ContentModerationTab = ({ adminUser }) => {
                               variant="outlined"
                               size="small"
                               onClick={() => handleReview(item.queue_id, item.match_id)}
-                              disabled={item.status === 'approved' || item.status === 'rejected'}
+                              disabled={false} // Always keep Review button clickable for viewing details
                             >
                               Review
                             </Button>
+                            {/* Show current moderation status with risk-based labels */}
+                            {(item.status === 'approved' || item.status === 'rejected' || item.status === 'auto_approved') && (
+                              <Chip
+                                label={(() => {
+                                  // Risk-based status display logic
+                                  if (item.status === 'approved') {
+                                    if (item.auto_approved && item.overall_risk_level === 'minimal') {
+                                      return 'AUTO-APPROVED';
+                                    } else if (item.auto_approved && item.overall_risk_level === 'high') {
+                                      return 'ADMIN OVERRIDE (APPROVED)';
+                                    } else {
+                                      return 'MANUALLY APPROVED';
+                                    }
+                                  } else if (item.status === 'rejected') {
+                                    if (item.overall_risk_level === 'high') {
+                                      return 'AUTO-REJECTED';
+                                    } else {
+                                      return 'MANUALLY REJECTED';
+                                    }
+                                  } else if (item.status === 'auto_approved') {
+                                    return item.overall_risk_level === 'minimal' ? 'AUTO-APPROVED' : 'PENDING REVIEW';
+                                  }
+                                  return 'UNKNOWN STATUS';
+                                })()}
+                                color={
+                                  item.status === 'approved' || item.status === 'auto_approved'
+                                    ? 'success'
+                                    : item.status === 'rejected'
+                                      ? 'error'
+                                      : 'warning'
+                                }
+                                size="small"
+                                sx={{ mt: 0.5, fontSize: '0.7rem' }}
+                              />
+                            )}
                           </Box>
                         </Grid>
                       </Grid>

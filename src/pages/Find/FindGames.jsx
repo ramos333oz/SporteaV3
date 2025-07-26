@@ -114,6 +114,7 @@ import GroupIcon from "@mui/icons-material/Group";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { useTheme } from "@mui/material/styles";
+import { getVenueImage, getVenueImageAlt } from '../../utils/venueImageMapping';
 
 /**
  * SportIcon component for displaying sport-specific icons
@@ -3633,20 +3634,23 @@ const MapView = ({
                         overflow: 'hidden'
                       }}
                     >
-                      {venue.image_url ? (
-                        <img 
-                          src={venue.image_url} 
-                          alt={venue.name}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      ) : (
-                        <Box sx={{ textAlign: 'center', p: 1 }}>
-                          <ImageIcon sx={{ fontSize: '2rem', color: 'text.secondary', opacity: 0.5 }} />
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            Venue Image
-                          </Typography>
-                        </Box>
-                      )}
+                      {(() => {
+                        const venueImage = getVenueImage(venue.name) || venue.image_url;
+                        return venueImage ? (
+                          <img
+                            src={venueImage}
+                            alt={getVenueImageAlt(venue.name)}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <Box sx={{ textAlign: 'center', p: 1 }}>
+                            <ImageIcon sx={{ fontSize: '2rem', color: 'text.secondary', opacity: 0.5 }} />
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              Venue Image
+                            </Typography>
+                          </Box>
+                        );
+                      })()}
                     </Box>
                     
                     {venue.description && (

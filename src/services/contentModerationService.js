@@ -644,21 +644,14 @@ async function getModerationQueue(filters = {}) {
       .not('content_moderation_results', 'is', null) // Only matches that have been moderated
       .order('created_at', { ascending: false });
 
-    // Apply filters
-    if (filters.status && filters.status !== 'all') {
-      // Filter by admin queue status if specified
-      query = query.eq('admin_review_queue.status', filters.status);
-    }
-
-    if (filters.priority && filters.priority !== 'all') {
-      query = query.eq('admin_review_queue.priority', filters.priority);
-    }
+    // Apply SQL-level filters (only for fields that exist in the database)
     if (filters.risk_level && filters.risk_level !== 'all') {
       query = query.eq('content_moderation_results.overall_risk_level', filters.risk_level);
     }
     if (filters.assigned_admin) {
       query = query.eq('admin_review_queue.assigned_admin_id', filters.assigned_admin);
     }
+    // Note: Status and priority filtering moved to post-processing since they're computed dynamically
 
     const { data, error } = await query.limit(50);
 
@@ -678,6 +671,17 @@ async function getModerationQueue(filters = {}) {
         priority: queueItem?.priority || (moderationResult?.overall_risk_level === 'high' ? 'urgent' :
                  moderationResult?.overall_risk_level === 'medium' ? 'high' : 'low'),
         status: queueItem?.status || (moderationResult?.requires_review ? 'pending' : 'auto_approved'),
+        // Map database status to UI filter status for proper filtering
+        ui_filter_status: (() => {
+          const dbStatus = queueItem?.status;
+          if (dbStatus === 'approved' || dbStatus === 'rejected') {
+            return 'completed';
+          } else if (dbStatus === 'pending' || dbStatus === 'in_review') {
+            return 'in_review';
+          } else {
+            return moderationResult?.requires_review ? 'in_review' : 'completed';
+          }
+        })(),
         assigned_admin_id: queueItem?.assigned_admin_id || null,
         queued_at: queueItem?.created_at || match.created_at,
         admin_notes: queueItem?.admin_notes || null,
@@ -709,9 +713,25 @@ async function getModerationQueue(filters = {}) {
       return acc;
     }, {}));
 
+    // Apply post-processing filters (for computed fields)
+    let filteredData = transformedData;
+
+    if (filters.status && filters.status !== 'all') {
+      // Use ui_filter_status for proper filtering that matches UI expectations
+      filteredData = filteredData.filter(item => item.ui_filter_status === filters.status);
+      log(`Filtered by UI status '${filters.status}': ${filteredData.length} items remaining`);
+    }
+
+    if (filters.priority && filters.priority !== 'all') {
+      filteredData = filteredData.filter(item => item.priority === filters.priority);
+      log(`Filtered by priority '${filters.priority}': ${filteredData.length} items remaining`);
+    }
+
+    log(`Final filtered data count: ${filteredData.length}`);
+
     return {
       success: true,
-      data: transformedData
+      data: filteredData
     };
   } catch (error) {
     logError('Error in getModerationQueue:', error);
@@ -788,15 +808,80 @@ async function getModerationStatistics() {
 }
 
 /**
- * Enhanced APPROVE functionality for admin review workflow
+ * Create queue record on-demand for manual override of auto-approved matches
  */
-async function approveMatch(queueId, adminId, notes = '') {
+async function createQueueRecordForOverride(matchId, adminId, action = 'manual_review') {
+  try {
+    log(`Creating queue record for manual override: ${matchId}`);
+
+    // Get match and moderation result data
+    const { data: matchData, error: matchError } = await supabase
+      .from('matches')
+      .select(`
+        *,
+        content_moderation_results(*)
+      `)
+      .eq('id', matchId)
+      .single();
+
+    if (matchError || !matchData) {
+      throw new Error(`Match not found: ${matchId}`);
+    }
+
+    const moderationResult = matchData.content_moderation_results?.[0];
+    if (!moderationResult) {
+      throw new Error(`No moderation result found for match: ${matchId}`);
+    }
+
+    // Create queue record
+    const { data: queueRecord, error: queueError } = await supabase
+      .from('admin_review_queue')
+      .insert({
+        match_id: matchId,
+        moderation_result_id: moderationResult.id,
+        status: 'pending',
+        priority: moderationResult.overall_risk_level === 'high' ? 'urgent' :
+                 moderationResult.overall_risk_level === 'medium' ? 'high' : 'low',
+        assigned_admin_id: adminId,
+        admin_notes: `Manual override initiated by admin for ${action}`,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (queueError) {
+      throw new Error(`Failed to create queue record: ${queueError.message}`);
+    }
+
+    log(`Queue record created successfully: ${queueRecord.id}`);
+    return queueRecord;
+
+  } catch (error) {
+    logError('Error creating queue record for override:', error);
+    throw error;
+  }
+}
+
+/**
+ * Enhanced APPROVE functionality for admin review workflow
+ * Now handles both existing queue records and creates them on-demand for auto-approved matches
+ */
+async function approveMatch(queueId, adminId, notes = '', matchId = null) {
   try {
     log(`=== ENHANCED APPROVE WORKFLOW START ===`);
-    log(`Queue ID: ${queueId}, Admin ID: ${adminId}`);
+    log(`Queue ID: ${queueId}, Admin ID: ${adminId}, Match ID: ${matchId}`);
+
+    let queueItem;
+
+    // Handle case where queueId is null (auto-approved match needs manual override)
+    if (!queueId && matchId) {
+      log(`No queue ID provided, creating queue record for match: ${matchId}`);
+      queueItem = await createQueueRecordForOverride(matchId, adminId, 'approve');
+      queueId = queueItem.id;
+    }
 
     // Get queue item with related data
-    const { data: queueItem, error: fetchError } = await supabase
+    const { data: fetchedQueueItem, error: fetchError } = await supabase
       .from('admin_review_queue')
       .select(`
         *,
@@ -806,9 +891,13 @@ async function approveMatch(queueId, adminId, notes = '') {
       .eq('id', queueId)
       .single();
 
-    if (fetchError || !queueItem) {
-      throw new Error('Review queue item not found');
+    if (fetchError || !fetchedQueueItem) {
+      logError('Review queue item not found:', fetchError);
+      return { success: false, error: 'Review queue item not found' };
     }
+
+    // Use the fetched queue item (either existing or newly created)
+    queueItem = fetchedQueueItem;
 
     // Update queue item to approved
     const { error: queueUpdateError } = await supabase
@@ -849,8 +938,30 @@ async function approveMatch(queueId, adminId, notes = '') {
 
     if (matchUpdateError) throw matchUpdateError;
 
-    // NOTE: No notifications sent for approved matches as per requirements
-    log('Match approved - no notification sent to host as per policy');
+    // Send approval notification to host
+    try {
+      const notificationResult = await sendEnhancedHostNotification(
+        queueItem.match_id,
+        queueItem.moderation_result_id,
+        'approved',
+        '✅ Match Approved - Ready for Participants',
+        `Great news! Your match "${queueItem.match?.title}" has been approved by our moderation team and is now live for other users to join.\n\n🎉 **MATCH STATUS**: APPROVED\n• Your match is now visible to all users\n• Participants can join your match\n• Match details have been verified and approved\n\n📋 **NEXT STEPS**:\n• Monitor participant registrations\n• Prepare for your upcoming match\n• Ensure you're ready at the scheduled time\n\nThank you for creating quality content that follows our community guidelines!${notes ? `\n\n💬 **ADMIN NOTES**:\n${notes}` : ''}`,
+        {
+          match_status: 'approved',
+          action_required: 'none',
+          visibility: 'public',
+          can_accept_participants: true
+        }
+      );
+
+      if (!notificationResult.success) {
+        logError('Failed to send approval notification:', notificationResult.error);
+      } else {
+        log('Approval notification sent successfully to match host');
+      }
+    } catch (notificationError) {
+      logError('Error sending approval notification:', notificationError);
+    }
 
     log(`Match approved successfully: ${queueItem.match_id}`);
     log(`=== ENHANCED APPROVE WORKFLOW END ===`);
@@ -870,14 +981,24 @@ async function approveMatch(queueId, adminId, notes = '') {
 
 /**
  * Enhanced REJECT functionality for admin review workflow
+ * Now handles both existing queue records and creates them on-demand for auto-approved matches
  */
-async function rejectMatch(queueId, adminId, actionReason, notes = '') {
+async function rejectMatch(queueId, adminId, actionReason, notes = '', matchId = null) {
   try {
     log(`=== ENHANCED REJECT WORKFLOW START ===`);
-    log(`Queue ID: ${queueId}, Admin ID: ${adminId}, Reason: ${actionReason}`);
+    log(`Queue ID: ${queueId}, Admin ID: ${adminId}, Reason: ${actionReason}, Match ID: ${matchId}`);
+
+    let queueItem;
+
+    // Handle case where queueId is null (auto-approved match needs manual override)
+    if (!queueId && matchId) {
+      log(`No queue ID provided, creating queue record for match: ${matchId}`);
+      queueItem = await createQueueRecordForOverride(matchId, adminId, 'reject');
+      queueId = queueItem.id;
+    }
 
     // Get queue item with related data including flagged content
-    const { data: queueItem, error: fetchError } = await supabase
+    const { data: fetchedQueueItem, error: fetchError } = await supabase
       .from('admin_review_queue')
       .select(`
         *,
@@ -887,9 +1008,13 @@ async function rejectMatch(queueId, adminId, actionReason, notes = '') {
       .eq('id', queueId)
       .single();
 
-    if (fetchError || !queueItem) {
-      throw new Error('Review queue item not found');
+    if (fetchError || !fetchedQueueItem) {
+      logError('Review queue item not found:', fetchError);
+      return { success: false, error: 'Review queue item not found' };
     }
+
+    // Use the fetched queue item (either existing or newly created)
+    queueItem = fetchedQueueItem;
 
     // Update queue item to rejected
     const { error: queueUpdateError } = await supabase
@@ -1192,14 +1317,15 @@ async function sendEnhancedHostNotification(matchId, moderationResultId, notific
 
 /**
  * Update review queue item status with enhanced admin actions (legacy compatibility)
+ * Now supports manual override of auto-approved matches via matchId parameter
  */
-async function updateReviewStatus(queueId, decision, adminId, notes = '', actionReason = '') {
+async function updateReviewStatus(queueId, decision, adminId, notes = '', actionReason = '', matchId = null) {
   try {
     // Route to enhanced functions based on decision
     if (decision === 'approve') {
-      return await approveMatch(queueId, adminId, notes);
+      return await approveMatch(queueId, adminId, notes, matchId);
     } else if (decision === 'reject') {
-      return await rejectMatch(queueId, adminId, actionReason || 'Content violates community guidelines', notes);
+      return await rejectMatch(queueId, adminId, actionReason || 'Content violates community guidelines', notes, matchId);
     } else {
       // For other decisions, use the original logic
       const { data: queueItem, error: fetchError } = await supabase

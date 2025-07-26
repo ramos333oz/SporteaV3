@@ -27,6 +27,7 @@ import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import UnifiedCard from './UnifiedCard';
 import { UserAvatarWithLevel } from './achievements';
+import { getVenueImage, getVenueImageAlt } from '../utils/venueImageMapping';
 
 /**
  * Enhanced Match Card Component
@@ -90,8 +91,11 @@ const EnhancedMatchCard = ({
   const sportName = match.sport?.name || 'Sport';
   const sportIcon = sportIcons[sportId] || <SportsSoccer />;
   
-  // Get venue image (placeholder for now)
-  const venueImage = match.location?.image || defaultVenueImages[sportId];
+  // Get venue image using our mapping, with fallbacks
+  const venueImage = getVenueImage(match.location?.name || match.locations?.name) ||
+                     match.location?.image ||
+                     match.locations?.image_url ||
+                     defaultVenueImages[sportId];
   
   // Determine match status
   const getMatchStatus = () => {
@@ -129,7 +133,7 @@ const EnhancedMatchCard = ({
   return (
     <UnifiedCard
       image={venueImage}
-      imageAlt={`${sportName} at ${match.location?.name}`}
+      imageAlt={getVenueImageAlt(match.location?.name || match.locations?.name) || `${sportName} at ${match.location?.name || 'venue'}`}
       imageHeight={compact ? 120 : 160}
       title={match.title || `${sportName} Match`}
       subtitle={`${dayOfWeek} • ${formattedDate}`}

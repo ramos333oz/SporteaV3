@@ -10,6 +10,8 @@ import {
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
+import { getVenueImage, getVenueImageAlt } from '../utils/venueImageMapping';
+import VenueImage from './VenueImage';
 
 /**
  * Component to handle map centering and marker highlighting when location is selected
@@ -481,14 +483,25 @@ const LocationMapView = ({
                 }}
               >
                 <Popup>
-                  <Box sx={{ minWidth: 200 }}>
-                    <Typography variant="subtitle1" fontWeight="bold">
+                  <Box sx={{ minWidth: 250, maxWidth: 300 }}>
+                    {/* Venue Image */}
+                    <VenueImage
+                      src={getVenueImage(venue.name)}
+                      alt={getVenueImageAlt(venue.name)}
+                      width="100%"
+                      height="120px"
+                      borderRadius={1}
+                      fallbackText={venue.name}
+                      style={{ marginBottom: '8px' }}
+                    />
+
+                    <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
                       {venue.name}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                       {venue.address}
                     </Typography>
-                    <Typography variant="body2">
+                    <Typography variant="body2" sx={{ mb: 0.5 }}>
                       <strong>Sports:</strong> {venue.sportTypes?.join(', ') || 'Various'}
                     </Typography>
                     <Typography variant="body2">

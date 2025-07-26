@@ -28,6 +28,7 @@ import SportsHockeyIcon from '@mui/icons-material/SportsHockey';
 import ErrorIcon from '@mui/icons-material/Error';
 import { useAuth } from '../../hooks/useAuth';
 import VenueImage from '../../components/VenueImage';
+import { getVenueImage, getVenueImageAlt } from '../../utils/venueImageMapping';
 
 const LocationSelection = ({ matchData, onUpdateMatchData }) => {
   const { supabase } = useAuth();
@@ -350,8 +351,8 @@ const LocationSelection = ({ matchData, onUpdateMatchData }) => {
                       <Grid item xs={12} sm={4}>
                         {/* Venue Image with smooth transitions */}
                         <VenueImage
-                          src={location.raw.image_url}
-                          alt={location.name}
+                          src={getVenueImage(location.name)}
+                          alt={getVenueImageAlt(location.name)}
                           width="100%"
                           height="150px"
                           borderRadius={1}

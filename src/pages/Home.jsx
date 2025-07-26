@@ -33,6 +33,7 @@ import UserRecommendationSection from '../components/UserRecommendationSection';
 import EnhancedMatchCard from '../components/EnhancedMatchCard';
 import SportCard from '../components/SportCard';
 import { supabase } from '../services/supabase';
+import { getVenueImage, getVenueImageAlt } from '../utils/venueImageMapping';
 
 // Using the new EnhancedMatchCard component for consistency
 

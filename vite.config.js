@@ -18,6 +18,7 @@ export default defineConfig(({ command, mode }) => {
         '@': path.resolve(__dirname, './src')
       }
     },
+    assetsInclude: ['**/*.PNG', '**/*.jpeg', '**/*.jpg'],
     optimizeDeps: {
       force: true,
       include: [

@@ -39,6 +39,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { supabase, participantService } from '../services/supabase';
 import UnifiedCard from './UnifiedCard';
+import { getVenueImage, getVenueImageAlt } from '../utils/venueImageMapping';
 
 // Styled animated badge for recently updated matches
 const AnimatedBadge = styled(Badge)(({ theme }) => ({
@@ -238,8 +239,9 @@ const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoin
     '0ec51cfc-f644-4057-99d8-d2c29c1b7dd0': '/images/venues/squash-court.jpg', // Squash
   };
 
-  // Prioritize actual venue image from location, fallback to sport-based default
-  const venueImage = match.location_image_url ||
+  // Prioritize venue image from our mapping, then location data, then sport-based default
+  const venueImage = getVenueImage(match.locations?.name || match.location?.name) ||
+                     match.location_image_url ||
                      (match.locations?.image_url) ||
                      defaultVenueImages[match.sport_id] ||
                      '/images/venues/default-field.jpg';
@@ -250,7 +252,7 @@ const MatchCard = ({ match, isRecentlyUpdated, onView, userParticipation, onJoin
   return (
     <UnifiedCard
       image={venueImage}
-      imageAlt={`${sportInfo.name} venue`}
+      imageAlt={getVenueImageAlt(match.locations?.name || match.location?.name) || `${sportInfo.name} venue`}
       imageHeight={200}
       imagePosition="top"
       title={match.title || `${sportInfo.name} Match`}

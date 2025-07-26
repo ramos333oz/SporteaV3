@@ -1,5 +1,6 @@
 import { useState, useEffect, memo, useMemo, useCallback } from 'react';
 import { supabase } from '../services/supabase';
+import { getVenueImage, getVenueImageAlt } from '../utils/venueImageMapping';
 import { 
   Box, 
   Card, 
