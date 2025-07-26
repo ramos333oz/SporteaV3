@@ -1055,19 +1055,22 @@ export const matchService = {
     
     if (error) throw error;
     
-    // Process each match to ensure it has valid host data
+    // Process each match to ensure it has valid host data and participant count
     const processedData = data.map(match => {
       // Add placeholder data if host is missing
       if (!match.host || Object.keys(match.host).length === 0) {
         console.warn(`Host data is missing for match ${match.id} (host_id: ${match.host_id})`);
-        
+
         match.host = {
           id: match.host_id,
           username: 'Unknown',
           full_name: 'Unknown Host'
         };
       }
-      
+
+      // Map participants count to current_participants for consistency with UI components
+      match.current_participants = match.participants?.[0]?.count || 0;
+
       return match;
     });
     

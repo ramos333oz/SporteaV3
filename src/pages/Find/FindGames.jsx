@@ -1463,8 +1463,8 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
 
     // Calculate spots available
     const maxParticipants = match.max_participants || 10;
-    // Ensure we include the host in the count, start from 1 instead of 0 if not specified
-    const currentParticipants = match.current_participants || 1;
+    // Use actual participant count from database, fallback to 0 if not specified
+    const currentParticipants = match.current_participants ?? 0;
     const spotsAvailable = maxParticipants - currentParticipants;
 
     // Calculate fill percentage for visual progress bar
@@ -1750,8 +1750,8 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
 
     // Calculate spots available
     const maxParticipants = match.max_participants || 10;
-    // Ensure we include the host in the count, start from 1 instead of 0 if not specified
-    const currentParticipants = match.current_participants || 1;
+    // Use actual participant count from database, fallback to 0 if not specified
+    const currentParticipants = match.current_participants ?? 0;
     const spotsAvailable = maxParticipants - currentParticipants;
 
     // Check if match is new (created in the last hour)
