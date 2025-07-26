@@ -22,7 +22,12 @@ import {
  * Component for displaying personalized match recommendations
  * Optimized with React.memo for performance
  */
-const RecommendationsList = React.memo(({ limit = 5, onError = () => {} }) => {
+const RecommendationsList = React.memo(({
+  limit = 5,
+  onError = () => {},
+  sportFilters = [], // Array of sport IDs to filter by
+  filters = {} // Additional filters (skill level, etc.)
+}) => {
   const { user } = useAuth();
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,13 +47,58 @@ const RecommendationsList = React.memo(({ limit = 5, onError = () => {} }) => {
   const mountedRef = useRef(true);
   const debounceTimeoutRef = useRef(null);
   const abortControllerRef = useRef(null);
+  const originalRecommendationsRef = useRef(null);
 
   // Close snackbar
   const handleCloseSnack = () => {
     setFeedbackSnack({ ...feedbackSnack, open: false });
   };
 
+  // Function to apply filters to recommendations
+  const applyFiltersToRecommendations = useCallback((recommendations) => {
+    if (!recommendations || recommendations.length === 0) {
+      console.log('[RecommendationsList] No recommendations to filter');
+      return recommendations;
+    }
 
+    console.log('[RecommendationsList] Filtering', recommendations.length, 'recommendations');
+    console.log('[RecommendationsList] Sport filters:', sportFilters);
+
+    return recommendations.filter(recommendation => {
+      const match = recommendation.match;
+      if (!match) {
+        console.log('[RecommendationsList] Recommendation has no match, filtering out');
+        return false;
+      }
+
+      // Apply sport filter
+      if (sportFilters && sportFilters.length > 0) {
+        // If "all" is not in the filter and the match sport doesn't match any selected sports
+        if (!sportFilters.includes("all")) {
+          const matchSportId = match.sport_id?.toString() || match.sport?.id?.toString();
+          console.log('[RecommendationsList] Checking match sport ID:', matchSportId, 'against filters:', sportFilters);
+          if (!sportFilters.includes(matchSportId)) {
+            console.log('[RecommendationsList] Match sport', matchSportId, 'not in filters, filtering out');
+            return false;
+          }
+        }
+      }
+
+      // Apply skill level filter if provided
+      if (filters.skillLevel && filters.skillLevel !== "all") {
+        if (match.skill_level?.toLowerCase() !== filters.skillLevel.toLowerCase()) {
+          console.log('[RecommendationsList] Match skill level', match.skill_level, 'does not match filter', filters.skillLevel);
+          return false;
+        }
+      }
+
+      // Apply other filters as needed
+      // Add more filter logic here if needed
+
+      console.log('[RecommendationsList] Match', match.id, 'passed all filters');
+      return true;
+    });
+  }, [sportFilters, filters]);
 
   const fetchRecommendations = useCallback(async () => {
     // Only check for user ID, not loading state (to avoid circular dependency)
@@ -130,7 +180,13 @@ const RecommendationsList = React.memo(({ limit = 5, onError = () => {} }) => {
             (b.similarity_score || 0) - (a.similarity_score || 0)
           );
 
-          setRecommendations(sortedRecommendations);
+          // Store original recommendations before filtering
+          originalRecommendationsRef.current = sortedRecommendations;
+
+          // Apply sport filters if provided
+          const filteredRecommendations = applyFiltersToRecommendations(sortedRecommendations);
+
+          setRecommendations(filteredRecommendations);
           setMessage(result.message || 'Based on your preferences');
 
           // If using fallback data from the recommendation service, show an indicator
@@ -178,7 +234,7 @@ const RecommendationsList = React.memo(({ limit = 5, onError = () => {} }) => {
       // Clear the abort controller
       abortControllerRef.current = null;
     }
-  }, [user?.id, limit, onError]);
+  }, [user?.id, limit, onError, applyFiltersToRecommendations]);
 
   // Generate user embeddings to improve recommendations
   const generateEmbeddings = useCallback(async () => {
@@ -344,6 +400,22 @@ const RecommendationsList = React.memo(({ limit = 5, onError = () => {} }) => {
       fetchRecommendations();
     }
   }, [user?.id]); // Removed fetchRecommendations from dependencies to prevent infinite loop
+
+  // Re-apply filters when filter props change (without re-fetching from server)
+  useEffect(() => {
+    // Only re-apply filters if we have original recommendations stored
+    if (originalRecommendationsRef.current && originalRecommendationsRef.current.length > 0) {
+      console.log('[RecommendationsList] Filters changed, re-applying filters to existing recommendations');
+      console.log('[RecommendationsList] Current sportFilters:', sportFilters);
+      console.log('[RecommendationsList] Current filters:', filters);
+      console.log('[RecommendationsList] Original recommendations count:', originalRecommendationsRef.current.length);
+
+      // Apply filters to original recommendations (not current filtered ones)
+      const filteredRecommendations = applyFiltersToRecommendations(originalRecommendationsRef.current);
+      console.log('[RecommendationsList] Filtered recommendations count:', filteredRecommendations.length);
+      setRecommendations(filteredRecommendations);
+    }
+  }, [sportFilters, filters, applyFiltersToRecommendations]);
 
   // Cleanup effect
   useEffect(() => {

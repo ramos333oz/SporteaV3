@@ -1018,8 +1018,7 @@ export const matchService = {
         *,
         sport:sports(*),
         host:users!host_id(*),
-        location:locations(*),
-        participants(count)
+        location:locations(*)
       `)
       .eq('status', 'upcoming')
       .eq('is_private', false)
@@ -1052,11 +1051,11 @@ export const matchService = {
     }
     
     const { data, error } = await query;
-    
+
     if (error) throw error;
-    
-    // Process each match to ensure it has valid host data and participant count
-    const processedData = data.map(match => {
+
+    // Process each match to ensure it has valid host data and get accurate participant count
+    const processedData = await Promise.all(data.map(async (match) => {
       // Add placeholder data if host is missing
       if (!match.host || Object.keys(match.host).length === 0) {
         console.warn(`Host data is missing for match ${match.id} (host_id: ${match.host_id})`);
@@ -1068,12 +1067,23 @@ export const matchService = {
         };
       }
 
-      // Map participants count to current_participants for consistency with UI components
-      match.current_participants = match.participants?.[0]?.count || 0;
+      // Get accurate participant count (only confirmed participants)
+      try {
+        const { count, error: countError } = await supabase
+          .from('participants')
+          .select('id', { count: 'exact' })
+          .eq('match_id', match.id)
+          .eq('status', 'confirmed');
+
+        match.current_participants = countError ? 0 : (count || 0);
+      } catch (countError) {
+        console.error(`Error fetching participant count for match ${match.id}:`, countError);
+        match.current_participants = 0;
+      }
 
       return match;
-    });
-    
+    }));
+
     return processedData;
   },
   

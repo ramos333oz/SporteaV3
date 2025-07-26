@@ -630,9 +630,16 @@ const LiveMatchBoard = React.memo(() => {
       fetchSingleMatchWithDetails(matchId);
     };
 
+    // Master refresh handler for Home page master refresh button
+    const handleMasterRefresh = () => {
+      console.log('[LiveMatchBoard] Master refresh triggered, refreshing live matches');
+      fetchMatches();
+    };
+
     // Subscribe to production-optimized events
     window.addEventListener('sportea:match-update', handleMatchUpdate);
     window.addEventListener('sportea:participation', handleParticipantUpdate);
+    window.addEventListener('sportea:master-refresh', handleMasterRefresh);
     console.log('[LiveMatchBoard] Subscribed to production realtime events');
 
     // Cleanup function
@@ -640,9 +647,10 @@ const LiveMatchBoard = React.memo(() => {
       // Cleanup event listeners
       window.removeEventListener('sportea:match-update', handleMatchUpdate);
       window.removeEventListener('sportea:participation', handleParticipantUpdate);
+      window.removeEventListener('sportea:master-refresh', handleMasterRefresh);
       console.log('[LiveMatchBoard] Cleaned up production realtime events');
     };
-  }, []);
+  }, [fetchMatches]);
 
   // User participation updates are now handled by the production-optimized system
   // through the 'sportea:participation' events in the main subscription above

@@ -116,42 +116,52 @@ const Find = () => {
     fetchData();
   }, [fetchData, activeTab]);
   
-  // Handle real-time match updates
-  const handleMatchUpdate = useCallback((update) => {
+  // Handle real-time match updates and participation events
+  const handleMatchUpdate = useCallback((event) => {
     if (activeTab !== 0) return; // Only process updates when on Games tab
-    
-    if (update.type === 'match_update') {
+
+    // Handle different event types
+    if (event.type === 'match_update') {
+      const update = event;
       if (update.eventType === 'INSERT') {
         console.log('Real-time: New match created', update.data);
         // Increment the new matches counter
         setNewMatchCount(prev => prev + 1);
-        
+
         // If we want to automatically add it to the list:
         // setMatches(prev => [update.data, ...prev]);
       } else if (update.eventType === 'UPDATE') {
         console.log('Real-time: Match updated', update.data);
         // Update the match in our list
-        setMatches(prev => 
+        setMatches(prev =>
           prev.map(match => match.id === update.data.id ? { ...match, ...update.data } : match)
         );
       } else if (update.eventType === 'DELETE') {
         console.log('Real-time: Match deleted', update.oldData);
         // Remove the match from our list
-        setMatches(prev => 
+        setMatches(prev =>
           prev.filter(match => match.id !== update.oldData.id)
         );
       }
-    } else if (update.type === 'participant_update') {
+    } else if (event.type === 'participant_update') {
       // Handle participant updates to update participant count in real-time
-      const matchId = update.data?.match_id || update.oldData?.match_id;
+      const matchId = event.data?.match_id || event.oldData?.match_id;
       if (matchId) {
-        console.log('Real-time: Participant update for match', matchId, update.eventType);
+        console.log('Real-time: Participant update for match', matchId, event.eventType);
+        // Fetch current participant count for the match
+        fetchParticipantCount(matchId);
+      }
+    } else if (event.detail) {
+      // Handle sportea:participation events from custom dispatches
+      const { matchId, action } = event.detail;
+      if (matchId) {
+        console.log('Real-time: Participation event for match', matchId, action);
         // Fetch current participant count for the match
         fetchParticipantCount(matchId);
       }
     }
   }, [activeTab]);
-  
+
   // Function to fetch updated participant count for a match
   const fetchParticipantCount = useCallback(async (matchId) => {
     try {
@@ -187,9 +197,12 @@ const Find = () => {
     if (activeTab === 0) { // Only subscribe when on Games tab
       // Subscribe to production-optimized match events
       window.addEventListener('sportea:match-update', handleMatchUpdate);
+      // Subscribe to participation events for real-time participant count updates
+      window.addEventListener('sportea:participation', handleMatchUpdate);
 
       return () => {
         window.removeEventListener('sportea:match-update', handleMatchUpdate);
+        window.removeEventListener('sportea:participation', handleMatchUpdate);
       };
     }
   }, [handleMatchUpdate, activeTab]);

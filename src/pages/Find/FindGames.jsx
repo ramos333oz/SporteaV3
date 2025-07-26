@@ -678,6 +678,8 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
             <RecommendationsList
               limit={5}
               onError={(err) => console.error('Recommendation error:', err)}
+              sportFilters={listViewSportFilter}
+              filters={filters}
             />
 
             {/* Available Matches Section */}
