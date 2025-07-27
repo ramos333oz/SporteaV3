@@ -22,6 +22,7 @@ import {
 import CircularTierGallery from '../components/leaderboard/CircularTierGallery';
 import AnimatedLeaderboardList from '../components/leaderboard/AnimatedLeaderboardList';
 import LeaderboardHeader from '../components/leaderboard/LeaderboardHeader';
+import AnimatedUserTierCard from '../components/leaderboard/AnimatedUserTierCard';
 import '../components/leaderboard/LeaderboardHeader.css';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { isWebGLSupported } from '../utils/tierCardGenerator';
@@ -89,53 +90,7 @@ const getUserTier = (level) => {
   return 'bronze'; // Default fallback
 };
 
-// User Tier Display Component
-const UserTierCard = ({ user, gamificationData }) => {
-  if (!user || !gamificationData) return null;
-
-  const userLevel = gamificationData.current_level || 1;
-  const tierKey = getUserTier(userLevel);
-  const tier = TIER_CONFIG[tierKey];
-
-  return (
-    <Card 
-      sx={{ 
-        mb: 3, 
-        background: `linear-gradient(135deg, ${tier.bgColor} 0%, ${tier.color}20 100%)`,
-        border: `2px solid ${tier.color}40`
-      }}
-    >
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="h2" sx={{ fontSize: '2rem' }}>
-            {tier.icon}
-          </Typography>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" sx={{ color: tier.color, fontWeight: 'bold' }}>
-              {tier.name} - {tier.subtitle}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {tier.description}
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-              <Chip 
-                label={`Level ${userLevel}`} 
-                size="small" 
-                sx={{ backgroundColor: tier.color, color: 'white' }}
-              />
-              <Chip 
-                label={`Levels ${tier.levels}`} 
-                size="small" 
-                variant="outlined"
-                sx={{ borderColor: tier.color, color: tier.color }}
-              />
-            </Box>
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-};
+// Old UserTierCard component removed - replaced with AnimatedUserTierCard
 
 const Leaderboard = () => {
   const { user } = useAuth();
@@ -203,8 +158,13 @@ const Leaderboard = () => {
         leaderboardType={leaderboard.type}
       />
 
-      {/* User's Current Tier Display */}
-      <UserTierCard user={user} gamificationData={gamificationData} />
+      {/* Animated User Tier Display */}
+      <AnimatedUserTierCard
+        user={user}
+        gamificationData={gamificationData}
+        tierConfig={TIER_CONFIG}
+        getUserTier={getUserTier}
+      />
 
       {/* Leaderboard Controls and Display */}
       <Paper sx={{ p: 3 }}>
