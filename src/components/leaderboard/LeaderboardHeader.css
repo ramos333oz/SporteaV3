@@ -1,0 +1,47 @@
+/* Leaderboard Header Styles */
+.leaderboard-title {
+  font-family: var(--font-serif) !important;
+  font-weight: 700 !important;
+  font-size: 2rem !important;
+  color: var(--primary) !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  display: inline-block !important;
+}
+
+/* Split text animation styles */
+.split-parent {
+  overflow: visible !important;
+}
+
+.split-parent .split-line {
+  overflow: hidden;
+}
+
+/* Responsive typography */
+@media (max-width: 768px) {
+  .leaderboard-title {
+    font-size: 1.75rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .leaderboard-title {
+    font-size: 1.5rem !important;
+  }
+}
+
+/* Animation performance optimizations */
+.split-parent * {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Ensure proper text rendering */
+.leaderboard-title,
+.split-parent {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

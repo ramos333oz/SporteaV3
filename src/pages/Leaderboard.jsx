@@ -21,6 +21,8 @@ import {
 } from '../components/leaderboard';
 import CircularTierGallery from '../components/leaderboard/CircularTierGallery';
 import AnimatedLeaderboardList from '../components/leaderboard/AnimatedLeaderboardList';
+import LeaderboardHeader from '../components/leaderboard/LeaderboardHeader';
+import '../components/leaderboard/LeaderboardHeader.css';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { isWebGLSupported } from '../utils/tierCardGenerator';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
@@ -193,23 +195,13 @@ const Leaderboard = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 3 }}>
-      {/* Page Header */}
-      <Box sx={{ mb: 4, textAlign: 'center' }}>
-        <Typography variant="h1" gutterBottom sx={{ 
-          fontSize: { xs: '2rem', md: '2.5rem' },
-          fontWeight: 'bold',
-          background: 'linear-gradient(45deg, #FFD700, #FF6B35)',
-          backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent'
-        }}>
-          🏆 Leaderboards & Rankings
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto' }}>
-          Compete with fellow athletes, climb the ranks, and showcase your achievements! 
-          Progress through tiers from Bronze to Diamond as you level up.
-        </Typography>
-      </Box>
+      {/* Professional Animated Header */}
+      <LeaderboardHeader
+        totalPlayers={leaderboard.leaderboardData?.length || 0}
+        userRank={leaderboard.userRank}
+        userScore={leaderboard.userScore}
+        leaderboardType={leaderboard.type}
+      />
 
       {/* User's Current Tier Display */}
       <UserTierCard user={user} gamificationData={gamificationData} />
