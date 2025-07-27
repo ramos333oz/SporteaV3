@@ -810,9 +810,8 @@ const RecommendationCard = memo(({
                           <Typography
                             variant="body2"
                             sx={{
-                              fontFamily: 'Poppins, sans-serif',
                               fontWeight: 600,
-                              color: 'text.primary'
+                              color: 'var(--foreground)'
                             }}
                           >
                             {factor.label}
@@ -824,8 +823,8 @@ const RecommendationCard = memo(({
                             sx={{
                               height: 20,
                               fontSize: '0.65rem',
-                              borderColor: '#dc2626',
-                              color: '#dc2626'
+                              borderColor: 'var(--primary)',
+                              color: 'var(--primary)'
                             }}
                           />
                         </Box>
@@ -833,8 +832,7 @@ const RecommendationCard = memo(({
                         <Typography
                           variant="caption"
                           sx={{
-                            color: 'text.secondary',
-                            fontFamily: 'Poppins, sans-serif',
+                            color: 'var(--muted-foreground)',
                             display: 'block',
                             mb: 1
                           }}

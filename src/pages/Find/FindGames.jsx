@@ -3982,38 +3982,47 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
 
   // Custom event renderer
   const eventStyleGetter = (event) => {
-    // Get colors based on sport
-    let backgroundColor = "#3174ad"; // Default blue
-    let textColor = "#fff";
+    // Get colors based on sport using CSS variables
+    let backgroundColor = "var(--primary)"; // Default primary color
+    let textColor = "var(--primary-foreground)";
 
-    // Assign colors based on sport type
+    // Assign colors based on sport type using CSS sport variables
     switch ((event.sportName || "").toLowerCase()) {
       case "basketball":
-        backgroundColor = "#FF5722"; // Orange
+        backgroundColor = "var(--sport-basketball)";
         break;
       case "soccer":
       case "football":
-        backgroundColor = "#4CAF50"; // Green
+        backgroundColor = "var(--sport-football)";
         break;
       case "volleyball":
-        backgroundColor = "#9C27B0"; // Purple
+        backgroundColor = "var(--sport-volleyball)";
         break;
       case "badminton":
-        backgroundColor = "#FFEB3B"; // Yellow with dark text
-        textColor = "#000";
+        backgroundColor = "var(--sport-badminton)";
+        textColor = "var(--foreground)";
         break;
       case "tennis":
-        backgroundColor = "#CDDC39"; // Lime with dark text
-        textColor = "#000";
+        backgroundColor = "var(--sport-tennis)";
+        textColor = "var(--foreground)";
         break;
       case "hockey":
-        backgroundColor = "#E91E63"; // Pink
+        backgroundColor = "var(--sport-hockey)";
         break;
       case "futsal":
-        backgroundColor = "#8BC34A"; // Light green
+        backgroundColor = "var(--sport-futsal)";
+        break;
+      case "rugby":
+        backgroundColor = "var(--sport-rugby)";
+        break;
+      case "squash":
+        backgroundColor = "var(--sport-squash)";
+        break;
+      case "frisbee":
+        backgroundColor = "var(--sport-frisbee)";
         break;
       default:
-        // Keep default blue
+        // Keep default primary color
         break;
     }
 
@@ -4023,21 +4032,21 @@ const CalendarView = ({ matches, selectedSport, onSportFilterChange, sportFilter
     }
 
     // Add border for private matches
-    const border = event.isPrivate ? "2px dashed rgba(158, 158, 158, 0.6)" : "none";
+    const border = event.isPrivate ? "2px dashed var(--muted-foreground)" : "none";
 
     return {
       style: {
         backgroundColor,
         color: textColor,
-        borderRadius: "8px",
+        borderRadius: "var(--radius)",
         border,
         fontWeight: 500,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14)",
+        boxShadow: "var(--shadow-sm)",
         transition: "transform 0.2s ease, box-shadow 0.2s ease",
         padding: "2px 0",
         ':hover': {
           transform: 'translateY(-1px)',
-          boxShadow: "0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23)",
+          boxShadow: "var(--shadow-md)",
         }
       },
     };

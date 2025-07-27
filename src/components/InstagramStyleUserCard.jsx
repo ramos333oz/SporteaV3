@@ -133,15 +133,16 @@ const InstagramStyleUserCard = ({
         width: 240,
         height: 320,
         flexShrink: 0,
-        background: 'linear-gradient(135deg, #fef2f2 0%, #fef3c7 100%)',
-        border: '1px solid #fecaca',
-        borderRadius: 3,
+        backgroundColor: 'var(--card)',
+        color: 'var(--card-foreground)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius)',
         transition: 'all 0.3s ease',
+        boxShadow: 'var(--shadow-sm)',
         '&:hover': {
-          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          boxShadow: 'var(--shadow-lg)',
           transform: 'scale(1.02)'
         },
-
       }}
       className={className}
     >
@@ -154,10 +155,10 @@ const InstagramStyleUserCard = ({
             sx={{
               width: 20,
               height: 20,
-              color: '#9ca3af',
+              color: 'var(--muted-foreground)',
               '&:hover': {
-                color: '#dc2626',
-                backgroundColor: '#fef2f2'
+                color: 'var(--destructive)',
+                backgroundColor: 'var(--accent)'
               }
             }}
           >
@@ -174,14 +175,14 @@ const InstagramStyleUserCard = ({
               sx={{
                 width: 70,
                 height: 70,
-                border: '2px solid #fecaca',
+                border: '2px solid var(--border)',
                 cursor: 'pointer',
                 fontSize: '1.25rem',
                 fontWeight: 'bold',
-                backgroundColor: '#fef2f2',
-                color: '#b91c1c',
+                backgroundColor: 'var(--accent)',
+                color: 'var(--primary)',
                 '&:hover': {
-                  borderColor: '#fca5a5'
+                  borderColor: 'var(--primary)'
                 }
               }}
             >
@@ -199,8 +200,8 @@ const InstagramStyleUserCard = ({
                   right: -2,
                   width: 20,
                   height: 20,
-                  backgroundColor: '#f59e0b',
-                  color: 'white',
+                  backgroundColor: 'var(--secondary-foreground)',
+                  color: 'var(--secondary)',
                   fontSize: '0.7rem',
                   fontWeight: 'bold',
                   '& .MuiChip-label': { px: 0 }
@@ -213,20 +214,20 @@ const InstagramStyleUserCard = ({
             variant="h6"
             onClick={handleViewProfile}
             sx={{
-              color: '#111827',
+              color: 'var(--foreground)',
               textAlign: 'center',
               fontSize: '0.8rem',
               lineHeight: 1.1,
               mb: 0.3,
               cursor: 'pointer',
-              '&:hover': { color: '#dc2626' }
+              '&:hover': { color: 'var(--primary)' }
             }}
           >
             {displayName}
           </Typography>
 
           {username && full_name && (
-            <Typography variant="caption" sx={{ color: '#6b7280', mb: 0.5, fontSize: '0.7rem' }}>
+            <Typography variant="caption" sx={{ color: 'var(--muted-foreground)', mb: 0.5, fontSize: '0.7rem' }}>
               @{username}
             </Typography>
           )}
@@ -240,9 +241,9 @@ const InstagramStyleUserCard = ({
               sx={{
                 fontSize: '0.7rem',
                 height: '20px',
-                borderColor: '#fecaca',
-                color: '#b91c1c',
-                backgroundColor: '#fef2f2'
+                borderColor: 'var(--border)',
+                color: 'var(--primary)',
+                backgroundColor: 'var(--accent)'
               }}
             />
           )}
@@ -252,8 +253,8 @@ const InstagramStyleUserCard = ({
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5, fontSize: '0.7rem' }}>
           {/* Faculty/Campus */}
           {faculty && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, color: '#6b7280' }}>
-              <GraduationCap size={10} style={{ color: '#dc2626' }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, color: 'var(--muted-foreground)' }}>
+              <GraduationCap size={10} style={{ color: 'var(--primary)' }} />
               <Typography variant="caption" sx={{ fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {faculty}
               </Typography>
@@ -261,8 +262,8 @@ const InstagramStyleUserCard = ({
           )}
 
           {campus && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, color: '#6b7280' }}>
-              <MapPin size={10} style={{ color: '#dc2626' }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, color: 'var(--muted-foreground)' }}>
+              <MapPin size={10} style={{ color: 'var(--primary)' }} />
               <Typography variant="caption" sx={{ fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {campus}
               </Typography>
@@ -271,8 +272,8 @@ const InstagramStyleUserCard = ({
 
           {/* Sports Preferences */}
           {topSports.length > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, color: '#6b7280' }}>
-              <Trophy size={10} style={{ color: '#dc2626' }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, color: 'var(--muted-foreground)' }}>
+              <Trophy size={10} style={{ color: 'var(--primary)' }} />
               <Typography variant="caption" sx={{ fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {topSports.map(sport => resolveSportName(sport)).join(', ')}
               </Typography>
@@ -290,15 +291,14 @@ const InstagramStyleUserCard = ({
             startIcon={<UserPlus size={12} />}
             sx={{
               flex: 1,
-              backgroundColor: '#dc2626',
-              color: 'white',
+              backgroundColor: 'var(--primary)',
+              color: 'var(--primary-foreground)',
               fontSize: '0.7rem',
               py: 0.5,
               minHeight: '28px',
-
               textTransform: 'none',
-              '&:hover': { backgroundColor: '#b91c1c' },
-              '&:disabled': { backgroundColor: '#9ca3af' }
+              '&:hover': { backgroundColor: 'var(--primary)' },
+              '&:disabled': { backgroundColor: 'var(--muted)' }
             }}
           >
             {isConnecting ? 'Connecting...' : 'Connect'}
@@ -310,16 +310,15 @@ const InstagramStyleUserCard = ({
             size="small"
             sx={{
               flex: 1,
-              borderColor: '#fecaca',
-              color: '#b91c1c',
+              borderColor: 'var(--border)',
+              color: 'var(--primary)',
               fontSize: '0.7rem',
               py: 0.5,
               minHeight: '28px',
-
               textTransform: 'none',
               '&:hover': {
-                backgroundColor: '#fef2f2',
-                borderColor: '#fca5a5'
+                backgroundColor: 'var(--accent)',
+                borderColor: 'var(--primary)'
               }
             }}
           >

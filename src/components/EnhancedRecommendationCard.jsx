@@ -57,19 +57,19 @@ import UnifiedCard from './UnifiedCard';
  * and detailed recommendation scoring breakdown
  */
 
-// Sport icon mapping using database UUIDs (consistent with other components)
+// Sport icon mapping using database UUIDs with CSS variable colors
 const sportIcons = {
-  '4746e9c1-f772-4515-8d08-6c28563fbfc9': <SportsSoccer sx={{ color: '#4CAF50' }} />, // Football
-  '13e32815-8a3b-48f7-8cc9-5fdad873b851': <SportsRugby sx={{ color: '#FF9800' }} />, // Rugby
-  'dd400853-7ce6-47bc-aee6-2ee241530f79': <SportsBasketball sx={{ color: '#FF5722' }} />, // Basketball
-  'd662bc78-9e50-4785-ac71-d1e591e4a9ce': <SportsSoccer sx={{ color: '#2196F3' }} />, // Futsal
-  '66e9893a-2be7-47f0-b7d3-d7191901dd77': <SportsVolleyball sx={{ color: '#9C27B0' }} />, // Volleyball
-  'dcedf87a-13aa-4c2f-979f-6b71d457f531': <SportsHockey sx={{ color: '#607D8B', transform: 'rotate(90deg)' }} />, // Frisbee
-  '3aba0f36-38bf-4ca2-b713-3dabd9f993f1': <SportsHockey sx={{ color: '#795548' }} />, // Hockey
-  'fb575fc1-2eac-4142-898a-2f7dae107844': <SportsTennis sx={{ color: '#E91E63' }} />, // Badminton
-  '9a304214-6c57-4c33-8c5f-3f1955b63caf': <SportsTennis sx={{ color: '#4CAF50' }} />, // Tennis
-  '845d3461-42fc-45c2-a403-8efcaf237c17': <SportsTennis sx={{ color: '#FF5722' }} />, // Table Tennis
-  '0ec51cfc-f644-4057-99d8-d2c29c1b7dd0': <SportsTennis sx={{ color: '#9C27B0' }} />, // Squash
+  '4746e9c1-f772-4515-8d08-6c28563fbfc9': <SportsSoccer sx={{ color: 'var(--sport-football)' }} />, // Football
+  '13e32815-8a3b-48f7-8cc9-5fdad873b851': <SportsRugby sx={{ color: 'var(--sport-rugby)' }} />, // Rugby
+  'dd400853-7ce6-47bc-aee6-2ee241530f79': <SportsBasketball sx={{ color: 'var(--sport-basketball)' }} />, // Basketball
+  'd662bc78-9e50-4785-ac71-d1e591e4a9ce': <SportsSoccer sx={{ color: 'var(--sport-futsal)' }} />, // Futsal
+  '66e9893a-2be7-47f0-b7d3-d7191901dd77': <SportsVolleyball sx={{ color: 'var(--sport-volleyball)' }} />, // Volleyball
+  'dcedf87a-13aa-4c2f-979f-6b71d457f531': <SportsHockey sx={{ color: 'var(--sport-frisbee)', transform: 'rotate(90deg)' }} />, // Frisbee
+  '3aba0f36-38bf-4ca2-b713-3dabd9f993f1': <SportsHockey sx={{ color: 'var(--sport-hockey)' }} />, // Hockey
+  'fb575fc1-2eac-4142-898a-2f7dae107844': <SportsTennis sx={{ color: 'var(--sport-badminton)' }} />, // Badminton
+  '9a304214-6c57-4c33-8c5f-3f1955b63caf': <SportsTennis sx={{ color: 'var(--sport-tennis)' }} />, // Tennis
+  '845d3461-42fc-45c2-a403-8efcaf237c17': <SportsTennis sx={{ color: 'var(--sport-basketball)' }} />, // Table Tennis
+  '0ec51cfc-f644-4057-99d8-d2c29c1b7dd0': <SportsTennis sx={{ color: 'var(--sport-squash)' }} />, // Squash
 };
 
 // Default venue images mapping using database UUIDs (same as LiveMatchBoard)
@@ -565,9 +565,8 @@ const EnhancedRecommendationCard = React.memo(({
                         <Typography
                           variant="body2"
                           sx={{
-                            fontFamily: 'Libre Baskerville, serif',
                             fontWeight: 500,
-                            color: '#334155',
+                            color: 'var(--foreground)',
                             fontSize: '0.9rem',
                             letterSpacing: '0.01em'
                           }}
@@ -582,9 +581,9 @@ const EnhancedRecommendationCard = React.memo(({
                             height: 22,
                             fontSize: '0.7rem',
                             fontWeight: 500,
-                            borderColor: 'rgba(148, 163, 184, 0.4)',
-                            color: '#64748b',
-                            backgroundColor: 'rgba(248, 250, 252, 0.8)',
+                            borderColor: 'var(--border)',
+                            color: 'var(--muted-foreground)',
+                            backgroundColor: 'var(--muted)',
                             '& .MuiChip-label': {
                               px: 1
                             }

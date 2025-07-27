@@ -215,7 +215,7 @@ const theme = createTheme({
           backgroundColor: 'var(--primary)',
           color: 'var(--primary-foreground)',
           '&:hover': {
-            backgroundColor: '#b91c1c', // Elegant Luxury Chart-1
+            backgroundColor: 'var(--chart-1)',
             boxShadow: 'none',
           },
         },

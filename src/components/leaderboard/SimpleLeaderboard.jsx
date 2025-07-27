@@ -79,14 +79,14 @@ const SimpleLeaderboard = ({
   // Get rank icon based on position
   const getRankIcon = useCallback((rank) => {
     const iconProps = { fontSize: '1.5rem' };
-    
+
     switch (rank) {
       case 1:
-        return <TrophyIcon sx={{ color: '#FFD700', ...iconProps }} />;
+        return <TrophyIcon sx={{ color: 'var(--chart-4)', ...iconProps }} />; // Gold
       case 2:
-        return <MedalIcon sx={{ color: '#C0C0C0', ...iconProps }} />;
+        return <MedalIcon sx={{ color: 'var(--muted-foreground)', ...iconProps }} />; // Silver
       case 3:
-        return <BadgeIcon sx={{ color: '#CD7F32', ...iconProps }} />;
+        return <BadgeIcon sx={{ color: 'var(--chart-5)', ...iconProps }} />; // Bronze
       default:
         return (
           <Box
@@ -94,13 +94,13 @@ const SimpleLeaderboard = ({
               width: 24,
               height: 24,
               borderRadius: '50%',
-              bgcolor: 'grey.300',
+              bgcolor: 'var(--muted)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '0.75rem',
               fontWeight: 'bold',
-              color: 'grey.700'
+              color: 'var(--muted-foreground)'
             }}
           >
             {rank}

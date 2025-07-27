@@ -48,6 +48,18 @@
   --shadow-2xl: 1px 1px 16px -2px hsl(0 63% 18% / 0.30);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
+
+  /* Sport-specific colors for consistent theming */
+  --sport-football: #4CAF50;
+  --sport-basketball: #FF5722;
+  --sport-volleyball: #9C27B0;
+  --sport-tennis: #CDDC39;
+  --sport-badminton: #8BC34A;
+  --sport-hockey: #E91E63;
+  --sport-rugby: #795548;
+  --sport-futsal: #2196F3;
+  --sport-squash: #FF9800;
+  --sport-frisbee: #607D8B;
 }
 
 .dark {
@@ -95,6 +107,18 @@
   --shadow-lg: 1px 1px 16px -2px hsl(0 63% 18% / 0.12), 1px 4px 6px -3px hsl(0 63% 18% / 0.12);
   --shadow-xl: 1px 1px 16px -2px hsl(0 63% 18% / 0.12), 1px 8px 10px -3px hsl(0 63% 18% / 0.12);
   --shadow-2xl: 1px 1px 16px -2px hsl(0 63% 18% / 0.30);
+
+  /* Sport-specific colors for dark mode */
+  --sport-football: #66BB6A;
+  --sport-basketball: #FF7043;
+  --sport-volleyball: #AB47BC;
+  --sport-tennis: #D4E157;
+  --sport-badminton: #9CCC65;
+  --sport-hockey: #EC407A;
+  --sport-rugby: #8D6E63;
+  --sport-futsal: #42A5F5;
+  --sport-squash: #FFA726;
+  --sport-frisbee: #78909C;
 }
 
 * {

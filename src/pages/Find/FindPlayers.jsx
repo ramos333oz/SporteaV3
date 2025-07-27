@@ -799,15 +799,15 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
         justifyContent: 'space-between',
         p: 1,
         borderRadius: 2,
-        backgroundColor: 'rgba(220, 38, 38, 0.05)',
-        border: '1px solid rgba(220, 38, 38, 0.1)'
+        backgroundColor: 'var(--accent)',
+        border: '1px solid var(--border)'
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Typography
             variant="caption"
             sx={{
               fontWeight: 600,
-              color: '#374151',
+              color: 'var(--foreground)',
               fontSize: '0.75rem'
             }}
           >
@@ -818,8 +818,8 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
             size="small"
             sx={{
               height: 18,
-              backgroundColor: level >= 4 ? '#4caf50' : level >= 3 ? '#ff9800' : '#2196f3',
-              color: 'white',
+              backgroundColor: level >= 4 ? 'var(--chart-1)' : level >= 3 ? 'var(--chart-4)' : 'var(--chart-2)',
+              color: 'var(--primary-foreground)',
               fontWeight: 500,
               fontSize: '0.65rem',
               '& .MuiChip-label': { px: 0.5 }
@@ -932,12 +932,14 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                         height: 380,
                         display: 'flex',
                         flexDirection: 'column',
-                        background: 'linear-gradient(135deg, #fef2f2 0%, #fef3c7 100%)',
-                        border: '1px solid #fecaca',
-                        borderRadius: 3,
+                        backgroundColor: 'var(--card)',
+                        color: 'var(--card-foreground)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius)',
                         transition: 'all 0.3s ease',
+                        boxShadow: 'var(--shadow-sm)',
                         '&:hover': {
-                          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                          boxShadow: 'var(--shadow-lg)',
                           transform: 'scale(1.02)'
                         }
                       }}
@@ -952,14 +954,14 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                               sx={{
                                 width: 80,
                                 height: 80,
-                                border: '2px solid #fecaca',
+                                border: '2px solid var(--border)',
                                 cursor: 'pointer',
                                 fontSize: '1.5rem',
                                 fontWeight: 'bold',
-                                backgroundColor: '#fef2f2',
-                                color: '#b91c1c',
+                                backgroundColor: 'var(--accent)',
+                                color: 'var(--primary)',
                                 '&:hover': {
-                                  borderColor: '#fca5a5'
+                                  borderColor: 'var(--primary)'
                                 }
                               }}
                             >
@@ -977,8 +979,8 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                                   right: -2,
                                   width: 24,
                                   height: 24,
-                                  backgroundColor: '#dc2626',
-                                  color: 'white',
+                                  backgroundColor: 'var(--primary)',
+                                  color: 'var(--primary-foreground)',
                                   fontSize: '0.7rem',
                                   fontWeight: 'bold',
                                   '& .MuiChip-label': { px: 0 }
@@ -991,12 +993,12 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                             variant="h6"
                             onClick={() => handleViewProfile(player.id)}
                             sx={{
-                              color: '#111827',
+                              color: 'var(--foreground)',
                               textAlign: 'center',
                               lineHeight: 1.2,
                               mb: 0.5,
                               cursor: 'pointer',
-                              '&:hover': { color: '#dc2626' }
+                              '&:hover': { color: 'var(--primary)' }
                             }}
                           >
                             {displayName}
@@ -1004,7 +1006,7 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
 
                           {username && full_name && (
                             <Typography variant="caption" sx={{
-                              color: '#6b7280',
+                              color: 'var(--muted-foreground)',
                               mb: 1,
                               fontSize: '0.8rem'
                             }}>
@@ -1020,7 +1022,7 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                             <Typography
                               variant="body2"
                               sx={{
-                                color: '#6b7280',
+                                color: 'var(--muted-foreground)',
                                 fontSize: '0.8rem',
                                 fontStyle: 'italic',
                                 textAlign: 'center',
@@ -1034,8 +1036,8 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
 
                           {/* Faculty/Campus */}
                           {resolvedFaculty && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#6b7280' }}>
-                              <SchoolIcon sx={{ fontSize: 14, color: '#dc2626' }} />
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'var(--muted-foreground)' }}>
+                              <SchoolIcon sx={{ fontSize: 14, color: 'var(--primary)' }} />
                               <Typography variant="caption" sx={{
                                 fontSize: '0.8rem',
                                 overflow: 'hidden',
@@ -1047,8 +1049,8 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                           )}
 
                           {resolvedCampus && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#6b7280' }}>
-                              <LocationOnIcon sx={{ fontSize: 14, color: '#dc2626' }} />
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'var(--muted-foreground)' }}>
+                              <LocationOnIcon sx={{ fontSize: 14, color: 'var(--primary)' }} />
                               <Typography variant="caption" sx={{
                                 fontSize: '0.8rem',
                                 overflow: 'hidden',
@@ -1061,8 +1063,8 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
 
                           {/* Sports Preferences */}
                           {topSports.length > 0 && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#6b7280' }}>
-                              <StarIcon sx={{ fontSize: 14, color: '#dc2626' }} />
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'var(--muted-foreground)' }}>
+                              <StarIcon sx={{ fontSize: 14, color: 'var(--primary)' }} />
                               <Typography variant="caption" sx={{
                                 fontSize: '0.8rem',
                                 overflow: 'hidden',
@@ -1090,16 +1092,16 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                             size="small"
                             sx={{
                               flex: 1,
-                              borderColor: '#fecaca',
-                              color: '#b91c1c',
+                              borderColor: 'var(--border)',
+                              color: 'var(--primary)',
                               fontSize: '0.8rem',
                               py: 0.8,
                               minHeight: '32px',
                               textTransform: 'none',
                               fontWeight: 500,
                               '&:hover': {
-                                backgroundColor: '#fef2f2',
-                                borderColor: '#fca5a5'
+                                backgroundColor: 'var(--accent)',
+                                borderColor: 'var(--primary)'
                               }
                             }}
                           >
