@@ -52,86 +52,86 @@ import { LevelUpProvider } from './contexts/LevelUpContext';
 import { StagewiseToolbar } from '@stagewise/toolbar-react';
 import ReactPlugin from '@stagewise-plugins/react';
 
-// Create a theme instance based on the Sportea style guide
+// Create a theme instance based on the Elegant Luxury theme
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#8A1538', // Primary Maroon
-      light: '#B52E4C', // Secondary Maroon Light
-      dark: '#6E0F2D',
-      lighter: 'rgba(138, 21, 56, 0.08)', // Very light maroon for hover/select states
-      contrastText: '#FFFFFF',
+      main: '#9b2c2c', // Elegant Luxury Primary
+      light: '#b91c1c',
+      dark: '#7f1d1d',
+      contrastText: '#ffffff',
     },
     secondary: {
-      main: '#F9EBEE', // Secondary Maroon Pale
-      light: '#FFFFFF',
-      dark: '#E0D4D7',
-      contrastText: '#8A1538',
+      main: '#fdf2d6', // Elegant Luxury Secondary
+      light: '#fef3c7',
+      dark: '#805500',
+      contrastText: '#805500',
     },
     error: {
-      main: '#D32F2F', // Error Red
+      main: '#991b1b', // Elegant Luxury Destructive
+      contrastText: '#ffffff',
     },
     success: {
-      main: '#34A853', // Success Green
+      main: '#34A853', // Keep existing success color
     },
     warning: {
-      main: '#F2C94C', // Accent Gold
+      main: '#b45309', // Elegant Luxury Chart-4
     },
     info: {
-      main: '#E63946', // Accent Red
+      main: '#b91c1c', // Elegant Luxury Chart-1
     },
     text: {
-      primary: '#424242', // Dark Gray
-      secondary: '#9E9E9E', // Neutral Gray
+      primary: '#1a1a1a', // Elegant Luxury Foreground
+      secondary: '#57534e', // Elegant Luxury Muted Foreground
     },
     background: {
-      default: '#F5F5F7', // Light Gray
-      paper: '#FFFFFF',
-      light: '#F9F9FC',
+      default: '#faf7f5', // Elegant Luxury Background
+      paper: '#faf7f5', // Elegant Luxury Card
+      light: '#f0ebe8', // Elegant Luxury Muted
     },
   },
   typography: {
-    // Font families for the Elegant Luxury theme
-    fontFamily: "'Poppins', 'Inter', 'Roboto', 'Helvetica', 'Arial', sans-serif",
+    // Font families for the Elegant Luxury theme using CSS variables
+    fontFamily: 'var(--font-sans)',
 
     // Headings use Libre Baskerville for elegance
     h1: {
-      fontFamily: "'Libre Baskerville', serif",
+      fontFamily: 'var(--font-serif)',
       fontSize: '2rem',        // 32px
       fontWeight: 700,
       lineHeight: 1.2,
       letterSpacing: '-0.02em',
     },
     h2: {
-      fontFamily: "'Libre Baskerville', serif",
+      fontFamily: 'var(--font-serif)',
       fontSize: '1.75rem',     // 28px
       fontWeight: 700,
       lineHeight: 1.3,
       letterSpacing: '-0.01em',
     },
     h3: {
-      fontFamily: "'Libre Baskerville', serif",
+      fontFamily: 'var(--font-serif)',
       fontSize: '1.5rem',      // 24px
       fontWeight: 600,
       lineHeight: 1.3,
       letterSpacing: '0',
     },
     h4: {
-      fontFamily: "'Libre Baskerville', serif",
+      fontFamily: 'var(--font-serif)',
       fontSize: '1.25rem',     // 20px
       fontWeight: 600,
       lineHeight: 1.4,
       letterSpacing: '0',
     },
     h5: {
-      fontFamily: "'Libre Baskerville', serif",
+      fontFamily: 'var(--font-serif)',
       fontSize: '1.125rem',    // 18px
       fontWeight: 600,
       lineHeight: 1.4,
       letterSpacing: '0',
     },
     h6: {
-      fontFamily: "'Libre Baskerville', serif",
+      fontFamily: 'var(--font-serif)',
       fontSize: '1rem',        // 16px
       fontWeight: 600,
       lineHeight: 1.4,
@@ -140,14 +140,14 @@ const theme = createTheme({
 
     // Body text uses Poppins for readability
     body1: {
-      fontFamily: "'Poppins', sans-serif",
+      fontFamily: 'var(--font-sans)',
       fontSize: '1rem',        // 16px
       fontWeight: 400,
       lineHeight: 1.5,
       letterSpacing: '0',
     },
     body2: {
-      fontFamily: "'Poppins', sans-serif",
+      fontFamily: 'var(--font-sans)',
       fontSize: '0.875rem',    // 14px
       fontWeight: 400,
       lineHeight: 1.43,
@@ -156,14 +156,14 @@ const theme = createTheme({
 
     // Subtitles for UI elements
     subtitle1: {
-      fontFamily: "'Poppins', sans-serif",
+      fontFamily: 'var(--font-sans)',
       fontSize: '1rem',        // 16px
       fontWeight: 500,
       lineHeight: 1.5,
       letterSpacing: '0.01em',
     },
     subtitle2: {
-      fontFamily: "'Poppins', sans-serif",
+      fontFamily: 'var(--font-sans)',
       fontSize: '0.875rem',    // 14px
       fontWeight: 600,
       lineHeight: 1.43,
@@ -172,7 +172,7 @@ const theme = createTheme({
 
     // UI elements
     button: {
-      fontFamily: "'Poppins', sans-serif",
+      fontFamily: 'var(--font-sans)',
       fontSize: '0.875rem',    // 14px
       fontWeight: 500,
       lineHeight: 1.43,
@@ -180,7 +180,7 @@ const theme = createTheme({
       textTransform: 'none',
     },
     caption: {
-      fontFamily: "'Poppins', sans-serif",
+      fontFamily: 'var(--font-sans)',
       fontSize: '0.75rem',     // 12px
       fontWeight: 500,
       lineHeight: 1.33,
@@ -189,7 +189,7 @@ const theme = createTheme({
 
     // Technical elements (for future use)
     overline: {
-      fontFamily: "'IBM Plex Mono', monospace",
+      fontFamily: 'var(--font-mono)',
       fontSize: '0.75rem',     // 12px
       fontWeight: 400,
       lineHeight: 1.33,
@@ -204,21 +204,29 @@ const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 'var(--radius)',
           padding: '12px 16px',
           minHeight: 48,
           boxShadow: 'none',
+          fontFamily: 'var(--font-sans) !important',
+          fontWeight: 500,
         },
         containedPrimary: {
+          backgroundColor: 'var(--primary)',
+          color: 'var(--primary-foreground)',
           '&:hover': {
-            backgroundColor: '#B52E4C', // Secondary Maroon Light
+            backgroundColor: '#b91c1c', // Elegant Luxury Chart-1
             boxShadow: 'none',
           },
         },
         outlinedPrimary: {
+          borderColor: 'var(--primary)',
+          color: 'var(--primary)',
           borderWidth: '1.5px',
           '&:hover': {
             borderWidth: '1.5px',
+            backgroundColor: 'var(--accent)',
+            borderColor: 'var(--primary)',
           },
         },
       },
@@ -226,9 +234,11 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
-          boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
+          borderRadius: 'var(--radius)',
+          boxShadow: 'var(--shadow)',
           padding: 16,
+          backgroundColor: 'var(--card)',
+          color: 'var(--card-foreground)',
         },
       },
     },
@@ -237,7 +247,16 @@ const theme = createTheme({
         root: {
           '& .MuiOutlinedInput-root': {
             height: 56,
-            borderRadius: 8,
+            borderRadius: 'var(--radius)',
+            backgroundColor: 'var(--background)',
+            borderColor: 'var(--border)',
+            fontFamily: 'var(--font-sans) !important',
+            '&:hover': {
+              borderColor: 'var(--ring)',
+            },
+            '&.Mui-focused': {
+              borderColor: 'var(--ring)',
+            },
           },
         },
       },
