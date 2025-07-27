@@ -1,0 +1,110 @@
+/* ShinyText Animation Component */
+/* Integrates with Sportea's Elegant Luxury theme */
+
+.shiny-text {
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+  animation: shine 5s linear infinite;
+  -webkit-animation: shine 5s linear infinite;
+  position: relative;
+  font-weight: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Light variant - for dark backgrounds (like the gradient card) */
+.shiny-text.light {
+  background-image: linear-gradient(
+    110deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.8) 35%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(255, 255, 255, 0.8) 65%,
+    rgba(255, 255, 255, 0.8) 100%
+  );
+}
+
+/* Dark variant - for light backgrounds */
+.shiny-text.dark {
+  background-image: linear-gradient(
+    110deg,
+    rgba(155, 44, 44, 0.8) 0%,
+    rgba(155, 44, 44, 0.8) 35%,
+    rgba(155, 44, 44, 1) 50%,
+    rgba(155, 44, 44, 0.8) 65%,
+    rgba(155, 44, 44, 0.8) 100%
+  );
+}
+
+/* Shine animation keyframes */
+@keyframes shine {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@-webkit-keyframes shine {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Disabled state */
+.shiny-text.disabled {
+  animation: none;
+}
+
+/* Accessibility: Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .shiny-text {
+    animation: none;
+    -webkit-animation: none;
+  }
+}
+
+/* Fallback for browsers that don't support background-clip: text */
+@supports not (background-clip: text) or not (-webkit-background-clip: text) {
+  .shiny-text.light {
+    color: rgba(255, 255, 255, 0.95);
+    background: none;
+    -webkit-text-fill-color: rgba(255, 255, 255, 0.95);
+  }
+
+  .shiny-text.dark {
+    color: rgba(155, 44, 44, 0.9);
+    background: none;
+    -webkit-text-fill-color: rgba(155, 44, 44, 0.9);
+  }
+}
+
+/* Performance optimization */
+.shiny-text {
+  will-change: background-position;
+  transform: translateZ(0); /* Force GPU acceleration */
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Variants for different contexts */
+.shiny-text.celebration {
+  animation-duration: 2s;
+  animation-iteration-count: 3;
+}
+
+.shiny-text.subtle {
+  animation-duration: 8s;
+}
+
+.shiny-text.prominent {
+  animation-duration: 3s;
+}

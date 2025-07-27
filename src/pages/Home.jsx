@@ -58,15 +58,19 @@ const Home = () => {
       
       // Update sport counts with direct query to get accurate counts
       try {
-        // Query for active matches (not cancelled, not completed)
+        // Query for active matches (not cancelled, not completed, and not ended)
+        // This aligns with LiveMatchBoard logic for consistency
         const { data: activeMatchData, error: activeMatchError } = await supabase
           .from('matches')
           .select(`
             sport_id,
+            start_time,
+            end_time,
             sports!inner(id, name)
           `)
           .not('status', 'eq', 'cancelled')
-          .not('status', 'eq', 'completed');
+          .not('status', 'eq', 'completed')
+          .in('moderation_status', ['approved', 'auto_approved']);
 
         // Query for total matches (excluding only cancelled)
         const { data: totalMatchData, error: totalMatchError } = await supabase
@@ -78,9 +82,39 @@ const Home = () => {
           .not('status', 'eq', 'cancelled');
 
         if (!activeMatchError && !totalMatchError && activeMatchData && totalMatchData) {
-          // Count active matches by sport
+          // Filter active matches to only include those that haven't ended (align with LiveMatchBoard logic)
+          const now = new Date();
+          console.log(`[Home] Filtering ${activeMatchData.length} potential active matches at ${now.toISOString()}`);
+
+          const filteredActiveMatches = activeMatchData.filter(match => {
+            if (!match.start_time) {
+              console.log(`[Home] Excluding match without start_time: ${match.sports?.name}`);
+              return false;
+            }
+
+            // Calculate end time based on end_time or default 1 hour duration
+            const startTime = new Date(match.start_time);
+            const endTime = match.end_time
+              ? new Date(match.end_time)
+              : new Date(startTime.getTime() + 60 * 60000); // Default 1 hour duration
+
+            // Only include matches that haven't ended yet
+            const hasNotEnded = endTime > now;
+
+            if (!hasNotEnded) {
+              console.log(`[Home] Excluding ended match: ${match.sports?.name} (ended at ${endTime.toISOString()})`);
+            } else {
+              console.log(`[Home] Including active match: ${match.sports?.name} (ends at ${endTime.toISOString()})`);
+            }
+
+            return hasNotEnded;
+          });
+
+          console.log(`[Home] Filtered to ${filteredActiveMatches.length} truly active matches`);
+
+          // Count active matches by sport (using filtered data)
           const activeSportCounts = {};
-          activeMatchData.forEach(item => {
+          filteredActiveMatches.forEach(item => {
             const sportId = item.sports?.id;
             if (sportId) {
               activeSportCounts[sportId] = (activeSportCounts[sportId] || 0) + 1;

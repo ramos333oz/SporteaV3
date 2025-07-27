@@ -9,6 +9,7 @@ import {
   Skeleton
 } from '@mui/material';
 import { UserAvatarWithLevel } from '../achievements';
+import ShinyText from '../animations/ShinyText';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import TrendingFlatIcon from '@mui/icons-material/TrendingFlat';
@@ -83,6 +84,19 @@ const UserRankingCard = ({
       default:
         return 'Global';
     }
+  };
+
+  // Get animation speed based on rank (higher ranks get faster/more prominent animations)
+  const getAnimationSpeed = (rank) => {
+    if (rank <= 3) return 2; // Fastest for top 3
+    if (rank <= 10) return 3; // Fast for top 10
+    if (rank <= 50) return 4; // Medium for top 50
+    return 5; // Standard for others
+  };
+
+  // Determine if rank chip should have shine animation
+  const shouldAnimateRankChip = (rank) => {
+    return rank <= 10; // Only top 10 get animated rank chips
   };
 
   if (loading) {
@@ -167,7 +181,18 @@ const UserRankingCard = ({
           </Box>
 
           <Chip
-            label={`#${rank}`}
+            label={
+              shouldAnimateRankChip(rank) ? (
+                <ShinyText
+                  text={`#${rank}`}
+                  variant="light"
+                  speed={3}
+                  delay={0.5}
+                />
+              ) : (
+                `#${rank}`
+              )
+            }
             color={getRankColor(rank)}
             sx={{
               fontSize: '1.1rem',
@@ -186,7 +211,12 @@ const UserRankingCard = ({
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Box sx={{ textAlign: 'center' }}>
             <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-              {formatScore(score, type)}
+              <ShinyText
+                text={formatScore(score, type)}
+                variant="light"
+                speed={getAnimationSpeed(rank)}
+                delay={0}
+              />
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.9 }}>
               {getScoreLabel(type)}
@@ -230,12 +260,17 @@ const UserRankingCard = ({
         </Box>
 
         {/* Rank Description */}
-        <Typography variant="body1" sx={{ 
-          textAlign: 'center', 
+        <Typography variant="body1" sx={{
+          textAlign: 'center',
           fontWeight: 600,
           opacity: 0.95
         }}>
-          {getRankDescription(rank, totalParticipants)}
+          <ShinyText
+            text={getRankDescription(rank, totalParticipants)}
+            variant="light"
+            speed={4}
+            delay={1}
+          />
         </Typography>
       </CardContent>
     </Card>
