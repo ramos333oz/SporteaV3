@@ -15,6 +15,7 @@ import {
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../services/supabase';
+import DotGrid from '../components/animations/DotGrid';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -203,18 +204,58 @@ const Login = () => {
 
   
   return (
-    <Container component="main" maxWidth="sm" sx={{ display: 'flex', minHeight: '100vh', alignItems: 'center' }}>
-      <Paper 
-        elevation={2} 
-        sx={{ 
-          p: 4, 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center',
+    <Box sx={{ position: 'relative', minHeight: '100vh', overflow: 'hidden' }}>
+      {/* Animated Background */}
+      <Box
+        sx={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
           width: '100%',
-          borderRadius: 3
+          height: '100%',
+          zIndex: 0,
+          opacity: 0.15, // Subtle background effect
         }}
       >
+        <DotGrid
+          dotSize={8}
+          gap={25}
+          baseColor="#9b2c2c"
+          activeColor="#b91c1c"
+          proximity={120}
+          shockRadius={200}
+          shockStrength={4}
+          resistance={600}
+          returnDuration={1.2}
+        />
+      </Box>
+
+      {/* Login Content */}
+      <Container
+        component="main"
+        maxWidth="sm"
+        sx={{
+          display: 'flex',
+          minHeight: '100vh',
+          alignItems: 'center',
+          position: 'relative',
+          zIndex: 1
+        }}
+      >
+        <Paper
+          elevation={2}
+          sx={{
+            p: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            width: '100%',
+            borderRadius: 3,
+            backgroundColor: 'rgba(250, 247, 245, 0.95)', // Semi-transparent background
+            backdropFilter: 'blur(10px)', // Glass effect
+            border: '1px solid rgba(155, 44, 44, 0.1)', // Subtle border
+          }}
+        >
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <Box
             component="img"
@@ -342,6 +383,7 @@ const Login = () => {
         </Box>
       </Paper>
     </Container>
+    </Box>
   );
 };
 
