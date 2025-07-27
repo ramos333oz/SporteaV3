@@ -6,7 +6,8 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Typography,
-  Chip
+  Chip,
+  Paper
 } from '@mui/material';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -77,42 +78,89 @@ const LeaderboardTypeSelector = ({
     <Box sx={{ mb: 3 }}>
       {/* Leaderboard Type Selection */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-          Leaderboard Type
-        </Typography>
-        <Tabs
-          value={selectedType}
-          onChange={(e, newValue) => onTypeChange(newValue)}
-          variant="scrollable"
-          scrollButtons="auto"
+        <Typography
+          variant="h6"
           sx={{
-            '& .MuiTab-root': {
-              minHeight: 64,
-              textTransform: 'none',
-              fontWeight: 600
-            }
+            mb: 2,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            color: 'text.secondary'
           }}
         >
-          {leaderboardTypes.map((type) => (
-            <Tab
-              key={type.value}
-              value={type.value}
-              icon={type.icon}
-              iconPosition="start"
-              label={
-                <Box sx={{ textAlign: 'left' }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    {type.label}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {type.description}
-                  </Typography>
-                </Box>
-              }
-              sx={{ alignItems: 'flex-start', px: 3 }}
-            />
-          ))}
-        </Tabs>
+          <EmojiEventsIcon sx={{ fontSize: '1.2rem' }} />
+          Leaderboard Type
+        </Typography>
+        <Paper sx={{ borderRadius: 2, p: 1, bgcolor: 'grey.50' }}>
+          <Tabs
+            value={selectedType}
+            onChange={(e, newValue) => onTypeChange(newValue)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              minHeight: 'auto',
+              '& .MuiTabs-indicator': {
+                display: 'none', // Remove default indicator
+              },
+              '& .MuiTab-root': {
+                minHeight: 'auto',
+                py: 2,
+                px: 3,
+                borderRadius: 1.5,
+                textTransform: 'none',
+                fontWeight: 500,
+                fontSize: '0.875rem',
+                color: 'text.secondary',
+                transition: 'all 0.2s ease-in-out',
+                alignItems: 'flex-start',
+                '&:hover': {
+                  bgcolor: 'action.hover',
+                  color: 'text.primary',
+                },
+                '&.Mui-selected': {
+                  bgcolor: 'background.paper',
+                  color: 'primary.main',
+                  fontWeight: 600,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                },
+              },
+              '& .MuiTabs-scrollButtons': {
+                color: 'text.secondary',
+                '&.Mui-disabled': {
+                  opacity: 0.3,
+                },
+              },
+            }}
+          >
+            {leaderboardTypes.map((type) => (
+              <Tab
+                key={type.value}
+                value={type.value}
+                icon={type.icon}
+                iconPosition="start"
+                label={
+                  <Box sx={{ textAlign: 'left', minWidth: 120 }}>
+                    <Typography variant="body2" fontWeight="inherit">
+                      {type.label}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: 'inherit',
+                        opacity: 0.7,
+                        display: 'block',
+                        lineHeight: 1.2
+                      }}
+                    >
+                      {type.description}
+                    </Typography>
+                  </Box>
+                }
+              />
+            ))}
+          </Tabs>
+        </Paper>
       </Box>
 
       {/* Timeframe Selection */}
