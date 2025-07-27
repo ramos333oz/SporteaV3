@@ -769,7 +769,8 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
                       display: 'flex',
                       gap: 2,
                       overflowX: 'auto',
-                      pb: 2,
+                      px: 2, // Add horizontal padding to prevent border cutoff on sides
+                      py: 3, // Increase vertical padding to accommodate hover effects
                       '&::-webkit-scrollbar': {
                         height: 8,
                       },
@@ -1800,27 +1801,29 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          borderRadius: 3,
+          borderRadius: 'var(--radius)',
           transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           position: "relative",
-          overflow: "visible",
           cursor: "pointer",
-          border: "1px solid",
-          borderColor: "divider",
-          background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+          border: "1px solid var(--border)",
+          backgroundColor: "var(--card)",
+          color: "var(--card-foreground)",
+          boxShadow: "var(--shadow-sm)",
+          // Add margin to prevent border cutoff on hover
+          margin: "8px",
           "&:hover": {
-            transform: "translateY(-12px) scale(1.02)",
-            boxShadow: "0 20px 40px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.08)",
-            borderColor: "primary.main",
+            transform: "translateY(-8px)",
+            boxShadow: "var(--shadow-lg)",
+            borderColor: "var(--primary)",
             "& .card-sport-chip": {
               transform: "scale(1.05)",
             },
             "& .card-title": {
-              color: "primary.main",
+              color: "var(--primary)",
             },
           },
           "&:active": {
-            transform: "translateY(-8px) scale(1.01)",
+            transform: "translateY(-4px)",
           },
           ...(match.isUpdated && {
             animation: "pulse 2s",

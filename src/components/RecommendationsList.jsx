@@ -698,7 +698,8 @@ const RecommendationsList = React.memo(({
             display: 'flex',
             gap: 2,
             overflowX: 'auto',
-            pb: 2,
+            px: 2, // Add horizontal padding to prevent border cutoff on sides
+            py: 3, // Increase vertical padding to accommodate hover effects
             '&::-webkit-scrollbar': {
               height: 8,
             },

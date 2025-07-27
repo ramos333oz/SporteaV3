@@ -397,10 +397,10 @@ const EnhancedRecommendationCard = React.memo(({
       variant={isFallback ? 'outlined' : 'elevated'}
       ariaLabel={`Recommended ${sportName} match`}
       sx={{
-        border: feedback === 'liked' 
-          ? '2px solid #4CAF50' 
-          : feedback === 'disliked' 
-            ? '2px solid #f44336'
+        border: feedback === 'liked'
+          ? '2px solid var(--chart-1)'
+          : feedback === 'disliked'
+            ? '2px solid var(--destructive)'
             : undefined
       }}
     >
@@ -652,11 +652,11 @@ const EnhancedRecommendationCard = React.memo(({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 p: 2.5,
-                backgroundColor: 'linear-gradient(135deg, rgba(71, 85, 105, 0.95) 0%, rgba(51, 65, 85, 0.95) 100%)',
-                background: 'linear-gradient(135deg, #475569 0%, #334155 100%)',
-                borderRadius: 3,
-                color: 'white',
-                boxShadow: '0 4px 20px rgba(71, 85, 105, 0.15)'
+                backgroundColor: 'var(--muted)',
+                borderRadius: 'var(--radius)',
+                color: 'var(--muted-foreground)',
+                boxShadow: 'var(--shadow-sm)',
+                border: '1px solid var(--border)'
               }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                   <Calculate sx={{ fontSize: 18, opacity: 0.9 }} />
@@ -816,19 +816,19 @@ const EnhancedRecommendationCard = React.memo(({
                 disabled={feedbackSent && feedback && feedback !== 'liked'}
                 color={feedback === 'liked' ? 'success' : 'default'}
                 sx={{
-                  borderRadius: 2,
+                  borderRadius: 'var(--radius)',
                   border: '1.5px solid',
-                  borderColor: feedback === 'liked' ? 'success.main' : 'divider',
-                  backgroundColor: feedback === 'liked' ? 'success.light' : 'transparent',
+                  borderColor: feedback === 'liked' ? 'var(--chart-1)' : 'var(--border)',
+                  backgroundColor: feedback === 'liked' ? 'var(--accent)' : 'transparent',
                   opacity: feedbackSent && feedback && feedback !== 'liked' ? 0.5 : 1,
                   cursor: feedbackSent && feedback && feedback !== 'liked' ? 'not-allowed' : 'pointer',
                   '&:hover': {
                     backgroundColor: feedbackSent && feedback && feedback !== 'liked'
                       ? 'transparent'
-                      : feedback === 'liked' ? 'success.light' : 'success.lighter',
+                      : feedback === 'liked' ? 'var(--accent)' : 'var(--accent)',
                     borderColor: feedbackSent && feedback && feedback !== 'liked'
-                      ? 'divider'
-                      : 'success.main',
+                      ? 'var(--border)'
+                      : 'var(--chart-1)',
                     transform: feedbackSent && feedback && feedback !== 'liked'
                       ? 'none'
                       : 'translateY(-1px)',

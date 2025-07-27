@@ -16,65 +16,69 @@ import { styled } from '@mui/material/styles';
  * Provides consistent styling, hover effects, and flexible content areas
  */
 
-// Styled Card with unified design system
+// Styled Card with unified design system using CSS variables
 const StyledCard = styled(Card, {
   shouldForwardProp: (prop) => prop !== 'isClickable'
 })(({ theme, isClickable, variant }) => ({
-  borderRadius: 12,
-  boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
-  border: '1px solid rgba(0, 0, 0, 0.06)',
+  borderRadius: 'var(--radius)',
+  backgroundColor: 'var(--card)',
+  color: 'var(--card-foreground)',
+  boxShadow: 'var(--shadow-sm)',
+  border: '1px solid var(--border)',
   overflow: 'hidden',
   position: 'relative',
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   cursor: isClickable ? 'pointer' : 'default',
-  
+
   // Variant-specific styling
   ...(variant === 'elevated' && {
-    boxShadow: '0px 4px 16px rgba(0, 0, 0, 0.12)',
+    boxShadow: 'var(--shadow-md)',
   }),
-  
+
   ...(variant === 'outlined' && {
-    border: `1.5px solid ${theme.palette.primary.lighter}`,
+    border: '1.5px solid var(--primary)',
     boxShadow: 'none',
   }),
   
   // Hover effects for clickable cards
   ...(isClickable && {
+    // Reduced margin since containers now have padding
+    margin: '4px',
     '&:hover': {
-      transform: 'translateY(-4px)',
-      boxShadow: '0px 8px 24px rgba(138, 21, 56, 0.15)',
-      borderColor: theme.palette.primary.light,
+      transform: 'translateY(-6px)',
+      boxShadow: 'var(--shadow-lg)',
+      borderColor: 'var(--primary)',
 
       '& .card-image': {
-        transform: 'scale(1.05)',
+        transform: 'scale(1.03)',
       },
 
       '& .card-content': {
         '& .primary-text': {
-          color: theme.palette.primary.main,
+          color: 'var(--primary)',
         }
       }
     },
 
     '&:active': {
-      transform: 'translateY(-2px)',
-      boxShadow: '0px 4px 16px rgba(138, 21, 56, 0.12)',
+      transform: 'translateY(-3px)',
+      boxShadow: 'var(--shadow-md)',
     }
   }),
   
   // Focus styles for accessibility
   '&:focus-visible': {
-    outline: `2px solid ${theme.palette.primary.main}`,
+    outline: '2px solid var(--ring)',
     outlineOffset: 2,
   }
 }));
 
-// Styled Card Media with consistent aspect ratios
+// Styled Card Media with consistent aspect ratios using CSS variables
 const StyledCardMedia = styled(CardMedia)(({ theme }) => ({
   transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  backgroundColor: theme.palette.background.light,
+  backgroundColor: 'var(--muted)',
   position: 'relative',
-  
+
   '&::after': {
     content: '""',
     position: 'absolute',
@@ -87,24 +91,24 @@ const StyledCardMedia = styled(CardMedia)(({ theme }) => ({
   }
 }));
 
-// Status indicator component
+// Status indicator component using CSS variables
 const StatusIndicator = styled(Box)(({ theme, status }) => {
   const getStatusColor = () => {
     switch (status) {
-      case 'live': return theme.palette.error.main;
-      case 'upcoming': return theme.palette.success.main;
-      case 'full': return theme.palette.warning.main;
-      case 'recommended': return theme.palette.primary.main;
-      default: return theme.palette.text.secondary;
+      case 'live': return 'var(--destructive)';
+      case 'upcoming': return 'var(--chart-1)';
+      case 'full': return 'var(--chart-4)';
+      case 'recommended': return 'var(--primary)';
+      default: return 'var(--muted-foreground)';
     }
   };
-  
+
   return {
     position: 'absolute',
     top: 12,
     right: 12,
     backgroundColor: getStatusColor(),
-    color: 'white',
+    color: 'var(--primary-foreground)',
     borderRadius: 16,
     padding: '4px 12px',
     fontSize: '0.75rem',
@@ -112,7 +116,7 @@ const StatusIndicator = styled(Box)(({ theme, status }) => {
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
     zIndex: 2,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.2)',
+    boxShadow: 'var(--shadow-sm)',
   };
 });
 

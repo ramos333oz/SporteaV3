@@ -141,7 +141,8 @@ const InstagramStyleUserCard = ({
         boxShadow: 'var(--shadow-sm)',
         '&:hover': {
           boxShadow: 'var(--shadow-lg)',
-          transform: 'scale(1.02)'
+          borderColor: 'var(--primary)',
+          transform: 'translateY(-4px) scale(1.01)' // Reduced movement and scale
         },
       }}
       className={className}

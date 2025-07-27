@@ -628,31 +628,35 @@ const RecommendationCard = memo(({
   if (!match) return null;
 
   return (
-    <Card elevation={1} sx={{ 
-      borderRadius: 2,
+    <Card elevation={1} sx={{
+      borderRadius: 'var(--radius)',
       position: 'relative',
-      overflow: 'visible',
-      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+      margin: '4px', // Reduced margin since containers now have padding
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      backgroundColor: 'var(--card)',
+      color: 'var(--card-foreground)',
+      boxShadow: 'var(--shadow-sm)',
       '&:hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: (theme) => theme.shadows[3],
+        transform: 'translateY(-6px)',
+        boxShadow: 'var(--shadow-lg)',
+        borderColor: feedback === 'liked' || feedback === 'disliked' ? undefined : 'var(--primary)',
       },
-      border: (theme) => 
-        feedback === 'liked' 
-          ? `1px solid ${theme.palette.success.main}` 
-          : feedback === 'disliked' 
-            ? `1px solid ${theme.palette.error.main}`
-            : 'none'
+      border:
+        feedback === 'liked'
+          ? '2px solid var(--chart-1)'
+          : feedback === 'disliked'
+            ? '2px solid var(--destructive)'
+            : '1px solid var(--border)'
     }}>
       {/* Match recommendation score indicator */}
-      <Box 
-        sx={{ 
-          position: 'absolute', 
-          top: -10, 
+      <Box
+        sx={{
+          position: 'absolute',
+          top: -10,
           right: 16,
-          backgroundColor: displayScore >= 0.7 ? '#388e3c' : displayScore >= 0.4 ? '#8A1538' : '#f57c00',
-          color: 'white',
-          borderRadius: '12px',
+          backgroundColor: displayScore >= 0.7 ? 'var(--chart-1)' : displayScore >= 0.4 ? 'var(--primary)' : 'var(--chart-4)',
+          color: 'var(--primary-foreground)',
+          borderRadius: 'var(--radius)',
           px: 1.5,
           py: 0.5,
           fontWeight: 'bold',
