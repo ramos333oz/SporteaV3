@@ -19,7 +19,10 @@ import {
   LeaderboardTypeSelector,
   UserRankingCard
 } from '../components/leaderboard';
+import CircularTierGallery from '../components/leaderboard/CircularTierGallery';
+import AnimatedLeaderboardList from '../components/leaderboard/AnimatedLeaderboardList';
 import { useLeaderboard } from '../hooks/useLeaderboard';
+import { isWebGLSupported } from '../utils/tierCardGenerator';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import GroupIcon from '@mui/icons-material/Group';
@@ -137,6 +140,7 @@ const Leaderboard = () => {
   const [gamificationData, setGamificationData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [webglSupported, setWebglSupported] = useState(true);
 
   // Use leaderboard hook for state management
   const leaderboard = useLeaderboard(user?.id, true);
@@ -162,6 +166,11 @@ const Leaderboard = () => {
 
     fetchGamificationData();
   }, [user?.id]);
+
+  // Check WebGL support
+  useEffect(() => {
+    setWebglSupported(isWebGLSupported());
+  }, []);
 
   if (loading) {
     return (
@@ -227,8 +236,8 @@ const Leaderboard = () => {
           groupType={leaderboard.groupType}
         />
 
-        {/* Main Leaderboard Display */}
-        <LeaderboardList
+        {/* Main Leaderboard Display - Enhanced with Animations */}
+        <AnimatedLeaderboardList
           data={leaderboard.leaderboardData}
           loading={leaderboard.loading}
           type={leaderboard.type}
@@ -236,47 +245,76 @@ const Leaderboard = () => {
           currentUserId={user?.id}
           tierConfig={TIER_CONFIG}
           getUserTier={getUserTier}
+          showGradients={true}
+          enableArrowNavigation={true}
+          displayScrollbar={true}
+          maxHeight={600}
         />
       </Paper>
 
-      {/* Tier Information Section */}
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 3 }}>
-          🎯 Tier System Overview
-        </Typography>
-        <Grid container spacing={2}>
-          {Object.entries(TIER_CONFIG).map(([key, tier]) => (
-            <Grid item xs={12} sm={6} md={4} lg={2.4} key={key}>
-              <Card sx={{ 
-                height: '100%',
-                background: `linear-gradient(135deg, ${tier.bgColor} 0%, ${tier.color}20 100%)`,
-                border: `1px solid ${tier.color}40`,
-                transition: 'transform 0.2s',
-                '&:hover': { transform: 'translateY(-4px)' }
-              }}>
-                <CardContent sx={{ textAlign: 'center', p: 2 }}>
-                  <Typography variant="h4" sx={{ mb: 1 }}>
-                    {tier.icon}
-                  </Typography>
-                  <Typography variant="subtitle2" sx={{ 
-                    color: tier.color, 
-                    fontWeight: 'bold',
-                    fontSize: '0.875rem'
-                  }}>
-                    {tier.name}
-                  </Typography>
-                  <Typography variant="caption" display="block" sx={{ mb: 1 }}>
-                    Levels {tier.levels}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                    {tier.description}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
+      {/* 3D Tier Gallery Section */}
+      {webglSupported ? (
+        <CircularTierGallery
+          tierConfig={TIER_CONFIG}
+          height={500}
+          bend={3}
+          textColor="var(--primary)"
+          borderRadius={0.1}
+          scrollSpeed={2}
+          scrollEase={0.02}
+        />
+      ) : (
+        /* Fallback: Original Grid Layout */
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 3 }}>
+            🎯 Tier System Overview
+          </Typography>
+          <Grid container spacing={2}>
+            {Object.entries(TIER_CONFIG).map(([key, tier]) => (
+              <Grid item xs={12} sm={6} md={4} lg={2.4} key={key}>
+                <Card sx={{
+                  height: '100%',
+                  background: `linear-gradient(135deg, ${tier.bgColor} 0%, ${tier.color}20 100%)`,
+                  border: `1px solid ${tier.color}40`,
+                  transition: 'all 0.3s ease',
+                  boxShadow: 'var(--shadow-md)',
+                  '&:hover': {
+                    transform: 'translateY(-8px) scale(1.02)',
+                    boxShadow: 'var(--shadow-xl)'
+                  }
+                }}>
+                  <CardContent sx={{ textAlign: 'center', p: 2 }}>
+                    <Typography variant="h4" sx={{ mb: 1, fontSize: '3rem' }}>
+                      {tier.icon}
+                    </Typography>
+                    <Typography variant="h6" sx={{
+                      color: tier.color,
+                      fontWeight: 'bold',
+                      fontFamily: 'var(--font-serif)',
+                      mb: 1
+                    }}>
+                      {tier.name}
+                    </Typography>
+                    <Typography variant="body2" display="block" sx={{
+                      mb: 1,
+                      fontFamily: 'var(--font-sans)',
+                      fontWeight: 500
+                    }}>
+                      Levels {tier.levels}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{
+                      fontSize: '0.75rem',
+                      fontFamily: 'var(--font-sans)'
+                    }}>
+                      {tier.description}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
     </Container>
   );
 };

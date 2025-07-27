@@ -1,0 +1,200 @@
+/* Animated Leaderboard List Styles */
+.animated-leaderboard-container {
+  position: relative;
+  width: 100%;
+}
+
+.animated-leaderboard-list {
+  overflow-y: auto;
+  position: relative;
+  padding: 0.5rem;
+}
+
+/* Custom Scrollbar Styling */
+.animated-leaderboard-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.animated-leaderboard-list::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+.animated-leaderboard-list::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 4px;
+  opacity: 0.7;
+}
+
+.animated-leaderboard-list::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+  opacity: 1;
+}
+
+/* Hide scrollbar when disabled */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Gradient Overlays */
+.leaderboard-top-gradient {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background: linear-gradient(to bottom, var(--background), transparent);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+
+.leaderboard-bottom-gradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: linear-gradient(to top, var(--background), transparent);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+
+/* Shimmer Animation for Selected Items */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Enhanced Hover Effects */
+.animated-leaderboard-list .MuiListItem-root {
+  position: relative;
+  overflow: hidden;
+}
+
+.animated-leaderboard-list .MuiListItem-root::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.animated-leaderboard-list .MuiListItem-root:hover::after {
+  left: 100%;
+}
+
+/* Rank Icon Animations */
+.animated-leaderboard-list .MuiSvgIcon-root {
+  transition: all 0.3s ease;
+}
+
+.animated-leaderboard-list .MuiListItem-root:hover .MuiSvgIcon-root {
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* Avatar Hover Effects */
+.animated-leaderboard-list .MuiAvatar-root {
+  transition: all 0.3s ease;
+}
+
+.animated-leaderboard-list .MuiListItem-root:hover .MuiAvatar-root {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Typography Animations */
+.animated-leaderboard-list .MuiTypography-root {
+  transition: all 0.3s ease;
+}
+
+.animated-leaderboard-list .MuiListItem-root:hover .MuiTypography-h6 {
+  transform: scale(1.05);
+}
+
+/* Focus States for Accessibility */
+.animated-leaderboard-list .MuiListItem-root:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 768px) {
+  .animated-leaderboard-container {
+    margin: 0 -16px;
+  }
+  
+  .animated-leaderboard-list {
+    padding: 0 16px;
+  }
+  
+  .leaderboard-top-gradient,
+  .leaderboard-bottom-gradient {
+    left: 16px;
+    right: 16px;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .leaderboard-top-gradient {
+    background: linear-gradient(to bottom, var(--background), transparent);
+  }
+  
+  .leaderboard-bottom-gradient {
+    background: linear-gradient(to top, var(--background), transparent);
+  }
+  
+  .animated-leaderboard-list::-webkit-scrollbar-track {
+    background: var(--muted);
+  }
+  
+  .animated-leaderboard-list::-webkit-scrollbar-thumb {
+    background: var(--primary);
+  }
+}
+
+/* Performance Optimizations */
+.animated-leaderboard-list {
+  will-change: scroll-position;
+}
+
+.animated-leaderboard-list .MuiListItem-root {
+  will-change: transform, background-color;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .animated-leaderboard-list .MuiListItem-root,
+  .animated-leaderboard-list .MuiListItem-root::after,
+  .animated-leaderboard-list .MuiSvgIcon-root,
+  .animated-leaderboard-list .MuiAvatar-root,
+  .animated-leaderboard-list .MuiTypography-root {
+    transition: none;
+    animation: none;
+  }
+  
+  @keyframes shimmer {
+    0%, 100% {
+      transform: translateX(0);
+    }
+  }
+}
