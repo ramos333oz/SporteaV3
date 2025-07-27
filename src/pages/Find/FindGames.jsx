@@ -745,10 +745,22 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
                           If you can't see your match, try resetting the filters.
                         </Typography>
                       )}
-                      <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center' }}>
-                        <Button 
-                          variant="contained" 
+                      <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1.5, alignItems: 'center' }}>
+                        <Button
+                          variant="contained"
                           onClick={() => navigate('/host')}
+                          sx={{
+                            borderRadius: 1.5, // Consistent with UI Style Guide
+                            fontWeight: 500,
+                            fontSize: '0.875rem',
+                            minHeight: '36px', // Consistent button height
+                            px: 3,
+                            textTransform: 'none',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                            '&:hover': {
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                            },
+                          }}
                         >
                           Host a Match
                         </Button>
@@ -757,6 +769,21 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
                           size="small"
                           startIcon={<RefreshIcon />}
                           onClick={handleResetFilters}
+                          sx={{
+                            borderRadius: 1.5, // Consistent with UI Style Guide
+                            fontWeight: 500,
+                            fontSize: '0.875rem',
+                            minHeight: '32px', // Consistent button height
+                            px: 2,
+                            textTransform: 'none',
+                            borderColor: 'divider',
+                            color: 'text.secondary',
+                            '&:hover': {
+                              bgcolor: 'action.hover',
+                              color: 'text.primary',
+                              borderColor: 'primary.main',
+                            },
+                          }}
                         >
                           Reset All Filters
                         </Button>
@@ -2185,8 +2212,14 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
         </Alert>
       )}
 
-      {/* View Mode Tabs */}
-      <Paper sx={{ mb: 3, borderRadius: 2, p: 1, bgcolor: 'grey.50' }}>
+      {/* View Mode Tabs - Enhanced with consistent styling */}
+      <Paper sx={{
+        mb: 3,
+        borderRadius: 2,
+        p: 1,
+        bgcolor: 'grey.50',
+        boxShadow: '0 6px 20px rgba(0,0,0,0.08)' // Enhanced shadow from UI Style Guide
+      }}>
         <Tabs
           value={viewMode}
           onChange={handleViewModeChange}
@@ -2228,52 +2261,99 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
       {/* Only show filters in List View */}
       {viewMode === 0 && (
         <>
-                      {/* Sports filter chips */}
-            <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: 'grey.50' }}>
-              <Box sx={{ mb: 1.5 }}>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 600,
+          {/* Sports filter chips - Enhanced with consistent styling */}
+          <Paper sx={{
+            p: 2,
+            mb: 3,
+            borderRadius: 2,
+            bgcolor: 'grey.50',
+            boxShadow: '0 6px 20px rgba(0,0,0,0.08)' // Enhanced shadow from UI Style Guide
+          }}>
+            <Box sx={{ mb: 1.5 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  fontSize: '0.875rem' // Consistent with UI Style Guide
+                }}
+              >
+                <FilterListIcon sx={{ fontSize: '1.1rem' }} />
+                Filter by Sport
+              </Typography>
+            </Box>
+            <Box sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 1,
+              maxHeight: '120px',
+              overflowY: 'auto',
+              // Enhanced scrollbar styling from UI Style Guide
+              '&::-webkit-scrollbar': {
+                width: '4px',
+                height: '4px'
+              },
+              '&::-webkit-scrollbar-track': {
+                background: 'transparent'
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: 'rgba(0,0,0,0.2)',
+                borderRadius: '2px'
+              }
+            }}>
+              <Chip
+                key="all"
+                icon={<SportsIcon />}
+                label="All Sports"
+                onClick={() => handleSportFilterChange("all")}
+                variant={listViewSportFilter.length === 0 ? 'filled' : 'outlined'}
+                sx={{
+                  borderRadius: 1.5, // Consistent with UI Style Guide
+                  fontWeight: 500,
+                  fontSize: '0.875rem', // Consistent sizing
+                  minHeight: '32px', // Consistent height for all chips
+                  minWidth: 'auto', // Allow natural width but ensure consistency
+                  transition: 'all 0.2s ease-in-out',
+                  // Enhanced styling based on UI Style Guide
+                  ...(listViewSportFilter.length === 0 ? {
+                    bgcolor: 'primary.main',
+                    color: 'primary.contrastText',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                    '&:hover': {
+                      bgcolor: 'primary.dark',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                    },
+                  } : {
+                    bgcolor: 'background.paper',
                     color: 'text.secondary',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1
-                  }}
-                >
-                  <FilterListIcon sx={{ fontSize: '1.1rem' }} />
-                  Filter by Sport
-                </Typography>
-              </Box>
-              <Box sx={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 1,
-                maxHeight: '120px',
-                overflowY: 'auto',
-                '&::-webkit-scrollbar': {
-                  width: '4px',
-                },
-                '&::-webkit-scrollbar-track': {
-                  background: 'transparent',
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  background: 'rgba(0,0,0,0.2)',
-                  borderRadius: '2px',
-                },
-              }}>
+                    borderColor: 'divider',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                      color: 'text.primary',
+                      borderColor: 'primary.main',
+                    },
+                  }),
+                }}
+              />
+              {sportFilters.slice(1).map((sport) => (
                 <Chip
-                  key="all"
-                  icon={<SportsIcon />}
-                  label="All Sports"
-                  onClick={() => handleSportFilterChange("all")}
-                  variant={listViewSportFilter.length === 0 ? 'filled' : 'outlined'}
+                  key={sport.id}
+                  icon={sport.icon}
+                  label={sport.name}
+                  onClick={() => handleSportFilterChange(sport.id)}
+                  variant={listViewSportFilter.includes(sport.id) ? 'filled' : 'outlined'}
                   sx={{
-                    borderRadius: 1.5,
+                    borderRadius: 1.5, // Consistent with UI Style Guide
                     fontWeight: 500,
-                    fontSize: '0.875rem',
+                    fontSize: '0.875rem', // Consistent sizing
+                    minHeight: '32px', // Consistent height for all chips
+                    minWidth: 'auto', // Allow natural width but ensure consistency
                     transition: 'all 0.2s ease-in-out',
-                    ...(listViewSportFilter.length === 0 ? {
+                    // Enhanced styling based on UI Style Guide
+                    ...(listViewSportFilter.includes(sport.id) ? {
                       bgcolor: 'primary.main',
                       color: 'primary.contrastText',
                       boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
@@ -2293,52 +2373,46 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
                     }),
                   }}
                 />
-                {sportFilters.slice(1).map((sport) => (
-                  <Chip
-                    key={sport.id}
-                    icon={sport.icon}
-                    label={sport.name}
-                    onClick={() => handleSportFilterChange(sport.id)}
-                    variant={listViewSportFilter.includes(sport.id) ? 'filled' : 'outlined'}
-                    sx={{
-                      borderRadius: 1.5,
-                      fontWeight: 500,
-                      fontSize: '0.875rem',
-                      transition: 'all 0.2s ease-in-out',
-                      ...(listViewSportFilter.includes(sport.id) ? {
-                        bgcolor: 'primary.main',
-                        color: 'primary.contrastText',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        '&:hover': {
-                          bgcolor: 'primary.dark',
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-                        },
-                      } : {
-                        bgcolor: 'background.paper',
-                        color: 'text.secondary',
-                        borderColor: 'divider',
-                        '&:hover': {
-                          bgcolor: 'action.hover',
-                          color: 'text.primary',
-                          borderColor: 'primary.main',
-                        },
-                      }),
-                    }}
-                  />
-                ))}
+              ))}
               </Box>
             </Paper>
 
-            {/* Advanced filters toggle */}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-              <Chip
-                icon={<FilterListIcon />}
-                label="More Filters"
-                color={showFilters ? "primary" : "default"}
-                onClick={() => setShowFilters(!showFilters)}
-                variant={showFilters ? "filled" : "outlined"}
-              />
-            </Box>
+          {/* Advanced filters toggle - Enhanced with consistent styling */}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <Chip
+              icon={<FilterListIcon />}
+              label="More Filters"
+              color={showFilters ? "primary" : "default"}
+              onClick={() => setShowFilters(!showFilters)}
+              variant={showFilters ? "filled" : "outlined"}
+              sx={{
+                borderRadius: 1.5, // Consistent with UI Style Guide
+                fontWeight: 500,
+                fontSize: '0.875rem', // Consistent sizing
+                minHeight: '32px', // Consistent height
+                transition: 'all 0.2s ease-in-out',
+                // Enhanced styling based on UI Style Guide
+                ...(showFilters ? {
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                  },
+                } : {
+                  bgcolor: 'background.paper',
+                  color: 'text.secondary',
+                  borderColor: 'divider',
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                    color: 'text.primary',
+                    borderColor: 'primary.main',
+                  },
+                }),
+              }}
+            />
+          </Box>
 
           {/* Advanced filters panel */}
           <Collapse in={showFilters}>
@@ -2438,7 +2512,22 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
                     <Button
                       size="small"
                       onClick={handleResetFilters}
-                      sx={{ mr: 1 }}
+                      sx={{
+                        mr: 1,
+                        borderRadius: 1.5, // Consistent with UI Style Guide
+                        fontWeight: 500,
+                        fontSize: '0.875rem',
+                        minHeight: '32px', // Consistent button height
+                        px: 2,
+                        textTransform: 'none',
+                        borderColor: 'divider',
+                        color: 'text.secondary',
+                        '&:hover': {
+                          bgcolor: 'action.hover',
+                          color: 'text.primary',
+                          borderColor: 'primary.main',
+                        },
+                      }}
                       startIcon={<RefreshIcon />}
                     >
                       Reset All Filters
@@ -2447,6 +2536,18 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
                       size="small"
                       variant="contained"
                       onClick={() => setShowFilters(false)}
+                      sx={{
+                        borderRadius: 1.5, // Consistent with UI Style Guide
+                        fontWeight: 500,
+                        fontSize: '0.875rem',
+                        minHeight: '32px', // Consistent button height
+                        px: 2,
+                        textTransform: 'none',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        '&:hover': {
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                        },
+                      }}
                     >
                       Apply Filters
                     </Button>
@@ -3857,13 +3958,28 @@ const MapView = ({
                         <Typography variant="body2" sx={{ fontWeight: 'medium', mb: 0.5 }}>
                           Supported Sports:
                         </Typography>
-                        <ButtonGroup variant="outlined" size="small" sx={{ mb: 1, flexWrap: 'wrap', gap: 0.5 }}>
+                        <ButtonGroup
+                          variant="outlined"
+                          size="small"
+                          sx={{
+                            mb: 1,
+                            flexWrap: 'wrap',
+                            gap: 0.5,
+                            '& .MuiButton-root': {
+                              borderRadius: 1.5, // Consistent with UI Style Guide
+                              fontWeight: 500,
+                              fontSize: '0.75rem',
+                              minHeight: '28px', // Consistent height for small buttons
+                              textTransform: 'none',
+                            }
+                          }}
+                        >
                           {venue.supported_sports.map(sportId => {
                             const sport = sportFilters.find(s => s.id === sportId);
                             if (!sport) return null;
-                            
+
                             const sportName = sport.name;
-                            
+
                             return (
                               <Button
                                 key={sportId}
@@ -3876,6 +3992,26 @@ const MapView = ({
                                 }}
                                 color={sportId === mapViewSelectedSport ? "primary" : "inherit"}
                                 variant={sportId === mapViewSelectedSport ? "contained" : "outlined"}
+                                sx={{
+                                  minWidth: 'auto',
+                                  px: 1,
+                                  py: 0.25,
+                                  // Enhanced styling for consistency
+                                  ...(sportId === mapViewSelectedSport ? {
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                    '&:hover': {
+                                      boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                                    },
+                                  } : {
+                                    borderColor: 'divider',
+                                    color: 'text.secondary',
+                                    '&:hover': {
+                                      bgcolor: 'action.hover',
+                                      borderColor: 'primary.main',
+                                      color: 'text.primary',
+                                    },
+                                  }),
+                                }}
                               >
                                 {sportName}
                               </Button>
