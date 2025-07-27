@@ -229,6 +229,8 @@ const Leaderboard = () => {
           borderRadius={0.1}
           scrollSpeed={2}
           scrollEase={0.02}
+          currentUserTier={gamificationData ? getUserTier(gamificationData.current_level || 1) : null}
+          gamificationData={gamificationData}
         />
       ) : (
         /* Fallback: Original Grid Layout */

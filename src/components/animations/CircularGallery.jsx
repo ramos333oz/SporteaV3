@@ -284,6 +284,8 @@ class App {
       font = "bold 30px Figtree",
       scrollSpeed = 2,
       scrollEase = 0.05,
+      currentUserTier = null,
+      gamificationData = null
     } = {}
   ) {
     document.documentElement.classList.remove("no-js");
@@ -297,6 +299,10 @@ class App {
     this.onResize();
     this.createGeometry();
     this.createMedias(items, bend, textColor, borderRadius, font);
+
+    // Set initial position to user's current tier if provided
+    this.setInitialUserTierPosition(currentUserTier, items);
+
     this.update();
     this.addEventListeners();
   }
@@ -348,6 +354,27 @@ class App {
         font,
       });
     });
+  }
+
+  setInitialUserTierPosition(currentUserTier, items) {
+    if (!currentUserTier || !items || !items.length) return;
+
+    // Find the index of the user's current tier in the items array
+    const userTierIndex = items.findIndex(item => item.tierKey === currentUserTier);
+
+    if (userTierIndex === -1) return;
+
+    // Calculate the scroll position to center on the user's tier
+    // Each media item has a width, and we want to center on the user's tier
+    if (this.medias && this.medias[0]) {
+      const itemWidth = this.medias[0].width;
+      const targetPosition = userTierIndex * itemWidth;
+
+      // Set both current and target to avoid animation on initial load
+      this.scroll.current = targetPosition;
+      this.scroll.target = targetPosition;
+      this.scroll.last = targetPosition;
+    }
   }
   onTouchDown(e) {
     this.isDown = true;
@@ -444,13 +471,25 @@ export default function CircularGallery({
   font = "bold 30px Figtree",
   scrollSpeed = 2,
   scrollEase = 0.05,
+  currentUserTier = null,
+  gamificationData = null
 }) {
   const containerRef = useRef(null);
   useEffect(() => {
-    const app = new App(containerRef.current, { items, bend, textColor, borderRadius, font, scrollSpeed, scrollEase });
+    const app = new App(containerRef.current, {
+      items,
+      bend,
+      textColor,
+      borderRadius,
+      font,
+      scrollSpeed,
+      scrollEase,
+      currentUserTier,
+      gamificationData
+    });
     return () => {
       app.destroy();
     };
-  }, [items, bend, textColor, borderRadius, font, scrollSpeed, scrollEase]);
+  }, [items, bend, textColor, borderRadius, font, scrollSpeed, scrollEase, currentUserTier, gamificationData]);
   return <div className="circular-gallery" ref={containerRef} />;
 }

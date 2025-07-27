@@ -8,14 +8,16 @@ import { generateAllTierCards, isWebGLSupported } from '../../utils/tierCardGene
  * 3D WebGL-powered circular gallery for displaying tier system
  * Integrates with the Elegant Luxury theme and existing TIER_CONFIG
  */
-const CircularTierGallery = ({ 
-  tierConfig, 
+const CircularTierGallery = ({
+  tierConfig,
   height = 500,
   bend = 3,
   textColor = 'var(--primary)',
   borderRadius = 0.1,
   scrollSpeed = 2,
-  scrollEase = 0.02
+  scrollEase = 0.02,
+  currentUserTier = null,
+  gamificationData = null
 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -139,6 +141,8 @@ const CircularTierGallery = ({
           font="bold 24px Libre Baskerville, serif"
           scrollSpeed={scrollSpeed}
           scrollEase={scrollEase}
+          currentUserTier={currentUserTier}
+          gamificationData={gamificationData}
         />
       </Box>
     </Box>
