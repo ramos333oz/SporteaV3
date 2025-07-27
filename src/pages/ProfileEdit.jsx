@@ -38,6 +38,7 @@ import SportsIcon from '@mui/icons-material/Sports';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import PersonIcon from '@mui/icons-material/Person';
 import InfoIcon from '@mui/icons-material/Info';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 import CakeIcon from '@mui/icons-material/Cake';
 import ProfilePreferences from '../components/ProfilePreferences';
@@ -116,6 +117,7 @@ const ProfileEdit = () => {
   // New sport state
   const [newSport, setNewSport] = useState('');
   const [newSkillLevel, setNewSkillLevel] = useState('Beginner');
+  const [sportError, setSportError] = useState('');
 
   // Age calculation function
   const calculateAge = (birthDate) => {
@@ -520,15 +522,32 @@ const ProfileEdit = () => {
     }
   };
   
+  // Get available sports (excluding already selected ones)
+  const getAvailableSports = () => {
+    const selectedSportNames = formData.sports.map(sport => sport.name);
+    return availableSports.filter(sport => !selectedSportNames.includes(sport));
+  };
+
   // Add a new sport to the list
   const handleAddSport = () => {
+    // Clear any previous errors
+    setSportError('');
+
     if (!newSport || !newSkillLevel) {
+      setSportError('Please select both a sport and skill level.');
       return;
     }
-    
+
+    // Check for duplicate sports
+    const existingSport = formData.sports.find(sport => sport.name === newSport);
+    if (existingSport) {
+      setSportError(`${newSport} is already in your preferences. To change the skill level, remove the existing entry first.`);
+      return;
+    }
+
     // Generate a unique ID for the new sport
     const sportId = Date.now().toString();
-    
+
     const updatedSports = [
       ...formData.sports,
       {
@@ -537,24 +556,38 @@ const ProfileEdit = () => {
         level: newSkillLevel
       }
     ];
-    
+
     setFormData({
       ...formData,
       sports: updatedSports
     });
-    
+
     // Reset form
     setNewSport('');
-    setNewSkillLevel('');
+    setNewSkillLevel('Beginner');
+    setSportError('');
     setShowSportForm(false);
+
+    // Show success feedback
+    showSuccessToast('Sport Added', `${newSport} has been added to your preferences.`);
   };
   
   // Remove a sport from the list
   const handleRemoveSport = (sportId) => {
+    const sportToRemove = formData.sports.find(sport => sport.id === sportId);
+
     setFormData(prev => ({
       ...prev,
       sports: prev.sports.filter(sport => sport.id !== sportId)
     }));
+
+    // Clear any sport errors when removing a sport
+    setSportError('');
+
+    // Show feedback
+    if (sportToRemove) {
+      showSuccessToast('Sport Removed', `${sportToRemove.name} has been removed from your preferences.`);
+    }
   };
   
   // Handle preference changes from ProfilePreferences component
@@ -1180,32 +1213,78 @@ const ProfileEdit = () => {
               <Button
                 variant="outlined"
                 startIcon={<AddIcon />}
-                onClick={() => setShowSportForm(true)}
+                onClick={() => {
+                  setShowSportForm(true);
+                  setSportError('');
+                }}
+                disabled={getAvailableSports().length === 0}
                 sx={{
                   borderRadius: 1.5,
                   textTransform: 'none',
                   fontWeight: 500
                 }}
               >
-                Add Sport
+                {getAvailableSports().length === 0 ? 'All Sports Added' : 'Add Sport'}
               </Button>
             </Box>
+
+            {getAvailableSports().length === 0 && formData.sports.length > 0 && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CheckCircleIcon sx={{ fontSize: '1.1rem' }} />
+                  You've added all available sports! You can remove any sport to add a different one.
+                </Box>
+              </Alert>
+            )}
               
               {showSportForm && (
                 <Paper sx={{ p: 2, mb: 3, bgcolor: 'background.neutral' }}>
+                  {sportError && (
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                      {sportError}
+                    </Alert>
+                  )}
+
+                  {getAvailableSports().length === 0 && (
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      You have already added all available sports to your preferences.
+                    </Alert>
+                  )}
+
                   <Grid container spacing={2} alignItems="center">
                     <Grid item xs={12} md={5}>
                       <Autocomplete
                         value={newSport}
-                        onChange={(e, newValue) => setNewSport(newValue)}
-                        options={availableSports}
+                        onChange={(e, newValue) => {
+                          setNewSport(newValue);
+                          setSportError(''); // Clear error when user makes a selection
+                        }}
+                        options={getAvailableSports()}
+                        disabled={getAvailableSports().length === 0}
                         renderInput={(params) => (
-                          <TextField 
-                            {...params} 
-                            label="Select Sport" 
-                            variant="outlined" 
-                            fullWidth 
+                          <TextField
+                            {...params}
+                            label="Select Sport"
+                            variant="outlined"
+                            fullWidth
+                            helperText={getAvailableSports().length === 0 ?
+                              "All sports have been added" :
+                              `${getAvailableSports().length} sports available`
+                            }
                           />
+                        )}
+                        renderOption={(props, option) => (
+                          <Box component="li" {...props}>
+                            <img
+                              src={`/images/sportselectionicons/${option.toLowerCase()}.png`}
+                              alt={option}
+                              style={{ width: 20, height: 20, marginRight: 8 }}
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                              }}
+                            />
+                            {option}
+                          </Box>
                         )}
                       />
                     </Grid>
@@ -1227,18 +1306,24 @@ const ProfileEdit = () => {
                     </Grid>
                     <Grid item xs={12} md={2}>
                       <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button 
-                          variant="contained" 
-                          color="primary" 
+                        <Button
+                          variant="contained"
+                          color="primary"
                           onClick={handleAddSport}
+                          disabled={!newSport || !newSkillLevel || getAvailableSports().length === 0}
                           fullWidth
                         >
                           Add
                         </Button>
-                        <Button 
-                          variant="outlined" 
-                          color="secondary" 
-                          onClick={() => setShowSportForm(false)}
+                        <Button
+                          variant="outlined"
+                          color="secondary"
+                          onClick={() => {
+                            setShowSportForm(false);
+                            setSportError('');
+                            setNewSport('');
+                            setNewSkillLevel('Beginner');
+                          }}
                         >
                           Cancel
                         </Button>
@@ -1253,15 +1338,24 @@ const ProfileEdit = () => {
                   You haven't added any sports to your profile yet.
                 </Alert>
               ) : (
-                <Grid container spacing={2}>
+                <Grid container spacing={2} sx={{ mt: 1 }}>
                   {formData.sports.map((sport) => (
                     <Grid item xs={12} sm={6} md={4} key={sport.id}>
-                      <Card variant="outlined" sx={{ borderRadius: 2 }}>
-                        <CardContent>
-                          <Box sx={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center' 
+                      <Card
+                        variant="outlined"
+                        sx={{
+                          borderRadius: 2,
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column'
+                        }}
+                      >
+                        <CardContent sx={{ flex: 1, p: 2 }}>
+                          <Box sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            mb: 1
                           }}>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                               {getSportIcon(sport.name)}
@@ -1269,19 +1363,24 @@ const ProfileEdit = () => {
                                 {sport.name}
                               </Typography>
                             </Box>
-                            <IconButton 
-                              size="small" 
-                              color="error"
-                              onClick={() => handleRemoveSport(sport.id)}
-                            >
-                              <DeleteIcon />
-                            </IconButton>
+                            <Tooltip title={`Remove ${sport.name} from preferences`}>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleRemoveSport(sport.id)}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </Tooltip>
                           </Box>
-                          <Chip 
-                            label={sport.level} 
-                            size="small" 
+                          <Chip
+                            label={sport.level}
+                            size="small"
                             color="primary"
-                            sx={{ mt: 1 }}
+                            sx={{
+                              fontSize: '0.75rem',
+                              fontWeight: 500
+                            }}
                           />
                         </CardContent>
                       </Card>
