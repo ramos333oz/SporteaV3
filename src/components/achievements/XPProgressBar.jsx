@@ -62,12 +62,9 @@ const XPProgressBar = ({
   return (
     <Box sx={{ width: '100%', position: 'relative' }}>
       {showDetails && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1 }}>
           <Typography variant="body2" sx={{ fontSize: config.fontSize, fontWeight: 600 }}>
             Level {level}
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: config.fontSize }} color="text.secondary">
-            {xpToNext} XP to next level
           </Typography>
         </Box>
       )}
