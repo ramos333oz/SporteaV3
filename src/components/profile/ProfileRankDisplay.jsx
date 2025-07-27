@@ -13,34 +13,32 @@ import {
   useMediaQuery
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { TIER_CONFIG, getUserTier, getNextTierInfo, getTierProgress } from '../../utils/tierSystem';
+import { TIER_CONFIG, getUserTier, getTierProgress } from '../../utils/tierSystem';
 
 // Styled components following Elegant Luxury theme
-const RankCard = styled(Card)(({ theme, tierColor, tierBgColor, isHovered }) => ({
+const RankCard = styled(Card)(({ theme, tierColor, tierBgColor }) => ({
   background: `linear-gradient(135deg, ${tierBgColor}15 0%, ${tierBgColor}25 100%)`,
   border: `2px solid ${tierColor}40`,
   borderRadius: theme.spacing(2),
   cursor: 'pointer',
   transition: 'all 0.3s ease-in-out',
   position: 'relative',
-  overflow: 'visible',
-  boxShadow: isHovered 
-    ? `0 8px 25px ${tierColor}30, 0 0 0 1px ${tierColor}60`
-    : `0 4px 12px rgba(0,0,0,0.08)`,
-  transform: isHovered ? 'translateY(-2px)' : 'translateY(0px)',
+  overflow: 'hidden', // Changed from 'visible' to 'hidden' since no overlay
+  boxShadow: `0 4px 12px rgba(0,0,0,0.08)`,
   '&:hover': {
     background: `linear-gradient(135deg, ${tierBgColor}25 0%, ${tierBgColor}35 100%)`,
     border: `2px solid ${tierColor}60`,
+    transform: 'translateY(-2px)',
+    boxShadow: `0 8px 25px ${tierColor}30`,
   }
 }));
 
-const RankImage = styled(Avatar)(({ theme, isHovered }) => ({
+const RankImage = styled(Avatar)(({ theme }) => ({
   width: 80,
   height: 80,
   border: '3px solid rgba(255,255,255,0.8)',
   boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
   transition: 'all 0.3s ease-in-out',
-  transform: isHovered ? 'scale(1.05)' : 'scale(1)',
   [theme.breakpoints.down('sm')]: {
     width: 60,
     height: 60,
@@ -67,24 +65,7 @@ const TierSubtitle = styled(Typography)(({ theme }) => ({
   }
 }));
 
-const HoverOverlay = styled(Box)(({ theme, show }) => ({
-  position: 'absolute',
-  top: '100%',
-  left: 0,
-  right: 0,
-  background: 'rgba(255,255,255,0.98)',
-  backdropFilter: 'blur(10px)',
-  border: '1px solid rgba(0,0,0,0.1)',
-  borderRadius: theme.spacing(1),
-  padding: theme.spacing(2),
-  marginTop: theme.spacing(1),
-  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
-  zIndex: 10,
-  opacity: show ? 1 : 0,
-  visibility: show ? 'visible' : 'hidden',
-  transform: show ? 'translateY(0)' : 'translateY(-10px)',
-  transition: 'all 0.3s ease-in-out',
-}));
+// HoverOverlay component removed - no longer needed
 
 /**
  * ProfileRankDisplay Component
@@ -99,7 +80,6 @@ const ProfileRankDisplay = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [isHovered, setIsHovered] = useState(false);
   const [rankImage, setRankImage] = useState(null);
   const [imageLoading, setImageLoading] = useState(true);
 
@@ -111,7 +91,6 @@ const ProfileRankDisplay = ({
   const userLevel = gamificationData.current_level || 1;
   const tierKey = getUserTier(userLevel);
   const tier = TIER_CONFIG[tierKey];
-  const nextTierInfo = getNextTierInfo(userLevel);
   const tierProgress = getTierProgress(userLevel);
 
   // Load rank image
@@ -147,9 +126,6 @@ const ProfileRankDisplay = ({
       <RankCard
         tierColor={tier.color}
         tierBgColor={tier.bgColor}
-        isHovered={isHovered}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         onClick={handleCardClick}
       >
         <CardContent sx={{ p: 3 }}>
@@ -168,7 +144,6 @@ const ProfileRankDisplay = ({
                 <RankImage
                   src={rankImage}
                   alt={tier.name}
-                  isHovered={isHovered}
                 >
                   {!rankImage && tier.icon}
                 </RankImage>
@@ -236,32 +211,7 @@ const ProfileRankDisplay = ({
           </Box>
         </CardContent>
 
-        {/* Hover Overlay with Next Tier Info */}
-        {nextTierInfo && (
-          <HoverOverlay show={isHovered && !isMobile}>
-            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
-              Next: {nextTierInfo.tier.name}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {nextTierInfo.levelsNeeded} levels to go • {nextTierInfo.xpNeeded.toLocaleString()} XP needed
-            </Typography>
-            <Box sx={{ mt: 1 }}>
-              <LinearProgress
-                variant="determinate"
-                value={tierProgress * 100}
-                sx={{
-                  height: 4,
-                  borderRadius: 2,
-                  backgroundColor: `${nextTierInfo.tier.color}20`,
-                  '& .MuiLinearProgress-bar': {
-                    backgroundColor: nextTierInfo.tier.color,
-                    borderRadius: 2,
-                  }
-                }}
-              />
-            </Box>
-          </HoverOverlay>
-        )}
+        {/* Hover overlay removed for cleaner UI */}
       </RankCard>
     </Box>
   );

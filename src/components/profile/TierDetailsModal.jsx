@@ -34,13 +34,18 @@ const StyledDialog = styled(Dialog)(({ theme }) => ({
 }));
 
 const TierCard = styled(Card)(({ theme, tierColor, tierBgColor, isCurrentTier }) => ({
-  background: isCurrentTier 
+  background: isCurrentTier
     ? `linear-gradient(135deg, ${tierBgColor}40 0%, ${tierBgColor}60 100%)`
     : `linear-gradient(135deg, ${tierBgColor}15 0%, ${tierBgColor}25 100%)`,
   border: `2px solid ${isCurrentTier ? tierColor : `${tierColor}40`}`,
   borderRadius: theme.spacing(1.5),
   transition: 'all 0.3s ease-in-out',
   position: 'relative',
+  height: 180, // Increased height for larger rank images
+  minHeight: 180,
+  maxHeight: 180,
+  display: 'flex',
+  flexDirection: 'column',
   '&:hover': {
     transform: 'translateY(-2px)',
     boxShadow: `0 6px 20px ${tierColor}30`,
@@ -243,32 +248,50 @@ const TierDetailsModal = ({
                       ✓
                     </CurrentTierBadge>
                   )}
-                  <CardContent sx={{ p: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                      <Avatar
-                        src={tier.iconImage}
-                        sx={{ width: 40, height: 40 }}
-                      >
-                        {tier.icon}
-                      </Avatar>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="subtitle1" sx={{ 
-                          color: tier.color,
-                          fontWeight: 'bold',
-                          fontSize: '0.9rem'
-                        }}>
-                          {tier.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Levels {tier.levels}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ 
-                      fontSize: '0.75rem',
-                      lineHeight: 1.3
+                  <CardContent sx={{
+                    p: 2,
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    '&:last-child': { pb: 2 }
+                  }}>
+                    {/* Large Rank Image */}
+                    <Avatar
+                      src={tier.iconImage}
+                      sx={{
+                        width: 80,
+                        height: 80,
+                        mb: 2,
+                        border: '3px solid rgba(255,255,255,0.8)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        flexShrink: 0
+                      }}
+                    >
+                      {tier.icon}
+                    </Avatar>
+
+                    {/* Tier Name - Centered */}
+                    <Typography variant="subtitle1" sx={{
+                      color: tier.color,
+                      fontWeight: 'bold',
+                      fontSize: '1rem',
+                      lineHeight: 1.2,
+                      mb: 0.5,
+                      fontFamily: '"Libre Baskerville", Georgia, serif'
                     }}>
-                      {tier.description}
+                      {tier.name}
+                    </Typography>
+
+                    {/* Level Range - Centered */}
+                    <Typography variant="caption" color="text.secondary" sx={{
+                      fontSize: '0.8rem',
+                      lineHeight: 1.2,
+                      fontFamily: '"Poppins", "Helvetica Neue", Arial, sans-serif'
+                    }}>
+                      Levels {tier.levels}
                     </Typography>
                   </CardContent>
                 </TierCard>
