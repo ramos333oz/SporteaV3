@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -11,6 +11,8 @@ import {
   Box
 } from '@mui/material';
 import { UserPlus, X, MapPin, GraduationCap, Trophy } from 'lucide-react';
+import { achievementService } from '../services/achievementService';
+import UserAvatarWithRank from './achievements/UserAvatarWithRank';
 
 /**
  * Helper function to resolve sport names from different data structures
@@ -80,15 +82,34 @@ const resolveLocationName = (locationId) => {
  * Instagram-style compact user recommendation card
  * Designed for horizontal scrolling with maximum visual impact in minimal space
  */
-const InstagramStyleUserCard = ({ 
-  user, 
-  onConnect, 
-  onDismiss, 
+const InstagramStyleUserCard = ({
+  user,
+  onConnect,
+  onDismiss,
   isConnecting = false,
   className = ""
 }) => {
   const navigate = useNavigate();
   const [isDismissed, setIsDismissed] = useState(false);
+  const [gamificationData, setGamificationData] = useState(null);
+
+  // Fetch gamification data for the user
+  useEffect(() => {
+    const fetchGamificationData = async () => {
+      if (user?.id) {
+        try {
+          const data = await achievementService.getUserGamification(user.id);
+          setGamificationData(data);
+        } catch (error) {
+          console.error('Error fetching gamification data:', error);
+          // Set default values if fetch fails
+          setGamificationData({ current_level: 1, total_xp: 0 });
+        }
+      }
+    };
+
+    fetchGamificationData();
+  }, [user?.id]);
 
   if (isDismissed || !user) {
     return null;
@@ -169,15 +190,19 @@ const InstagramStyleUserCard = ({
 
         {/* User Avatar and Basic Info */}
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 1.5 }}>
-          <Box sx={{ position: 'relative', mb: 1 }}>
-            <Avatar
-              src={avatar_url}
+          <Box sx={{ mb: 1 }}>
+            <UserAvatarWithRank
+              user={{
+                ...user,
+                current_level: gamificationData?.current_level || level || 1
+              }}
+              size={70}
+              showLevel={true}
+              showRank={true}
+              badgeSize="small"
+              rankSize="small"
               onClick={handleViewProfile}
               sx={{
-                width: 70,
-                height: 70,
-                border: '2px solid var(--border)',
-                cursor: 'pointer',
                 fontSize: '1.25rem',
                 fontWeight: 'bold',
                 backgroundColor: 'var(--accent)',
@@ -186,29 +211,7 @@ const InstagramStyleUserCard = ({
                   borderColor: 'var(--primary)'
                 }
               }}
-            >
-              {displayName.charAt(0).toUpperCase()}
-            </Avatar>
-
-            {/* Level Badge */}
-            {level > 1 && (
-              <Chip
-                label={level}
-                size="small"
-                sx={{
-                  position: 'absolute',
-                  bottom: -2,
-                  right: -2,
-                  width: 20,
-                  height: 20,
-                  backgroundColor: 'var(--secondary-foreground)',
-                  color: 'var(--secondary)',
-                  fontSize: '0.7rem',
-                  fontWeight: 'bold',
-                  '& .MuiChip-label': { px: 0 }
-                }}
-              />
-            )}
+            />
           </Box>
 
           <Typography

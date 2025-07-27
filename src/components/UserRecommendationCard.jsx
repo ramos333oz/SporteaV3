@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -22,22 +22,43 @@ import {
   LocationOn as LocationIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { achievementService } from '../services/achievementService';
 import { UserAvatarWithLevel } from './achievements';
+import UserAvatarWithRank from './achievements/UserAvatarWithRank';
 
 /**
  * Instagram-style user recommendation card component
  * Displays user profile information, similarity score, and common interests
  */
-const UserRecommendationCard = ({ 
-  user, 
-  onConnect, 
-  onDismiss, 
+const UserRecommendationCard = ({
+  user,
+  onConnect,
+  onDismiss,
   onViewProfile,
-  compact = false 
+  compact = false
 }) => {
   const navigate = useNavigate();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [gamificationData, setGamificationData] = useState(null);
+
+  // Fetch gamification data for the user
+  useEffect(() => {
+    const fetchGamificationData = async () => {
+      if (user?.id) {
+        try {
+          const data = await achievementService.getUserGamification(user.id);
+          setGamificationData(data);
+        } catch (error) {
+          console.error('Error fetching gamification data:', error);
+          // Set default values if fetch fails
+          setGamificationData({ current_level: 1, total_xp: 0 });
+        }
+      }
+    };
+
+    fetchGamificationData();
+  }, [user?.id]);
 
   if (isDismissed) {
     return null;
@@ -133,10 +154,16 @@ const UserRecommendationCard = ({
       <CardContent sx={{ flexGrow: 1, pb: 1 }}>
         {/* User Avatar and Basic Info */}
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
-          <UserAvatarWithLevel
-            user={user}
+          <UserAvatarWithRank
+            user={{
+              ...user,
+              current_level: gamificationData?.current_level || user?.level || 1
+            }}
             size={compact ? 64 : 80}
+            showLevel={true}
+            showRank={true}
             badgeSize={compact ? 'small' : 'medium'}
+            rankSize={compact ? 'small' : 'medium'}
             onClick={handleViewProfile}
             sx={{
               mb: 1,

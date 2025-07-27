@@ -46,6 +46,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { supabase, friendshipService } from '../../services/supabase';
 import blockingService from '../../services/blockingService';
 import { useToast } from '../../contexts/ToastContext';
+import { achievementService } from '../../services/achievementService';
+import UserAvatarWithRank from '../../components/achievements/UserAvatarWithRank';
 
 // Admin account emails to filter out
 const ADMIN_EMAILS = [
@@ -184,6 +186,7 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
   const [actionInProgress, setActionInProgress] = useState(null);
   const [sportFilter, setSportFilter] = useState('all');
   const [availableSports, setAvailableSports] = useState([]);
+  const [gamificationData, setGamificationData] = useState({});
 
   useEffect(() => {
     if (user) {
@@ -297,10 +300,11 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
       // Filter out blocked users (both users blocked by current user and users who blocked current user)
       filteredData = await blockingService.filterBlockedUsers(filteredData, user.id);
 
-      // Fetch friendship statuses for all users
+      // Fetch friendship statuses and gamification data for all users
       if (filteredData && filteredData.length > 0) {
         const userIds = filteredData.map(player => player.id);
         await refreshFriendshipStatuses(userIds);
+        await fetchGamificationData(userIds);
       }
 
       setPlayers(filteredData);
@@ -315,6 +319,31 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
 
   const handleViewProfile = (userId) => {
     navigate(`/profile/${userId}`);
+  };
+
+  // Fetch gamification data for users
+  const fetchGamificationData = async (userIds) => {
+    try {
+      const gamificationPromises = userIds.map(async (userId) => {
+        try {
+          const data = await achievementService.getUserGamification(userId);
+          return { userId, data };
+        } catch (error) {
+          console.error(`Error fetching gamification for user ${userId}:`, error);
+          return { userId, data: { current_level: 1, total_xp: 0 } }; // Default values
+        }
+      });
+
+      const results = await Promise.all(gamificationPromises);
+      const gamificationMap = {};
+      results.forEach(({ userId, data }) => {
+        gamificationMap[userId] = data;
+      });
+
+      setGamificationData(gamificationMap);
+    } catch (error) {
+      console.error('Error fetching gamification data:', error);
+    }
   };
 
   const handleSendFriendRequest = async (userId) => {
@@ -660,10 +689,11 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
       // Apply filters
       filterPlayers('', sportFilter);
       
-      // Refresh friendship statuses for players from props
+      // Refresh friendship statuses and gamification data for players from props
       if (filteredPropPlayers.length > 0) {
         const userIds = filteredPropPlayers.map(player => player.id);
         refreshFriendshipStatuses(userIds);
+        fetchGamificationData(userIds);
       }
     }
   }, [propPlayers, sportFilter, user?.id]);
@@ -1018,15 +1048,19 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                       <CardContent sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
                         {/* User Avatar and Basic Info */}
                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
-                          <Box sx={{ position: 'relative', mb: 1.5 }}>
-                            <Avatar
-                              src={avatar_url}
+                          <Box sx={{ mb: 1.5 }}>
+                            <UserAvatarWithRank
+                              user={{
+                                ...player,
+                                current_level: gamificationData[player.id]?.current_level || 1
+                              }}
+                              size={80}
+                              showLevel={true}
+                              showRank={true}
+                              badgeSize="medium"
+                              rankSize="medium"
                               onClick={() => handleViewProfile(player.id)}
                               sx={{
-                                width: 80,
-                                height: 80,
-                                border: '2px solid var(--border)',
-                                cursor: 'pointer',
                                 fontSize: '1.5rem',
                                 fontWeight: 'bold',
                                 backgroundColor: 'var(--accent)',
@@ -1035,29 +1069,7 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                                   borderColor: 'var(--primary)'
                                 }
                               }}
-                            >
-                              {displayName.charAt(0).toUpperCase()}
-                            </Avatar>
-
-                            {/* Sports Count Badge */}
-                            {(sport_preferences || []).length > 0 && (
-                              <Chip
-                                label={(sport_preferences || []).length}
-                                size="small"
-                                sx={{
-                                  position: 'absolute',
-                                  bottom: -2,
-                                  right: -2,
-                                  width: 24,
-                                  height: 24,
-                                  backgroundColor: 'var(--primary)',
-                                  color: 'var(--primary-foreground)',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 'bold',
-                                  '& .MuiChip-label': { px: 0 }
-                                }}
-                              />
-                            )}
+                            />
                           </Box>
 
                           <Typography
