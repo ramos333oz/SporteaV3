@@ -22,6 +22,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { TIER_CONFIG, getUserTier, getNextTierInfo, getTierProgress, getTierOrder } from '../../utils/tierSystem';
+import ClickSpark from '../animations/ClickSpark';
 
 // Styled components
 const StyledDialog = styled(Dialog)(({ theme }) => ({
@@ -238,11 +239,19 @@ const TierDetailsModal = ({
             
             return (
               <Grid item xs={12} sm={6} md={4} key={tierKey}>
-                <TierCard
-                  tierColor={tier.color}
-                  tierBgColor={tier.bgColor}
-                  isCurrentTier={isCurrentTier}
+                <ClickSpark
+                  sparkColor={tier.color}
+                  sparkSize={8}
+                  sparkRadius={15}
+                  sparkCount={5}
+                  duration={400}
+                  easing="ease-out"
                 >
+                  <TierCard
+                    tierColor={tier.color}
+                    tierBgColor={tier.bgColor}
+                    isCurrentTier={isCurrentTier}
+                  >
                   {isCurrentTier && (
                     <CurrentTierBadge tierColor={tier.color}>
                       ✓
@@ -294,7 +303,8 @@ const TierDetailsModal = ({
                       Levels {tier.levels}
                     </Typography>
                   </CardContent>
-                </TierCard>
+                  </TierCard>
+                </ClickSpark>
               </Grid>
             );
           })}

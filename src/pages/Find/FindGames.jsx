@@ -115,6 +115,7 @@ import EventBusyIcon from "@mui/icons-material/EventBusy";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { useTheme } from "@mui/material/styles";
 import { getVenueImage, getVenueImageAlt } from '../../utils/venueImageMapping';
+import ClickSpark from '../../components/animations/ClickSpark';
 
 /**
  * SportIcon component for displaying sport-specific icons
@@ -1722,24 +1723,33 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
                     : "Leave Match"}
               </Button>
             ) : (
-              <Button
-                variant="contained"
-                size="small"
-                color={isFull ? "inherit" : "primary"}
-                fullWidth
-                disabled={isFull || isLoading}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleJoinMatch(match);
-                }}
-                startIcon={isLoading ? <CircularProgress size={20} /> : null}
+              <ClickSpark
+                sparkColor="#9b2c2c"
+                sparkSize={10}
+                sparkRadius={18}
+                sparkCount={6}
+                duration={500}
+                easing="ease-out"
               >
-                {isLoading
-                  ? "Processing..."
-                  : isFull
-                    ? "Match Full"
-                    : "Join Match"}
-              </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  color={isFull ? "inherit" : "primary"}
+                  fullWidth
+                  disabled={isFull || isLoading}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleJoinMatch(match);
+                  }}
+                  startIcon={isLoading ? <CircularProgress size={20} /> : null}
+                >
+                  {isLoading
+                    ? "Processing..."
+                    : isFull
+                      ? "Match Full"
+                      : "Join Match"}
+                </Button>
+              </ClickSpark>
             ))}
         </CardActions>
       </Card>
@@ -2087,37 +2097,46 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
                     : "Leave Match"}
               </Button>
             ) : (
-              <Button
-                variant="contained"
-                size="medium"
-                color={isFull ? "inherit" : "primary"}
-                fullWidth
-                disabled={isFull || isLoading}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleJoinMatch(match);
-                }}
-                startIcon={isLoading ? <CircularProgress size={20} /> : null}
-                sx={{
-                  fontWeight: 600,
-                  borderRadius: 2,
-                  textTransform: "none",
-                  transition: "all 0.2s ease-in-out",
-                  "&:hover": {
-                    transform: "scale(1.02)",
-                    boxShadow: 3,
-                  },
-                  "&:disabled": {
-                    backgroundColor: "grey.300",
-                  },
-                }}
+              <ClickSpark
+                sparkColor="#9b2c2c"
+                sparkSize={12}
+                sparkRadius={20}
+                sparkCount={8}
+                duration={600}
+                easing="ease-out"
               >
-                {isLoading
-                  ? "Processing..."
-                  : isFull
-                    ? "Match Full"
-                    : "Join Match"}
-              </Button>
+                <Button
+                  variant="contained"
+                  size="medium"
+                  color={isFull ? "inherit" : "primary"}
+                  fullWidth
+                  disabled={isFull || isLoading}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleJoinMatch(match);
+                  }}
+                  startIcon={isLoading ? <CircularProgress size={20} /> : null}
+                  sx={{
+                    fontWeight: 600,
+                    borderRadius: 2,
+                    textTransform: "none",
+                    transition: "all 0.2s ease-in-out",
+                    "&:hover": {
+                      transform: "scale(1.02)",
+                      boxShadow: 3,
+                    },
+                    "&:disabled": {
+                      backgroundColor: "grey.300",
+                    },
+                  }}
+                >
+                  {isLoading
+                    ? "Processing..."
+                    : isFull
+                      ? "Match Full"
+                      : "Join Match"}
+                </Button>
+              </ClickSpark>
             ))}
 
           <Button

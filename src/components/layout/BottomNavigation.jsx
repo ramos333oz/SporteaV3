@@ -8,6 +8,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { useAuth } from '../../hooks/useAuth';
 import { UserAvatarWithLevel } from '../achievements';
+import ClickSpark from '../animations/ClickSpark';
 
 const BottomNavigation = () => {
   const { user } = useAuth();
@@ -81,69 +82,117 @@ const BottomNavigation = () => {
             },
           }}
         >
-          <BottomNavigationAction 
-            label="Home" 
-            icon={<HomeIcon />} 
-          />
-          <BottomNavigationAction 
-            label="Find" 
-            icon={
-              <Badge badgeContent={newMatchesCount} color="error" max={9}>
-                <SearchIcon />
-              </Badge>
-            } 
-          />
-          <BottomNavigationAction 
-            label="Host" 
-            icon={
-              <AddCircleIcon 
-                sx={{ 
-                  fontSize: 32, 
+          <ClickSpark
+            sparkColor="#9b2c2c"
+            sparkSize={8}
+            sparkRadius={12}
+            sparkCount={4}
+            duration={300}
+          >
+            <BottomNavigationAction
+              label="Home"
+              icon={<HomeIcon />}
+            />
+          </ClickSpark>
+          <ClickSpark
+            sparkColor="#9b2c2c"
+            sparkSize={8}
+            sparkRadius={12}
+            sparkCount={4}
+            duration={300}
+          >
+            <BottomNavigationAction
+              label="Find"
+              icon={
+                <Badge badgeContent={newMatchesCount} color="error" max={9}>
+                  <SearchIcon />
+                </Badge>
+              }
+            />
+          </ClickSpark>
+          <ClickSpark
+            sparkColor="#9b2c2c"
+            sparkSize={10}
+            sparkRadius={15}
+            sparkCount={6}
+            duration={400}
+          >
+            <BottomNavigationAction
+              label="Host"
+              icon={
+                <AddCircleIcon
+                  sx={{
+                    fontSize: 32,
+                    color: 'primary.main',
+                    filter: 'drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.1))'
+                  }}
+                />
+              }
+              sx={{
+                '& .MuiBottomNavigationAction-label': {
                   color: 'primary.main',
-                  filter: 'drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.1))'
-                }} 
-              />
-            } 
-            sx={{
-              '& .MuiBottomNavigationAction-label': {
-                color: 'primary.main',
-                fontWeight: 500,
-              },
-            }}
-          />
-          <BottomNavigationAction
-            label="Friends"
-            icon={<PeopleIcon />}
-          />
-          <BottomNavigationAction
-            label="Leaderboard"
-            icon={
-              <EmojiEventsIcon
-                sx={{
-                  fontSize: 28,
-                  color: value === 4 ? 'primary.main' : 'text.secondary'
-                }}
-              />
-            }
-          />
-          <BottomNavigationAction
-            label="Profile"
-            icon={
-              <UserAvatarWithLevel
-                user={{
-                  avatar_url: user?.user_metadata?.avatar_url,
-                  full_name: user?.user_metadata?.username || user?.user_metadata?.full_name,
-                  level: user?.level || 1
-                }}
-                size={28}
-                badgeSize="small"
-                sx={{
-                  bgcolor: 'primary.main',
-                  fontSize: '0.875rem',
-                }}
-              />
-            }
-          />
+                  fontWeight: 500,
+                },
+              }}
+            />
+          </ClickSpark>
+          <ClickSpark
+            sparkColor="#9b2c2c"
+            sparkSize={8}
+            sparkRadius={12}
+            sparkCount={4}
+            duration={300}
+          >
+            <BottomNavigationAction
+              label="Friends"
+              icon={<PeopleIcon />}
+            />
+          </ClickSpark>
+          <ClickSpark
+            sparkColor="#9b2c2c"
+            sparkSize={8}
+            sparkRadius={12}
+            sparkCount={4}
+            duration={300}
+          >
+            <BottomNavigationAction
+              label="Leaderboard"
+              icon={
+                <EmojiEventsIcon
+                  sx={{
+                    fontSize: 28,
+                    color: value === 4 ? 'primary.main' : 'text.secondary'
+                  }}
+                />
+              }
+            />
+          </ClickSpark>
+          <ClickSpark
+            sparkColor="#9b2c2c"
+            sparkSize={8}
+            sparkRadius={12}
+            sparkCount={4}
+            duration={300}
+          >
+            <BottomNavigationAction
+              label="Profile"
+              icon={
+                <UserAvatarWithLevel
+                  user={{
+                    avatar_url: user?.user_metadata?.avatar_url,
+                    full_name: user?.user_metadata?.username || user?.user_metadata?.full_name,
+                    level: user?.level || 1
+                  }}
+                  size={28}
+                  badgeSize="small"
+                  sx={{
+                    bgcolor: 'primary.main',
+                    fontSize: '0.875rem',
+                  }}
+                />
+              }
+            />
+          </ClickSpark>
         </MuiBottomNavigation>
       </Paper>
     </Box>

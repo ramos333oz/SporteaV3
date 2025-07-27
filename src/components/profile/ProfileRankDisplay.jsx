@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { TIER_CONFIG, getUserTier, getTierProgress } from '../../utils/tierSystem';
+import ClickSpark from '../animations/ClickSpark';
 
 // Styled components following Elegant Luxury theme
 const RankCard = styled(Card)(({ theme, tierColor, tierBgColor }) => ({
@@ -123,11 +124,19 @@ const ProfileRankDisplay = ({
 
   return (
     <Box sx={{ mb: 3, position: 'relative' }}>
-      <RankCard
-        tierColor={tier.color}
-        tierBgColor={tier.bgColor}
-        onClick={handleCardClick}
+      <ClickSpark
+        sparkColor={tier.color}
+        sparkSize={12}
+        sparkRadius={20}
+        sparkCount={6}
+        duration={500}
+        easing="ease-out"
       >
+        <RankCard
+          tierColor={tier.color}
+          tierBgColor={tier.bgColor}
+          onClick={handleCardClick}
+        >
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ 
             display: 'flex', 
@@ -212,7 +221,8 @@ const ProfileRankDisplay = ({
         </CardContent>
 
         {/* Hover overlay removed for cleaner UI */}
-      </RankCard>
+        </RankCard>
+      </ClickSpark>
     </Box>
   );
 };
