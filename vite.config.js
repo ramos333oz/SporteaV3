@@ -28,10 +28,24 @@ export default defineConfig(({ command, mode }) => {
         'react/jsx-runtime',
         '@emotion/react',
         '@emotion/styled',
+        '@emotion/cache',
         '@mui/material',
         '@mui/icons-material',
         '@mui/material/styles',
-        '@mui/material/utils'
+        '@mui/material/utils',
+        '@mui/material/AppBar',
+        '@mui/material/Toolbar',
+        '@mui/material/Typography',
+        '@mui/material/IconButton',
+        '@mui/material/Drawer',
+        '@mui/material/List',
+        '@mui/material/ListItem',
+        '@mui/material/ListItemButton',
+        '@mui/material/ListItemIcon',
+        '@mui/material/ListItemText',
+        '@mui/material/Box',
+        '@mui/material/Avatar',
+        '@mui/material/Divider'
       ],
       esbuildOptions: {
         loader: {
