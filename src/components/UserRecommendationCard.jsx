@@ -162,8 +162,8 @@ const UserRecommendationCard = ({
             size={compact ? 64 : 80}
             showLevel={true}
             showRank={true}
-            badgeSize={compact ? 'small' : 'medium'}
-            rankSize={compact ? 'small' : 'medium'}
+            badgeSize={compact ? 'medium' : 'large'}
+            rankSize={compact ? 'medium' : 'large'}
             onClick={handleViewProfile}
             sx={{
               mb: 1,

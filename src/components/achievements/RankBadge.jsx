@@ -21,22 +21,22 @@ const RankBadge = ({
   
   if (!tier) return null;
 
-  // Size configurations
+  // Size configurations - Increased sizes for better visibility
   const sizeConfig = {
-    small: { 
-      badge: 20, 
-      icon: 16,
-      border: 1.5
-    },
-    medium: { 
-      badge: 24, 
-      icon: 20,
+    small: {
+      badge: 28,
+      icon: 22,
       border: 2
     },
-    large: { 
-      badge: 28, 
-      icon: 24,
+    medium: {
+      badge: 32,
+      icon: 26,
       border: 2.5
+    },
+    large: {
+      badge: 36,
+      icon: 30,
+      border: 3
     }
   };
 

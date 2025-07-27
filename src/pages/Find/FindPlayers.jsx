@@ -1057,8 +1057,8 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                               size={80}
                               showLevel={true}
                               showRank={true}
-                              badgeSize="medium"
-                              rankSize="medium"
+                              badgeSize="large"
+                              rankSize="large"
                               onClick={() => handleViewProfile(player.id)}
                               sx={{
                                 fontSize: '1.5rem',

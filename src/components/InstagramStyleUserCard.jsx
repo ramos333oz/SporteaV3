@@ -199,8 +199,8 @@ const InstagramStyleUserCard = ({
               size={70}
               showLevel={true}
               showRank={true}
-              badgeSize="small"
-              rankSize="small"
+              badgeSize="medium"
+              rankSize="medium"
               onClick={handleViewProfile}
               sx={{
                 fontSize: '1.25rem',

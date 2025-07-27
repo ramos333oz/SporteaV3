@@ -10,11 +10,11 @@ import { getLevelColor } from '../../services/achievementService';
 const UserLevelBadge = ({ level, size = 'small' }) => {
   if (!level || level < 1) return null;
 
-  // Size configurations
+  // Size configurations - Increased sizes for better visibility
   const sizeConfig = {
-    small: { badge: 20, font: '0.7rem' },
-    medium: { badge: 24, font: '0.8rem' },
-    large: { badge: 28, font: '0.9rem' }
+    small: { badge: 24, font: '0.75rem' },
+    medium: { badge: 28, font: '0.85rem' },
+    large: { badge: 32, font: '0.95rem' }
   };
 
   const config = sizeConfig[size] || sizeConfig.small;
