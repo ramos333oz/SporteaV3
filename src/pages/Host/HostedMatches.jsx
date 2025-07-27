@@ -476,12 +476,38 @@ const HostedMatches = () => {
         Your Hosted Matches
       </Typography>
       
-      <Paper sx={{ mb: 3, borderRadius: 2 }}>
-        <Tabs 
-          value={tabValue} 
+      <Paper sx={{ mb: 3, borderRadius: 2, p: 1, bgcolor: 'grey.50' }}>
+        <Tabs
+          value={tabValue}
           onChange={handleTabChange}
           variant="fullWidth"
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
+          sx={{
+            minHeight: 'auto',
+            '& .MuiTabs-indicator': {
+              display: 'none', // Remove default indicator
+            },
+            '& .MuiTab-root': {
+              minHeight: 'auto',
+              py: 1.5,
+              px: 3,
+              borderRadius: 1.5,
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.875rem',
+              color: 'text.secondary',
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                bgcolor: 'action.hover',
+                color: 'text.primary',
+              },
+              '&.Mui-selected': {
+                bgcolor: 'background.paper',
+                color: 'primary.main',
+                fontWeight: 600,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              },
+            },
+          }}
         >
           <Tab label="Upcoming" />
           <Tab label="Past" />
