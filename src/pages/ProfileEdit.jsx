@@ -33,14 +33,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import UndoIcon from '@mui/icons-material/Undo';
 import Tooltip from '@mui/material/Tooltip';
 import AddIcon from '@mui/icons-material/Add';
-import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
-import SportsBasketballIcon from '@mui/icons-material/SportsBasketball';
-import SportsTennisIcon from '@mui/icons-material/SportsTennis';
-import SportsVolleyballIcon from '@mui/icons-material/SportsVolleyball';
-import SportsBaseballIcon from '@mui/icons-material/SportsBaseball';
-import SportsMmaIcon from '@mui/icons-material/SportsMma';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
+
 import CakeIcon from '@mui/icons-material/Cake';
 import ProfilePreferences from '../components/ProfilePreferences';
 import { subYears, isAfter, isBefore } from 'date-fns';
@@ -48,23 +41,31 @@ import { invalidateUserCache } from '../services/simplifiedRecommendationService
 import { clearKNNCache, clearAllKNNCaches } from '../services/knnRecommendationService';
 import { clearUserRecommendationCache } from '../services/userRecommendationService';
 
-// Map sport names to their respective icons - matches LocationMapView.jsx supported sports
+// Map sport names to their respective custom icons
 const getSportIcon = (sportName) => {
-  const sportIcons = {
-    'Football': <SportsSoccerIcon />,
-    'Futsal': <SportsSoccerIcon />,
-    'Basketball': <SportsBasketballIcon />,
-    'Badminton': <SportsTennisIcon />,
-    'Tennis': <SportsTennisIcon />,
-    'Table Tennis': <SportsTennisIcon />,
-    'Squash': <SportsTennisIcon />,
-    'Volleyball': <SportsVolleyballIcon />,
-    'Rugby': <SportsMmaIcon />,
-    'Hockey': <FitnessCenterIcon />,
-    'Frisbee': <DirectionsRunIcon />
+  const sportIconPaths = {
+    'Football': '/images/sportslectionicons/football.png',
+    'Futsal': '/images/sportslectionicons/futsal.png',
+    'Basketball': '/images/sportslectionicons/basketball.png',
+    'Badminton': '/images/sportslectionicons/badminton.png',
+    'Tennis': '/images/sportslectionicons/tennis.png',
+    'Table Tennis': '/images/sportslectionicons/table-tennis.png',
+    'Squash': '/images/sportslectionicons/squash.png',
+    'Volleyball': '/images/sportslectionicons/volleyball.png',
+    'Rugby': '/images/sportslectionicons/rugby.png',
+    'Hockey': '/images/sportslectionicons/hockey.png',
+    'Frisbee': '/images/sportslectionicons/football.png' // Fallback
   };
 
-  return sportIcons[sportName] || <SportsSoccerIcon />;
+  const iconPath = sportIconPaths[sportName] || '/images/sportslectionicons/football.png';
+
+  return (
+    <img
+      src={iconPath}
+      alt={sportName}
+      style={{ width: 24, height: 24 }}
+    />
+  );
 };
 
 // Available sports list - matches exactly what LocationMapView.jsx supports and database sports table

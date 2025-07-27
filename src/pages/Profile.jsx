@@ -32,14 +32,6 @@ import {
 import achievementService from '../services/achievementService';
 import SettingsIcon from '@mui/icons-material/Settings';
 import EditIcon from '@mui/icons-material/Edit';
-import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
-import SportsBasketballIcon from '@mui/icons-material/SportsBasketball';
-import SportsTennisIcon from '@mui/icons-material/SportsTennis';
-import SportsVolleyballIcon from '@mui/icons-material/SportsVolleyball';
-import SportsBaseballIcon from '@mui/icons-material/SportsBaseball';
-import SportsMmaIcon from '@mui/icons-material/SportsMma';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -86,23 +78,36 @@ const normalizeAvatarUrl = (url) => {
   return url;
 };
 
-// Map sport names to their respective icons
+// Map sport names to their respective custom icons
 const getSportIcon = (sportName) => {
-  const sportIcons = {
-    'Football': <SportsSoccerIcon />,
-    'Soccer': <SportsSoccerIcon />,
-    'Basketball': <SportsBasketballIcon />,
-    'Badminton': <SportsTennisIcon />,
-    'Tennis': <SportsTennisIcon />,
-    'Volleyball': <SportsVolleyballIcon />,
-    'Baseball': <SportsBaseballIcon />,
-    'Boxing': <SportsMmaIcon />,
-    'Martial Arts': <SportsMmaIcon />,
-    'Gym': <FitnessCenterIcon />,
-    'Running': <DirectionsRunIcon />
+  const sportIconPaths = {
+    'Football': '/images/sportslectionicons/football.png',
+    'Soccer': '/images/sportslectionicons/football.png',
+    'Futsal': '/images/sportslectionicons/futsal.png',
+    'Basketball': '/images/sportslectionicons/basketball.png',
+    'Badminton': '/images/sportslectionicons/badminton.png',
+    'Tennis': '/images/sportslectionicons/tennis.png',
+    'Table Tennis': '/images/sportslectionicons/table-tennis.png',
+    'Volleyball': '/images/sportslectionicons/volleyball.png',
+    'Rugby': '/images/sportslectionicons/rugby.png',
+    'Hockey': '/images/sportslectionicons/hockey.png',
+    'Squash': '/images/sportslectionicons/squash.png',
+    'Baseball': '/images/sportslectionicons/football.png', // Fallback
+    'Boxing': '/images/sportslectionicons/football.png', // Fallback
+    'Martial Arts': '/images/sportslectionicons/football.png', // Fallback
+    'Gym': '/images/sportslectionicons/football.png', // Fallback
+    'Running': '/images/sportslectionicons/football.png' // Fallback
   };
-  
-  return sportIcons[sportName] || <SportsSoccerIcon />;
+
+  const iconPath = sportIconPaths[sportName] || '/images/sportslectionicons/football.png';
+
+  return (
+    <img
+      src={iconPath}
+      alt={sportName}
+      style={{ width: 24, height: 24 }}
+    />
+  );
 };
 
 // Map skill levels to colors
@@ -903,7 +908,11 @@ const Profile = () => {
         {activeTab === 0 && (
           <Box sx={{ p: 3 }}>
             <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-              <SportsSoccerIcon sx={{ mr: 1.5, color: 'primary.main' }} />
+              <img
+                src="/images/sportslectionicons/football.png"
+                alt="Sports"
+                style={{ width: 24, height: 24, marginRight: 12 }}
+              />
               Sports
             </Typography>
             
