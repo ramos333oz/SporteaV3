@@ -26,74 +26,13 @@ import AnimatedUserTierCard from '../components/leaderboard/AnimatedUserTierCard
 import '../components/leaderboard/LeaderboardHeader.css';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { isWebGLSupported } from '../utils/tierCardGenerator';
+import { TIER_CONFIG, getUserTier } from '../utils/tierSystem';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import GroupIcon from '@mui/icons-material/Group';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
 
-// Tier configuration with visual styling
-const TIER_CONFIG = {
-  bronze: {
-    name: 'Bronze Tier',
-    subtitle: 'Beginner League',
-    levels: '1-10',
-    color: '#CD7F32',
-    bgColor: '#FFF8DC',
-    icon: '🥉', // Fallback emoji
-    iconImage: '/images/ranks/bronze.png',
-    description: 'New players learning the basics'
-  },
-  silver: {
-    name: 'Silver Tier',
-    subtitle: 'Intermediate League',
-    levels: '11-25',
-    color: '#C0C0C0',
-    bgColor: '#F8F8FF',
-    icon: '🥈', // Fallback emoji
-    iconImage: '/images/ranks/silver.png',
-    description: 'Regular participants building skills'
-  },
-  gold: {
-    name: 'Gold Tier',
-    subtitle: 'Advanced League',
-    levels: '26-50',
-    color: '#FFD700',
-    bgColor: '#FFFACD',
-    icon: '🥇', // Fallback emoji
-    iconImage: '/images/ranks/gold.png',
-    description: 'Active community members and skilled players'
-  },
-  platinum: {
-    name: 'Platinum Tier',
-    subtitle: 'Expert League',
-    levels: '51-75',
-    color: '#E5E4E2',
-    bgColor: '#F5F5F5',
-    icon: '💎', // Fallback emoji
-    iconImage: '/images/ranks/platinum.png',
-    description: 'Experienced players and community leaders'
-  },
-  diamond: {
-    name: 'Diamond Tier',
-    subtitle: 'Master League',
-    levels: '76-100',
-    color: '#B9F2FF',
-    bgColor: '#F0F8FF',
-    icon: '💠', // Fallback emoji
-    iconImage: '/images/ranks/diamond.png',
-    description: 'Elite players and top community builders'
-  }
-};
-
-// Function to determine user tier based on level
-const getUserTier = (level) => {
-  if (level >= 1 && level <= 10) return 'bronze';
-  if (level >= 11 && level <= 25) return 'silver';
-  if (level >= 26 && level <= 50) return 'gold';
-  if (level >= 51 && level <= 75) return 'platinum';
-  if (level >= 76 && level <= 100) return 'diamond';
-  return 'bronze'; // Default fallback
-};
+// TIER_CONFIG and getUserTier now imported from shared utilities
 
 // Old UserTierCard component removed - replaced with AnimatedUserTierCard
 

@@ -29,6 +29,8 @@ import {
   AchievementCard,
   XPProgressBar
 } from '../components/achievements';
+import ProfileRankDisplay from '../components/profile/ProfileRankDisplay';
+import TierDetailsModal from '../components/profile/TierDetailsModal';
 import achievementService from '../services/achievementService';
 import SettingsIcon from '@mui/icons-material/Settings';
 import EditIcon from '@mui/icons-material/Edit';
@@ -200,6 +202,7 @@ const Profile = () => {
   const [userAchievements, setUserAchievements] = useState([]);
   const [gamificationData, setGamificationData] = useState(null);
   const [achievementsLoading, setAchievementsLoading] = useState(false);
+  const [tierDetailsOpen, setTierDetailsOpen] = useState(false);
 
   // Check if viewing own profile or someone else's
   const isOwnProfile = !userId || (user && userId === user.id);
@@ -865,7 +868,17 @@ const Profile = () => {
           </Box>
         </Box>
       </Box>
-      
+
+      {/* Interactive Rank Display */}
+      {gamificationData && (
+        <ProfileRankDisplay
+          user={profile}
+          gamificationData={gamificationData}
+          isOwnProfile={isOwnProfile}
+          onClick={() => setTierDetailsOpen(true)}
+        />
+      )}
+
       <Paper sx={{ mb: 4, borderRadius: 3, overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.08)', p: 1, bgcolor: 'grey.50' }}>
         <Tabs
           value={activeTab}
@@ -1460,6 +1473,15 @@ const Profile = () => {
           </Box>
         )}
       </Paper>
+
+      {/* Tier Details Modal */}
+      <TierDetailsModal
+        open={tierDetailsOpen}
+        onClose={() => setTierDetailsOpen(false)}
+        user={profile}
+        gamificationData={gamificationData}
+        isOwnProfile={isOwnProfile}
+      />
     </Container>
   );
 };
