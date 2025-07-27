@@ -78,12 +78,33 @@ const MatchReview = ({ matchData, onUpdateMatchData }) => {
   
   return (
     <Box>
-      <Typography variant="h2" component="h2" gutterBottom>
-        Review Match Details
-      </Typography>
-      <Typography variant="body1" color="text.secondary" paragraph>
-        Please review all match details before creating your match. You'll be able to edit these details after creation if needed.
-      </Typography>
+      {/* Modern Header Section */}
+      <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: 'grey.50' }}>
+        <Typography
+          variant="h2"
+          component="h2"
+          sx={{
+            mb: 1.5,
+            fontWeight: 600,
+            color: 'text.primary',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
+        >
+          Review Match Details
+        </Typography>
+        <Typography
+          variant="body1"
+          sx={{
+            color: 'text.secondary',
+            fontSize: '0.875rem',
+            lineHeight: 1.5
+          }}
+        >
+          Please review all match details before creating your match. You'll be able to edit these details after creation if needed.
+        </Typography>
+      </Paper>
 
       {/* Validation Status Component - Temporarily disabled for debugging */}
       {/* <ValidationStatus
@@ -91,208 +112,421 @@ const MatchReview = ({ matchData, onUpdateMatchData }) => {
         onValidationChange={handleValidationChange}
       /> */}
 
-      <Paper elevation={2} sx={{ p: 3, borderRadius: 2, mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Box 
-            sx={{ 
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: 'primary.light',
-              color: 'white',
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              mr: 2
+      <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: 'grey.50', boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }}>
+        {/* Modern Header */}
+        <Box sx={{ mb: 1.5 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              color: 'text.secondary',
+              fontSize: '0.875rem',
+              mb: 2
             }}
           >
-            {getSportIcon()}
-          </Box>
-          <Typography variant="h3" component="h3">
+            Match Details
+          </Typography>
+          <Typography
+            variant="h3"
+            component="h3"
+            sx={{
+              fontWeight: 600,
+              color: 'text.primary',
+              fontSize: '1.25rem'
+            }}
+          >
             {matchData.title || 'Untitled Match'}
           </Typography>
         </Box>
         
-        <Divider sx={{ my: 2 }} />
-        
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <List disablePadding>
-              <ListItem sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <TitleIcon color="primary" />
+        <Box sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 2,
+          '& > *': { flex: '1 1 300px' }
+        }}>
+          <Box>
+            <List disablePadding sx={{
+              '& .MuiListItem-root': {
+                px: 0,
+                py: 1,
+                borderRadius: 1,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  bgcolor: 'action.hover'
+                }
+              }
+            }}>
+              <ListItem>
+                <ListItemIcon sx={{ minWidth: 32 }}>
+                  <TitleIcon sx={{ fontSize: '1.1rem', color: 'primary.main' }} />
                 </ListItemIcon>
                 <ListItemText
-                  primary={<span style={{ color: 'rgba(0, 0, 0, 0.6)', fontSize: '0.875rem' }}>Title</span>}
-                  secondary={<span style={{ fontSize: '1rem' }}>{matchData.title || 'Not set'}</span>}
-                />
-              </ListItem>
-              
-              <ListItem sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <SportsSoccerIcon color="primary" />
-                </ListItemIcon>
-                <ListItemText
-                  primary={<span style={{ color: 'rgba(0, 0, 0, 0.6)', fontSize: '0.875rem' }}>Sport</span>}
+                  primary={
+                    <Typography variant="caption" sx={{
+                      color: 'text.secondary',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Title
+                    </Typography>
+                  }
                   secondary={
-                    <Typography component="div" variant="body2" style={{ marginTop: '5px' }}>
-                      <Chip 
-                        icon={getSportIcon()}
-                        label={matchData.sportName || 'Not selected'}
-                        color="primary"
-                        variant="outlined"
-                        size="medium"
-                      />
+                    <Typography variant="body2" sx={{
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      color: 'text.primary',
+                      mt: 0.5
+                    }}>
+                      {matchData.title || 'Not set'}
                     </Typography>
                   }
                 />
               </ListItem>
               
-              <ListItem sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <FitnessCenterIcon color="primary" />
+              <ListItem>
+                <ListItemIcon sx={{ minWidth: 32 }}>
+                  <Box sx={{ fontSize: '1.1rem', color: 'primary.main' }}>
+                    {getSportIcon()}
+                  </Box>
                 </ListItemIcon>
                 <ListItemText
-                  primary={<span style={{ color: 'rgba(0, 0, 0, 0.6)', fontSize: '0.875rem' }}>Skill Level</span>}
+                  primary={
+                    <Typography variant="caption" sx={{
+                      color: 'text.secondary',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Sport
+                    </Typography>
+                  }
                   secondary={
-                    <Chip 
-                      label={matchData.skillLevel}
+                    <Chip
+                      label={matchData.sportName || 'Not selected'}
+                      variant="filled"
                       size="small"
-                      color={
-                        matchData.skillLevel === 'Beginner' ? 'success' : 
-                        matchData.skillLevel === 'Intermediate' ? 'primary' : 
-                        'secondary'
-                      }
-                      variant="outlined"
-                      sx={{ mt: 0.5 }}
+                      sx={{
+                        mt: 0.5,
+                        bgcolor: 'primary.main',
+                        color: 'primary.contrastText',
+                        fontWeight: 500,
+                        fontSize: '0.75rem'
+                      }}
                     />
                   }
                 />
               </ListItem>
-              
-              <ListItem sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <EventIcon color="primary" />
+
+              <ListItem>
+                <ListItemIcon sx={{ minWidth: 32 }}>
+                  <FitnessCenterIcon sx={{ fontSize: '1.1rem', color: 'primary.main' }} />
                 </ListItemIcon>
                 <ListItemText
-                  primary={<span style={{ color: 'rgba(0, 0, 0, 0.6)', fontSize: '0.875rem' }}>Date & Time</span>}
-                  secondary={<span style={{ fontSize: '1rem' }}>{formatDateTime()}</span>}
+                  primary={
+                    <Typography variant="caption" sx={{
+                      color: 'text.secondary',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Skill Level
+                    </Typography>
+                  }
+                  secondary={
+                    <Chip
+                      label={matchData.skillLevel}
+                      size="small"
+                      variant="filled"
+                      sx={{
+                        mt: 0.5,
+                        bgcolor: matchData.skillLevel === 'Beginner' ? 'success.main' :
+                                matchData.skillLevel === 'Intermediate' ? 'warning.main' :
+                                'error.main',
+                        color: 'white',
+                        fontWeight: 500,
+                        fontSize: '0.75rem'
+                      }}
+                    />
+                  }
                 />
               </ListItem>
-              
-              <ListItem sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <TimerIcon color="primary" />
+
+              <ListItem>
+                <ListItemIcon sx={{ minWidth: 32 }}>
+                  <EventIcon sx={{ fontSize: '1.1rem', color: 'primary.main' }} />
                 </ListItemIcon>
                 <ListItemText
-                  primary={<span style={{ color: 'rgba(0, 0, 0, 0.6)', fontSize: '0.875rem' }}>Duration</span>}
+                  primary={
+                    <Typography variant="caption" sx={{
+                      color: 'text.secondary',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Date & Time
+                    </Typography>
+                  }
                   secondary={
-                    <span style={{ fontSize: '1rem' }}>
+                    <Typography variant="body2" sx={{
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      color: 'text.primary',
+                      mt: 0.5
+                    }}>
+                      {formatDateTime()}
+                    </Typography>
+                  }
+                />
+              </ListItem>
+
+              <ListItem>
+                <ListItemIcon sx={{ minWidth: 32 }}>
+                  <TimerIcon sx={{ fontSize: '1.1rem', color: 'primary.main' }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary={
+                    <Typography variant="caption" sx={{
+                      color: 'text.secondary',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Duration
+                    </Typography>
+                  }
+                  secondary={
+                    <Typography variant="body2" sx={{
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      color: 'text.primary',
+                      mt: 0.5
+                    }}>
                       {matchData.duration} minutes (until {calculateEndTime()})
-                    </span>
+                    </Typography>
                   }
                 />
               </ListItem>
             </List>
-          </Grid>
-          
-          <Grid item xs={12} md={6}>
-            <List disablePadding>
-              <ListItem sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <LocationOnIcon color="primary" />
+          </Box>
+
+          <Box>
+            <List disablePadding sx={{
+              '& .MuiListItem-root': {
+                px: 0,
+                py: 1,
+                borderRadius: 1,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  bgcolor: 'action.hover'
+                }
+              }
+            }}>
+              <ListItem>
+                <ListItemIcon sx={{ minWidth: 32 }}>
+                  <LocationOnIcon sx={{ fontSize: '1.1rem', color: 'primary.main' }} />
                 </ListItemIcon>
                 <ListItemText
-                  primary={<span style={{ color: 'rgba(0, 0, 0, 0.6)', fontSize: '0.875rem' }}>Location</span>}
+                  primary={
+                    <Typography variant="caption" sx={{
+                      color: 'text.secondary',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Location
+                    </Typography>
+                  }
                   secondary={
-                    <>
-                      <span style={{ fontSize: '1rem', display: 'block' }}>{matchData.location?.name || 'Not set'}</span>
-                      <span style={{ fontSize: '0.875rem', color: 'rgba(0, 0, 0, 0.6)', display: 'block' }}>
-                        {matchData.courtName ? `Court: ${matchData.courtName}` : ''}
-                      </span>
-                    </>
+                    <Box sx={{ mt: 0.5 }}>
+                      <Typography variant="body2" sx={{
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        color: 'text.primary'
+                      }}>
+                        {matchData.location?.name || 'Not set'}
+                      </Typography>
+                      {matchData.courtName && (
+                        <Typography variant="caption" sx={{
+                          fontSize: '0.75rem',
+                          color: 'text.secondary',
+                          display: 'block'
+                        }}>
+                          Court: {matchData.courtName}
+                        </Typography>
+                      )}
+                    </Box>
                   }
                 />
               </ListItem>
-              
-              <ListItem sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <PeopleIcon color="primary" />
+
+              <ListItem>
+                <ListItemIcon sx={{ minWidth: 32 }}>
+                  <PeopleIcon sx={{ fontSize: '1.1rem', color: 'primary.main' }} />
                 </ListItemIcon>
                 <ListItemText
-                  primary={<span style={{ color: 'rgba(0, 0, 0, 0.6)', fontSize: '0.875rem' }}>Participants</span>}
+                  primary={
+                    <Typography variant="caption" sx={{
+                      color: 'text.secondary',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Participants
+                    </Typography>
+                  }
                   secondary={
-                    <span style={{ fontSize: '1rem' }}>
+                    <Typography variant="body2" sx={{
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      color: 'text.primary',
+                      mt: 0.5
+                    }}>
                       {matchData.minParticipants} - {matchData.maxParticipants} participants
-                    </span>
+                    </Typography>
                   }
                 />
               </ListItem>
-              
-              <ListItem sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <LockIcon color={matchData.isPrivate ? 'primary' : 'disabled'} />
+
+              <ListItem>
+                <ListItemIcon sx={{ minWidth: 32 }}>
+                  <LockIcon sx={{
+                    fontSize: '1.1rem',
+                    color: matchData.isPrivate ? 'error.main' : 'success.main'
+                  }} />
                 </ListItemIcon>
                 <ListItemText
-                  primary={<span style={{ color: 'rgba(0, 0, 0, 0.6)', fontSize: '0.875rem' }}>Privacy</span>}
+                  primary={
+                    <Typography variant="caption" sx={{
+                      color: 'text.secondary',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Privacy
+                    </Typography>
+                  }
                   secondary={
-                    <span style={{ fontSize: '1rem' }}>
-                      {matchData.isPrivate ? 'Private Match (Invitation Only)' : 'Public Match (Anyone Can Join)'}
-                    </span>
+                    <Chip
+                      label={matchData.isPrivate ? 'Private Match (Invitation Only)' : 'Public Match (Anyone Can Join)'}
+                      size="small"
+                      variant="filled"
+                      sx={{
+                        mt: 0.5,
+                        bgcolor: matchData.isPrivate ? 'error.main' : 'success.main',
+                        color: 'white',
+                        fontWeight: 500,
+                        fontSize: '0.75rem'
+                      }}
+                    />
                   }
                 />
               </ListItem>
-              
-              <ListItem sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <DescriptionIcon color="primary" />
+
+              <ListItem>
+                <ListItemIcon sx={{ minWidth: 32 }}>
+                  <DescriptionIcon sx={{ fontSize: '1.1rem', color: 'primary.main' }} />
                 </ListItemIcon>
                 <ListItemText
-                  primary={<span style={{ color: 'rgba(0, 0, 0, 0.6)', fontSize: '0.875rem' }}>Description</span>}
+                  primary={
+                    <Typography variant="caption" sx={{
+                      color: 'text.secondary',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Description
+                    </Typography>
+                  }
                   secondary={
-                    <span 
-                      style={{
-                        fontSize: '1rem',
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: '0.875rem',
+                        fontWeight: 400,
+                        color: 'text.primary',
+                        mt: 0.5,
                         whiteSpace: 'pre-wrap',
                         display: '-webkit-box',
                         WebkitLineClamp: 4,
                         WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        lineHeight: 1.4
                       }}
                     >
                       {matchData.description || 'No description provided'}
-                    </span>
+                    </Typography>
                   }
                 />
               </ListItem>
             </List>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Paper>
       
       {/* Host Information */}
-      <Paper elevation={2} sx={{ p: 3, borderRadius: 2, mb: 3 }}>
-        <Typography variant="h3" component="h3" gutterBottom>
-          Host Information
-        </Typography>
-        
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: 'grey.50', boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }}>
+        <Box sx={{ mb: 1.5 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              color: 'text.secondary',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              fontSize: '0.875rem'
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 24,
+                height: 24,
+                bgcolor: 'primary.main',
+                fontSize: '0.75rem'
+              }}
+            >
+              U
+            </Avatar>
+            Host Information
+          </Typography>
+        </Box>
+
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          p: 2,
+          borderRadius: 1,
+          bgcolor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider'
+        }}>
           <Avatar
             sx={{
-              width: 48,
-              height: 48,
+              width: 40,
+              height: 40,
               bgcolor: 'primary.main',
-              fontSize: '1.25rem',
+              fontSize: '1rem',
               mr: 2
             }}
           >
             U
           </Avatar>
           <Box>
-            <Typography variant="body1" fontWeight={500}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
               You will be listed as the host
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
               As the host, you'll be responsible for managing the match and participants
             </Typography>
           </Box>
@@ -300,39 +534,65 @@ const MatchReview = ({ matchData, onUpdateMatchData }) => {
       </Paper>
       
       {/* Terms and Conditions */}
-      <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-        <Typography variant="h3" component="h3" gutterBottom>
-          Terms and Conditions
-        </Typography>
-        
-        <Typography variant="body2" paragraph>
-          By creating this match, you acknowledge and agree to the following:
-        </Typography>
-        
-        <List dense sx={{ ml: 2 }}>
-          <ListItem sx={{ display: 'list-item', listStyleType: 'disc' }}>
-            <Typography variant="body2">
-              You will follow all UiTM facility rules and regulations
-            </Typography>
-          </ListItem>
-          <ListItem sx={{ display: 'list-item', listStyleType: 'disc' }}>
-            <Typography variant="body2">
-              You are responsible for the behavior of participants during your match
-            </Typography>
-          </ListItem>
-          <ListItem sx={{ display: 'list-item', listStyleType: 'disc' }}>
-            <Typography variant="body2">
-              You will arrive on time and ensure the facility is left in good condition
-            </Typography>
-          </ListItem>
-          <ListItem sx={{ display: 'list-item', listStyleType: 'disc' }}>
-            <Typography variant="body2">
-              You will notify participants of any changes or cancellations
-            </Typography>
-          </ListItem>
-        </List>
-        
-        <Box sx={{ mt: 2, p: 2, border: !termsAccepted ? '1px solid #f44336' : '1px solid rgba(0, 0, 0, 0.12)', borderRadius: 1, bgcolor: !termsAccepted ? 'rgba(244, 67, 54, 0.08)' : 'transparent' }}>
+      <Paper sx={{ p: 2, borderRadius: 2, bgcolor: 'grey.50', boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }}>
+        <Box sx={{ mb: 1.5 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              color: 'text.secondary',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              fontSize: '0.875rem'
+            }}
+          >
+            Terms and Conditions
+          </Typography>
+        </Box>
+
+        <Box sx={{
+          p: 2,
+          borderRadius: 1,
+          bgcolor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
+          mb: 2
+        }}>
+          <Typography variant="body2" sx={{
+            fontSize: '0.875rem',
+            color: 'text.primary',
+            mb: 1.5,
+            fontWeight: 500
+          }}>
+            By creating this match, you acknowledge and agree to the following:
+          </Typography>
+
+          <Box component="ul" sx={{
+            pl: 2,
+            m: 0,
+            '& li': {
+              fontSize: '0.75rem',
+              color: 'text.secondary',
+              lineHeight: 1.5,
+              mb: 0.5
+            }
+          }}>
+            <li>You will follow all UiTM facility rules and regulations</li>
+            <li>You are responsible for the behavior of participants during your match</li>
+            <li>You will arrive on time and ensure the facility is left in good condition</li>
+            <li>You will notify participants of any changes or cancellations</li>
+          </Box>
+        </Box>
+
+        <Box sx={{
+          p: 2,
+          borderRadius: 1.5,
+          border: '2px solid',
+          borderColor: !termsAccepted ? 'error.main' : 'success.main',
+          bgcolor: !termsAccepted ? 'error.light' : 'success.light',
+          transition: 'all 0.2s ease-in-out'
+        }}>
           <FormControlLabel
             required
             control={
@@ -340,16 +600,31 @@ const MatchReview = ({ matchData, onUpdateMatchData }) => {
                 checked={termsAccepted}
                 onChange={handleTermsAcceptedChange}
                 color="primary"
+                sx={{
+                  '& .MuiSvgIcon-root': {
+                    fontSize: '1.2rem'
+                  }
+                }}
               />
             }
             label={
-              <Typography fontWeight={500}>
+              <Typography sx={{
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                color: 'text.primary'
+              }}>
                 I accept the terms and conditions
               </Typography>
             }
           />
           {!termsAccepted && (
-            <Typography variant="caption" color="error" sx={{ display: 'block', mt: 1 }}>
+            <Typography variant="caption" sx={{
+              display: 'block',
+              mt: 1,
+              color: 'error.main',
+              fontSize: '0.75rem',
+              fontWeight: 500
+            }}>
               You must accept the terms and conditions to create a match
             </Typography>
           )}
