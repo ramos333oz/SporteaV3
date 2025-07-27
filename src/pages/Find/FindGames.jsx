@@ -116,6 +116,8 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { useTheme } from "@mui/material/styles";
 import { getVenueImage, getVenueImageAlt } from '../../utils/venueImageMapping';
 import ClickSpark from '../../components/animations/ClickSpark';
+import AnimatedList from '../../components/AnimatedList';
+import MatchListItem from '../../components/MatchListItem';
 
 /**
  * SportIcon component for displaying sport-specific icons
@@ -790,55 +792,33 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
                       </Box>
                 </Paper>
               ) : (
-                /* Horizontal scrolling available matches (max 5) */
-                <Box sx={{ position: 'relative' }}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      gap: 2,
-                      overflowX: 'auto',
-                      px: 2, // Add horizontal padding to prevent border cutoff on sides
-                      py: 3, // Increase vertical padding to accommodate hover effects
-                      '&::-webkit-scrollbar': {
-                        height: 8,
-                      },
-                      '&::-webkit-scrollbar-track': {
-                        backgroundColor: '#f3f4f6',
-                        borderRadius: 4,
-                      },
-                      '&::-webkit-scrollbar-thumb': {
-                        backgroundColor: '#d1d5db',
-                        borderRadius: 4,
-                        '&:hover': {
-                          backgroundColor: '#9ca3af',
-                        },
-                      },
-                    }}
-                  >
-                    {/* Production logging optimization: Temporarily disable all logging for performance testing */}
-                    {/* {import.meta.env.DEV && console.log("Preparing to render filtered matches:", filteredMatches.length)} */}
-                    {/* Use the filteredMatches directly since it already includes user matches, limit to 5 */}
-                    {filteredMatches.slice(0, 5).map((match) => {
-                      const isUserMatch = user && (match.host_id === user.id || match.isUserCreated === true);
-                      // Production logging optimization: Temporarily disable all logging for performance testing
-                      // if (import.meta.env.DEV) {
-                      //   console.log("Rendering match:", match.id, match.title, isUserMatch ? "(User Match)" : "");
-                      // }
-                      return (
-                        <Box
-                          key={match.id}
-                          sx={{
-                            minWidth: 320,
-                            maxWidth: 320,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {renderMatchCard(match)}
-                        </Box>
-                      );
-                    })}
-                  </Box>
-                </Box>
+                /* Animated List View for Available Matches */
+                <AnimatedList
+                  items={filteredMatches.map((match) => (
+                    <MatchListItem
+                      key={match.id}
+                      match={match}
+                      user={user}
+                      userParticipations={userParticipations}
+                      joinLoading={joinLoading}
+                      onJoinMatch={handleJoinMatch}
+                      onLeaveMatch={handleLeaveMatch}
+                    />
+                  ))}
+                  onItemSelect={(item, index) => {
+                    // Optional: Handle item selection if needed
+                    console.log('Selected match:', filteredMatches[index]);
+                  }}
+                  showGradients={true}
+                  enableArrowNavigation={true}
+                  displayScrollbar={true}
+                  maxHeight="600px"
+                  containerSx={{
+                    mt: 2,
+                    borderRadius: 2,
+                    backgroundColor: 'background.default',
+                  }}
+                />
               )}
             </Paper>
           </>
