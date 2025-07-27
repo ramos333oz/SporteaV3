@@ -39,25 +39,28 @@ const TIER_CONFIG = {
     levels: '1-10',
     color: '#CD7F32',
     bgColor: '#FFF8DC',
-    icon: '🥉',
+    icon: '🥉', // Fallback emoji
+    iconImage: '/images/ranks/bronze.png',
     description: 'New players learning the basics'
   },
   silver: {
     name: 'Silver Tier',
-    subtitle: 'Intermediate League', 
+    subtitle: 'Intermediate League',
     levels: '11-25',
     color: '#C0C0C0',
     bgColor: '#F8F8FF',
-    icon: '🥈',
+    icon: '🥈', // Fallback emoji
+    iconImage: '/images/ranks/silver.png',
     description: 'Regular participants building skills'
   },
   gold: {
     name: 'Gold Tier',
     subtitle: 'Advanced League',
-    levels: '26-50', 
+    levels: '26-50',
     color: '#FFD700',
     bgColor: '#FFFACD',
-    icon: '🥇',
+    icon: '🥇', // Fallback emoji
+    iconImage: '/images/ranks/gold.png',
     description: 'Active community members and skilled players'
   },
   platinum: {
@@ -66,7 +69,8 @@ const TIER_CONFIG = {
     levels: '51-75',
     color: '#E5E4E2',
     bgColor: '#F5F5F5',
-    icon: '💎',
+    icon: '💎', // Fallback emoji
+    iconImage: '/images/ranks/platinum.png',
     description: 'Experienced players and community leaders'
   },
   diamond: {
@@ -75,7 +79,8 @@ const TIER_CONFIG = {
     levels: '76-100',
     color: '#B9F2FF',
     bgColor: '#F0F8FF',
-    icon: '💠',
+    icon: '💠', // Fallback emoji
+    iconImage: '/images/ranks/diamond.png',
     description: 'Elite players and top community builders'
   }
 };
@@ -158,13 +163,23 @@ const Leaderboard = () => {
         leaderboardType={leaderboard.type}
       />
 
-      {/* Animated User Tier Display */}
-      <AnimatedUserTierCard
-        user={user}
-        gamificationData={gamificationData}
-        tierConfig={TIER_CONFIG}
-        getUserTier={getUserTier}
-      />
+      {/* Animated User Tier Display - Centered */}
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          mb: 4,
+          width: '100%'
+        }}
+      >
+        <AnimatedUserTierCard
+          user={user}
+          gamificationData={gamificationData}
+          tierConfig={TIER_CONFIG}
+          getUserTier={getUserTier}
+        />
+      </Box>
 
       {/* Leaderboard Controls and Display */}
       <Paper sx={{ p: 3 }}>
@@ -236,9 +251,38 @@ const Leaderboard = () => {
                   }
                 }}>
                   <CardContent sx={{ textAlign: 'center', p: 2 }}>
-                    <Typography variant="h4" sx={{ mb: 1, fontSize: '3rem' }}>
-                      {tier.icon}
-                    </Typography>
+                    <Box sx={{
+                      mb: 1,
+                      height: '80px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <img
+                        src={tier.iconImage}
+                        alt={`${tier.name} rank symbol`}
+                        style={{
+                          width: '80px',
+                          height: '80px',
+                          objectFit: 'contain',
+                          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+                        }}
+                        onError={(e) => {
+                          // Fallback to emoji if image fails to load
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'block';
+                        }}
+                      />
+                      <Typography
+                        variant="h4"
+                        sx={{
+                          fontSize: '3rem',
+                          display: 'none' // Hidden by default, shown on image error
+                        }}
+                      >
+                        {tier.icon}
+                      </Typography>
+                    </Box>
                     <Typography variant="h6" sx={{
                       color: tier.color,
                       fontWeight: 'bold',

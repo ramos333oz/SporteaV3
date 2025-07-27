@@ -3,14 +3,16 @@
  * Integrates with the Elegant Luxury theme and design system
  */
 
+import { getCachedImage } from './imageLoader';
+
 /**
  * Generate a tier card image as a data URL
  * @param {Object} tier - Tier configuration object
  * @param {number} width - Canvas width (default: 500)
  * @param {number} height - Canvas height (default: 400)
- * @returns {string} Data URL of the generated image
+ * @returns {Promise<string>} Promise that resolves to data URL of the generated image
  */
-export function generateTierCardImage(tier, width = 500, height = 400) {
+export async function generateTierCardImage(tier, width = 500, height = 400) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   
@@ -32,61 +34,92 @@ export function generateTierCardImage(tier, width = 500, height = 400) {
   ctx.strokeStyle = tier.color + '60';
   ctx.lineWidth = 3;
   ctx.strokeRect(0, 0, width, height);
-  
-  // Draw tier icon (large and centered)
-  ctx.font = 'bold 120px serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = tier.color;
-  
-  // Add shadow to icon
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-  ctx.shadowBlur = 10;
-  ctx.shadowOffsetX = 2;
-  ctx.shadowOffsetY = 2;
-  
-  ctx.fillText(tier.icon, width / 2, height / 2 - 40);
+
+  // Load and draw tier rank image (large and centered)
+  let rankImage = null;
+  try {
+    rankImage = await getCachedImage(tier.iconImage);
+  } catch (imageError) {
+    console.warn('Failed to load rank image for CircularTierGallery, using emoji fallback:', imageError);
+  }
+
+  if (rankImage) {
+    // Draw the rank image with shadow effect and proper aspect ratio
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
+
+    // Calculate proper aspect ratio and sizing for CircularTierGallery - much larger to match TiltedCard
+    const maxImageSize = 280; // Increased to match TiltedCard prominence
+    const aspectRatio = rankImage.width / rankImage.height;
+
+    let drawWidth, drawHeight;
+    if (aspectRatio > 1) {
+      // Wider than tall
+      drawWidth = maxImageSize;
+      drawHeight = maxImageSize / aspectRatio;
+    } else {
+      // Taller than wide or square
+      drawHeight = maxImageSize;
+      drawWidth = maxImageSize * aspectRatio;
+    }
+
+    const imageX = (width - drawWidth) / 2;
+    const imageY = (height / 2) - 80 - (drawHeight / 2); // Moved up more for larger image
+
+    ctx.drawImage(rankImage, imageX, imageY, drawWidth, drawHeight);
+  } else {
+    // Fallback to emoji if image failed to load
+    ctx.font = 'bold 140px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = tier.color;
+
+    // Add shadow to icon
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
+
+    ctx.fillText(tier.icon, width / 2, height / 2 - 80); // Moved up to match larger image positioning
+  }
   
   // Reset shadow
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 0;
-  
-  // Draw tier name (using Libre Baskerville style)
-  ctx.font = 'bold 32px serif';
+
+  // Set text alignment for proper centering
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Draw tier name with white outline (using Libre Baskerville style from UI Style Guide)
+  ctx.font = 'bold 32px "Libre Baskerville", Georgia, serif';
+
+  // Add white stroke/outline for better visibility
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 4;
+  ctx.strokeText(tier.name, width / 2, height / 2 + 100);
+
+  // Fill with tier color
   ctx.fillStyle = tier.color;
-  ctx.fillText(tier.name, width / 2, height / 2 + 60);
-  
-  // Draw level range (using Poppins style)
-  ctx.font = '20px sans-serif';
+  ctx.fillText(tier.name, width / 2, height / 2 + 100);
+
+  // Draw level range with white outline (using Poppins style from UI Style Guide)
+  ctx.font = '600 20px "Poppins", "Helvetica Neue", Arial, sans-serif';
+
+  // Add white stroke/outline for level text
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 3;
+  ctx.strokeText(`Levels ${tier.levels}`, width / 2, height / 2 + 135);
+
+  // Fill with secondary color
   ctx.fillStyle = '#666666';
-  ctx.fillText(`Levels ${tier.levels}`, width / 2, height / 2 + 95);
+  ctx.fillText(`Levels ${tier.levels}`, width / 2, height / 2 + 135);
   
-  // Draw description (smaller text)
-  ctx.font = '16px sans-serif';
-  ctx.fillStyle = '#888888';
-  
-  // Word wrap for description
-  const words = tier.description.split(' ');
-  const maxWidth = width - 40;
-  let line = '';
-  let y = height / 2 + 125;
-  
-  for (let n = 0; n < words.length; n++) {
-    const testLine = line + words[n] + ' ';
-    const metrics = ctx.measureText(testLine);
-    const testWidth = metrics.width;
-    
-    if (testWidth > maxWidth && n > 0) {
-      ctx.fillText(line, width / 2, y);
-      line = words[n] + ' ';
-      y += 20;
-    } else {
-      line = testLine;
-    }
-  }
-  ctx.fillText(line, width / 2, y);
+  // Description removed to make cards cleaner and focus on the larger rank images
   
   // Add decorative elements
   drawDecorativeElements(ctx, width, height, tier.color);
@@ -138,15 +171,19 @@ function drawDecorativeElements(ctx, width, height, color) {
 /**
  * Generate all tier card images from TIER_CONFIG
  * @param {Object} tierConfig - Complete tier configuration object
- * @returns {Array} Array of tier items with generated images
+ * @returns {Promise<Array>} Promise that resolves to array of tier items with generated images
  */
-export function generateAllTierCards(tierConfig) {
-  return Object.entries(tierConfig).map(([key, tier]) => ({
-    image: generateTierCardImage(tier),
-    text: tier.name,
-    tierKey: key,
-    tier: tier
-  }));
+export async function generateAllTierCards(tierConfig) {
+  const tierEntries = Object.entries(tierConfig);
+  const tierItems = await Promise.all(
+    tierEntries.map(async ([key, tier]) => ({
+      image: await generateTierCardImage(tier),
+      text: tier.name,
+      tierKey: key,
+      tier: tier
+    }))
+  );
+  return tierItems;
 }
 
 /**

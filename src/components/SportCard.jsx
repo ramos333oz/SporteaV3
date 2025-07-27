@@ -1,18 +1,12 @@
 import React from 'react';
-import { 
-  Box, 
-  Typography, 
+import {
+  Box,
+  Typography,
   Chip,
   Avatar,
   Stack
 } from '@mui/material';
 import {
-  SportsSoccer,
-  SportsBasketball,
-  SportsTennis,
-  SportsRugby,
-  SportsVolleyball,
-  SportsHockey,
   TrendingUp,
   Group,
   Event
@@ -27,27 +21,71 @@ import UnifiedCard from './UnifiedCard';
 // Sport icon mapping with correct icons and CSS variable colors using database UUIDs
 const sportIcons = {
   // Football
-  '4746e9c1-f772-4515-8d08-6c28563fbfc9': { icon: <SportsSoccer />, color: 'var(--sport-football)', name: 'Football' },
+  '4746e9c1-f772-4515-8d08-6c28563fbfc9': {
+    icon: <img src="/images/sportslectionicons/football.png" alt="Football" style={{ width: 24, height: 24 }} />,
+    color: 'var(--sport-football)',
+    name: 'Football'
+  },
   // Rugby
-  '13e32815-8a3b-48f7-8cc9-5fdad873b851': { icon: <SportsRugby />, color: 'var(--sport-rugby)', name: 'Rugby' },
+  '13e32815-8a3b-48f7-8cc9-5fdad873b851': {
+    icon: <img src="/images/sportslectionicons/rugby.png" alt="Rugby" style={{ width: 24, height: 24 }} />,
+    color: 'var(--sport-rugby)',
+    name: 'Rugby'
+  },
   // Basketball
-  'dd400853-7ce6-47bc-aee6-2ee241530f79': { icon: <SportsBasketball />, color: 'var(--sport-basketball)', name: 'Basketball' },
+  'dd400853-7ce6-47bc-aee6-2ee241530f79': {
+    icon: <img src="/images/sportslectionicons/basketball.png" alt="Basketball" style={{ width: 24, height: 24 }} />,
+    color: 'var(--sport-basketball)',
+    name: 'Basketball'
+  },
   // Futsal
-  'd662bc78-9e50-4785-ac71-d1e591e4a9ce': { icon: <SportsSoccer />, color: 'var(--sport-futsal)', name: 'Futsal' },
+  'd662bc78-9e50-4785-ac71-d1e591e4a9ce': {
+    icon: <img src="/images/sportslectionicons/futsal.png" alt="Futsal" style={{ width: 24, height: 24 }} />,
+    color: 'var(--sport-futsal)',
+    name: 'Futsal'
+  },
   // Volleyball
-  '66e9893a-2be7-47f0-b7d3-d7191901dd77': { icon: <SportsVolleyball />, color: 'var(--sport-volleyball)', name: 'Volleyball' },
+  '66e9893a-2be7-47f0-b7d3-d7191901dd77': {
+    icon: <img src="/images/sportslectionicons/volleyball.png" alt="Volleyball" style={{ width: 24, height: 24 }} />,
+    color: 'var(--sport-volleyball)',
+    name: 'Volleyball'
+  },
   // Frisbee
-  'dcedf87a-13aa-4c2f-979f-6b71d457f531': { icon: <SportsHockey sx={{ transform: 'rotate(90deg)' }} />, color: 'var(--sport-frisbee)', name: 'Frisbee' },
+  'dcedf87a-13aa-4c2f-979f-6b71d457f531': {
+    icon: <img src="/images/sportslectionicons/football.png" alt="Frisbee" style={{ width: 24, height: 24 }} />,
+    color: 'var(--sport-frisbee)',
+    name: 'Frisbee'
+  },
   // Hockey
-  '3aba0f36-38bf-4ca2-b713-3dabd9f993f1': { icon: <SportsHockey />, color: 'var(--sport-hockey)', name: 'Hockey' },
+  '3aba0f36-38bf-4ca2-b713-3dabd9f993f1': {
+    icon: <img src="/images/sportslectionicons/hockey.png" alt="Hockey" style={{ width: 24, height: 24 }} />,
+    color: 'var(--sport-hockey)',
+    name: 'Hockey'
+  },
   // Badminton
-  'fb575fc1-2eac-4142-898a-2f7dae107844': { icon: <SportsTennis />, color: 'var(--sport-badminton)', name: 'Badminton' },
+  'fb575fc1-2eac-4142-898a-2f7dae107844': {
+    icon: <img src="/images/sportslectionicons/badminton.png" alt="Badminton" style={{ width: 24, height: 24 }} />,
+    color: 'var(--sport-badminton)',
+    name: 'Badminton'
+  },
   // Tennis
-  '9a304214-6c57-4c33-8c5f-3f1955b63caf': { icon: <SportsTennis />, color: 'var(--sport-tennis)', name: 'Tennis' },
+  '9a304214-6c57-4c33-8c5f-3f1955b63caf': {
+    icon: <img src="/images/sportslectionicons/tennis.png" alt="Tennis" style={{ width: 24, height: 24 }} />,
+    color: 'var(--sport-tennis)',
+    name: 'Tennis'
+  },
   // Table Tennis
-  '845d3461-42fc-45c2-a403-8efcaf237c17': { icon: <SportsTennis />, color: 'var(--sport-basketball)', name: 'Table Tennis' },
+  '845d3461-42fc-45c2-a403-8efcaf237c17': {
+    icon: <img src="/images/sportslectionicons/table tennis.png" alt="Table Tennis" style={{ width: 24, height: 24 }} />,
+    color: 'var(--sport-table-tennis)',
+    name: 'Table Tennis'
+  },
   // Squash
-  '0ec51cfc-f644-4057-99d8-d2c29c1b7dd0': { icon: <SportsTennis />, color: 'var(--sport-squash)', name: 'Squash' },
+  '0ec51cfc-f644-4057-99d8-d2c29c1b7dd0': {
+    icon: <img src="/images/sportslectionicons/squash.png" alt="Squash" style={{ width: 24, height: 24 }} />,
+    color: 'var(--sport-squash)',
+    name: 'Squash'
+  },
 };
 
 // Sport background images using database UUIDs
@@ -74,10 +112,10 @@ const SportCard = ({
 }) => {
   if (!sport) return null;
   
-  const sportInfo = sportIcons[sport.id] || { 
-    icon: <SportsSoccer />, 
-    color: '#757575', 
-    name: sport.name 
+  const sportInfo = sportIcons[sport.id] || {
+    icon: <img src="/images/sportslectionicons/football.png" alt={sport.name} style={{ width: 24, height: 24 }} />,
+    color: '#757575',
+    name: sport.name
   };
   
   const {
@@ -114,15 +152,21 @@ const SportCard = ({
     >
       {/* Sport Icon and Name */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-        <Avatar 
-          sx={{ 
-            bgcolor: sportInfo.color, 
-            width: 40, 
+        <Avatar
+          sx={{
+            bgcolor: 'rgba(255, 255, 255, 0.9)',
+            width: 40,
             height: 40,
-            '& svg': { fontSize: 24 }
+            border: `2px solid ${sportInfo.color}`,
+            '& svg': { fontSize: 24 },
+            '& img': {
+              width: 24,
+              height: 24,
+              objectFit: 'contain'
+            }
           }}
         >
-          {React.cloneElement(sportInfo.icon, { sx: { color: 'white' } })}
+          {sportInfo.icon}
         </Avatar>
         <Box sx={{ flex: 1 }}>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>

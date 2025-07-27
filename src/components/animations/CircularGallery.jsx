@@ -209,14 +209,9 @@ class Media {
     this.plane.setParent(this.scene);
   }
   createTitle() {
-    this.title = new Title({
-      gl: this.gl,
-      plane: this.plane,
-      renderer: this.renderer,
-      text: this.text,
-      textColor: this.textColor,
-      fontFamily: this.font,
-    });
+    // External text labels removed - text is now rendered inside the tier cards on canvas
+    // This eliminates duplicate tier text and keeps only the internal canvas-rendered text
+    this.title = null;
   }
   update(scroll, direction) {
     this.plane.position.x = this.x - scroll.current - this.extra;

@@ -32,21 +32,32 @@ const CircularTierGallery = ({
     }
   }, []);
 
+  // State for tier items
+  const [tierItems, setTierItems] = useState([]);
+
   // Generate tier card images
-  const tierItems = useMemo(() => {
-    if (!tierConfig || !webglSupported) return [];
-    
-    try {
-      setLoading(true);
-      const items = generateAllTierCards(tierConfig);
-      setLoading(false);
-      return items;
-    } catch (err) {
-      console.error('Error generating tier cards:', err);
-      setError('Failed to generate tier cards. Please refresh the page.');
-      setLoading(false);
-      return [];
+  useEffect(() => {
+    if (!tierConfig || !webglSupported) {
+      setTierItems([]);
+      return;
     }
+
+    const generateCards = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const items = await generateAllTierCards(tierConfig);
+        setTierItems(items);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error generating tier cards:', err);
+        setError('Failed to generate tier cards. Please refresh the page.');
+        setLoading(false);
+        setTierItems([]);
+      }
+    };
+
+    generateCards();
   }, [tierConfig, webglSupported]);
 
   // Loading state

@@ -1,6 +1,7 @@
-import React from 'react';
-import { Box } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, CircularProgress } from '@mui/material';
 import TiltedCard from '../animations/TiltedCard';
+import { getCachedImage } from '../../utils/imageLoader';
 
 /**
  * Animated User Tier Card Component
@@ -8,6 +9,10 @@ import TiltedCard from '../animations/TiltedCard';
  * Single TiltedCard with no overlay content - everything rendered on background image
  */
 const AnimatedUserTierCard = ({ user, gamificationData, tierConfig, getUserTier }) => {
+  const [cardImage, setCardImage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
   if (!user || !gamificationData || !tierConfig || !getUserTier) return null;
 
   const userLevel = gamificationData.current_level || 1;
@@ -35,7 +40,7 @@ const AnimatedUserTierCard = ({ user, gamificationData, tierConfig, getUserTier 
   };
 
   // Generate high-quality tier card with all content rendered directly onto canvas
-  const generateTierCardImage = () => {
+  const generateTierCardImage = async () => {
     try {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -44,9 +49,18 @@ const AnimatedUserTierCard = ({ user, gamificationData, tierConfig, getUserTier 
         return createSVGFallback();
       }
 
-      // High DPI scaling for crisp rendering
+      // Load the tier rank image
+      let rankImage = null;
+      try {
+        rankImage = await getCachedImage(tier.iconImage);
+      } catch (imageError) {
+        console.warn('Failed to load rank image, using emoji fallback:', imageError);
+        // Will use emoji fallback below
+      }
+
+      // High DPI scaling for crisp rendering - reverted to original size
       const dpr = window.devicePixelRatio || 1;
-      const size = 400;
+      const size = 400; // Reverted back to original size
 
       canvas.width = size * dpr;
       canvas.height = size * dpr;
@@ -90,34 +104,62 @@ const AnimatedUserTierCard = ({ user, gamificationData, tierConfig, getUserTier 
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
-      // Render tier symbol (emoji) - large and prominent
-      ctx.font = `bold ${100}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", Arial, sans-serif`;
-      ctx.fillStyle = '#000';
-      ctx.shadowColor = 'rgba(0,0,0,0.3)';
-      ctx.shadowBlur = 4;
-      ctx.shadowOffsetY = 2;
-      ctx.fillText(tier.icon, size/2, size/2 - 50);
+      // Render tier symbol (image or emoji fallback) - large and prominent
+      if (rankImage) {
+        // Draw the rank image with shadow effect and proper aspect ratio
+        ctx.shadowColor = 'rgba(0,0,0,0.4)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 6;
+
+        // Calculate proper aspect ratio and sizing
+        const maxImageSize = 280; // Doubled from 140px for more prominent display
+        const aspectRatio = rankImage.width / rankImage.height;
+
+        let drawWidth, drawHeight;
+        if (aspectRatio > 1) {
+          // Wider than tall
+          drawWidth = maxImageSize;
+          drawHeight = maxImageSize / aspectRatio;
+        } else {
+          // Taller than wide or square
+          drawHeight = maxImageSize;
+          drawWidth = maxImageSize * aspectRatio;
+        }
+
+        const imageX = (size - drawWidth) / 2;
+        const imageY = (size / 2) - 70 - (drawHeight / 2); // Moved up slightly for better spacing
+
+        ctx.drawImage(rankImage, imageX, imageY, drawWidth, drawHeight);
+      } else {
+        // Fallback to emoji if image failed to load
+        ctx.font = `bold ${100}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", Arial, sans-serif`;
+        ctx.fillStyle = '#000';
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetY = 2;
+        ctx.fillText(tier.icon, size/2, size/2 - 50);
+      }
 
       // Reset shadow for text
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
 
-      // Render level text with white outline for contrast
-      ctx.font = `bold ${42}px "Libre Baskerville", Georgia, serif`;
+      // Render level text with white outline for contrast - reduced size for better hierarchy
+      ctx.font = `bold ${36}px "Libre Baskerville", Georgia, serif`; // Reduced from 42px
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 4;
-      ctx.strokeText(`Level ${userLevel}`, size/2, size/2 + 25);
+      ctx.strokeText(`Level ${userLevel}`, size/2, size/2 + 40); // Moved down slightly
       ctx.fillStyle = tier.color;
-      ctx.fillText(`Level ${userLevel}`, size/2, size/2 + 25);
+      ctx.fillText(`Level ${userLevel}`, size/2, size/2 + 40);
 
-      // Render tier name with white outline
-      ctx.font = `600 ${24}px "Poppins", "Helvetica Neue", Arial, sans-serif`;
+      // Render tier name with white outline - reduced size for better hierarchy
+      ctx.font = `600 ${20}px "Poppins", "Helvetica Neue", Arial, sans-serif`; // Reduced from 24px
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 3;
-      ctx.strokeText(tier.name.toUpperCase(), size/2, size/2 + 70);
+      ctx.strokeText(tier.name.toUpperCase(), size/2, size/2 + 80); // Moved down slightly
       ctx.fillStyle = tier.color;
-      ctx.fillText(tier.name.toUpperCase(), size/2, size/2 + 70);
+      ctx.fillText(tier.name.toUpperCase(), size/2, size/2 + 80);
 
       return canvas.toDataURL('image/png', 1.0);
 
@@ -127,17 +169,49 @@ const AnimatedUserTierCard = ({ user, gamificationData, tierConfig, getUserTier 
     }
   };
 
+  // Generate card image when component mounts or tier changes
+  useEffect(() => {
+    const generateCard = async () => {
+      setLoading(true);
+      setError(false);
+
+      try {
+        const imageDataUrl = await generateTierCardImage();
+        setCardImage(imageDataUrl);
+      } catch (err) {
+        console.error('Failed to generate tier card:', err);
+        setError(true);
+        // Use SVG fallback
+        setCardImage(createSVGFallback());
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    generateCard();
+  }, [tierKey, userLevel]); // Regenerate when tier or level changes
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          mb: 3,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '280px' // Reverted to original TiltedCard size
+        }}
+      >
+        <CircularProgress size={40} />
+      </Box>
+    );
+  }
+
   return (
-    <Box
-      sx={{
-        mb: 3,
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}
-    >
+    <Box sx={{ mb: 3 }}>
       <TiltedCard
-        imageSrc={generateTierCardImage()}
+        imageSrc={cardImage}
         altText={`${tier.name} - Level ${userLevel}`}
         captionText={`${tier.name} - Level ${userLevel}`}
         containerHeight="280px"
