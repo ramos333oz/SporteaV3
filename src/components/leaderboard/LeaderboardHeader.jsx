@@ -7,7 +7,6 @@ import {
   useTheme,
   alpha
 } from '@mui/material';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import SplitText from '../animations/SplitText';
 
 /**
@@ -80,15 +79,7 @@ const LeaderboardHeader = ({
       }}>
         {/* Left Section: Title and Description */}
         <Box sx={{ flex: 1, minWidth: 300 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <EmojiEventsIcon 
-              sx={{ 
-                color: 'primary.main', 
-                fontSize: '2rem', 
-                mr: 2,
-                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
-              }} 
-            />
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, position: 'relative' }}>
             <SplitText
               text="Leaderboards"
               className="leaderboard-title"
@@ -102,6 +93,22 @@ const LeaderboardHeader = ({
               rootMargin="-30px"
               textAlign="left"
               onLetterAnimationComplete={handleAnimationComplete}
+            />
+            <Box
+              component="img"
+              src="/images/sportslectionicons/leaderboard.png"
+              alt="Leaderboard"
+              sx={{
+                width: 48,
+                height: 48,
+                ml: 3,
+                filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.1) rotate(5deg)',
+                  filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.2))'
+                }
+              }}
             />
           </Box>
           

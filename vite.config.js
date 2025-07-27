@@ -7,7 +7,14 @@ export default defineConfig(({ command, mode }) => {
   const isProduction = mode === 'production'
 
   return {
-    plugins: [react()],
+    plugins: [
+      react({
+        jsxImportSource: '@emotion/react',
+        babel: {
+          plugins: ['@emotion/babel-plugin']
+        }
+      })
+    ],
     server: {
       port: 3000,
       open: true,
@@ -29,6 +36,8 @@ export default defineConfig(({ command, mode }) => {
         '@emotion/react',
         '@emotion/styled',
         '@emotion/cache',
+        '@emotion/serialize',
+        '@emotion/utils',
         '@mui/material',
         '@mui/icons-material',
         '@mui/material/styles',
@@ -45,7 +54,16 @@ export default defineConfig(({ command, mode }) => {
         '@mui/material/ListItemText',
         '@mui/material/Box',
         '@mui/material/Avatar',
-        '@mui/material/Divider'
+        '@mui/material/Divider',
+        '@mui/system',
+        '@mui/styled-engine',
+        '@mui/x-date-pickers',
+        '@mui/x-date-pickers/DatePicker',
+        '@mui/x-date-pickers/LocalizationProvider',
+        '@mui/x-date-pickers/AdapterDateFns'
+      ],
+      exclude: [
+        // Exclude problematic dependencies that should be handled by Vite naturally
       ],
       esbuildOptions: {
         loader: {
