@@ -2210,36 +2210,116 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
       {viewMode === 0 && (
         <>
                       {/* Sports filter chips */}
-            <Box sx={{ mb: 3, display: "flex", flexWrap: "wrap", gap: 1 }}>
-              <Chip
-                key="all"
-                icon={<SportsIcon />}
-                label="All Sports"
-                color={listViewSportFilter.length === 0 ? "primary" : "default"}
-                onClick={() => handleSportFilterChange("all")}
-                sx={{ mb: { xs: 1, md: 0 } }}
-              />
-              {sportFilters.slice(1).map((sport) => (
+            <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: 'grey.50' }}>
+              <Box sx={{ mb: 1.5 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 600,
+                    color: 'text.secondary',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1
+                  }}
+                >
+                  <FilterListIcon sx={{ fontSize: '1.1rem' }} />
+                  Filter by Sport
+                </Typography>
+              </Box>
+              <Box sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 1,
+                maxHeight: '120px',
+                overflowY: 'auto',
+                '&::-webkit-scrollbar': {
+                  width: '4px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: 'transparent',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: 'rgba(0,0,0,0.2)',
+                  borderRadius: '2px',
+                },
+              }}>
                 <Chip
-                  key={sport.id}
-                  icon={sport.icon}
-                  label={sport.name}
-                  color={listViewSportFilter.includes(sport.id) ? "primary" : "default"}
-                  onClick={() => handleSportFilterChange(sport.id)}
-                  sx={{ mb: { xs: 1, md: 0 } }}
+                  key="all"
+                  icon={<SportsIcon />}
+                  label="All Sports"
+                  onClick={() => handleSportFilterChange("all")}
+                  variant={listViewSportFilter.length === 0 ? 'filled' : 'outlined'}
+                  sx={{
+                    borderRadius: 1.5,
+                    fontWeight: 500,
+                    fontSize: '0.875rem',
+                    transition: 'all 0.2s ease-in-out',
+                    ...(listViewSportFilter.length === 0 ? {
+                      bgcolor: 'primary.main',
+                      color: 'primary.contrastText',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                      '&:hover': {
+                        bgcolor: 'primary.dark',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                      },
+                    } : {
+                      bgcolor: 'background.paper',
+                      color: 'text.secondary',
+                      borderColor: 'divider',
+                      '&:hover': {
+                        bgcolor: 'action.hover',
+                        color: 'text.primary',
+                        borderColor: 'primary.main',
+                      },
+                    }),
+                  }}
                 />
-              ))}
+                {sportFilters.slice(1).map((sport) => (
+                  <Chip
+                    key={sport.id}
+                    icon={sport.icon}
+                    label={sport.name}
+                    onClick={() => handleSportFilterChange(sport.id)}
+                    variant={listViewSportFilter.includes(sport.id) ? 'filled' : 'outlined'}
+                    sx={{
+                      borderRadius: 1.5,
+                      fontWeight: 500,
+                      fontSize: '0.875rem',
+                      transition: 'all 0.2s ease-in-out',
+                      ...(listViewSportFilter.includes(sport.id) ? {
+                        bgcolor: 'primary.main',
+                        color: 'primary.contrastText',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        '&:hover': {
+                          bgcolor: 'primary.dark',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                        },
+                      } : {
+                        bgcolor: 'background.paper',
+                        color: 'text.secondary',
+                        borderColor: 'divider',
+                        '&:hover': {
+                          bgcolor: 'action.hover',
+                          color: 'text.primary',
+                          borderColor: 'primary.main',
+                        },
+                      }),
+                    }}
+                  />
+                ))}
+              </Box>
+            </Paper>
 
             {/* Advanced filters toggle */}
-            <Chip
-              icon={<FilterListIcon />}
-              label="More Filters"
-              color={showFilters ? "primary" : "default"}
-              onClick={() => setShowFilters(!showFilters)}
-              variant={showFilters ? "filled" : "outlined"}
-              sx={{ ml: "auto" }}
-            />
-          </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+              <Chip
+                icon={<FilterListIcon />}
+                label="More Filters"
+                color={showFilters ? "primary" : "default"}
+                onClick={() => setShowFilters(!showFilters)}
+                variant={showFilters ? "filled" : "outlined"}
+              />
+            </Box>
 
           {/* Advanced filters panel */}
           <Collapse in={showFilters}>
@@ -3457,10 +3537,10 @@ const MapView = ({
           top: 10,
           left: 10,
           zIndex: 1000,
-          p: 1,
+          p: 2,
           borderRadius: 2,
-          maxWidth: '260px',
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          maxWidth: '280px',
+          backgroundColor: 'rgba(248, 247, 245, 0.95)',
           backdropFilter: 'blur(4px)',
           boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
           transition: 'all 0.3s',
@@ -3469,15 +3549,27 @@ const MapView = ({
           }
         }}
       >
-        <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1, px: 1 }}>
+        <Typography
+          variant="subtitle2"
+          fontWeight="bold"
+          sx={{
+            mb: 1.5,
+            px: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            color: 'text.secondary'
+          }}
+        >
+          <FilterListIcon sx={{ fontSize: '1.1rem' }} />
           Filter by Sport
         </Typography>
-        
+
         <Box
           sx={{
             display: 'flex',
             flexWrap: 'nowrap',
-            gap: 0.5,
+            gap: 1,
             overflowX: 'auto',
             pb: 1,
             px: 0.5,
@@ -3500,9 +3592,32 @@ const MapView = ({
           <Chip
             label="All Sports"
             size="small"
-            color={mapViewSelectedSport === 'all' ? 'primary' : 'default'}
             onClick={(e) => handleSportFilterChange('all', e)}
-            sx={{ flexShrink: 0 }}
+            variant={mapViewSelectedSport === 'all' ? 'filled' : 'outlined'}
+            sx={{
+              flexShrink: 0,
+              borderRadius: 1.5,
+              fontWeight: 500,
+              transition: 'all 0.2s ease-in-out',
+              ...(mapViewSelectedSport === 'all' ? {
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                '&:hover': {
+                  bgcolor: 'primary.dark',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                },
+              } : {
+                bgcolor: 'background.paper',
+                color: 'text.secondary',
+                borderColor: 'divider',
+                '&:hover': {
+                  bgcolor: 'action.hover',
+                  color: 'text.primary',
+                  borderColor: 'primary.main',
+                },
+              }),
+            }}
           />
           {sportFilters.slice(1).map((sport) => (
             <Chip
@@ -3510,9 +3625,32 @@ const MapView = ({
               icon={sport.icon}
               label={sport.name}
               size="small"
-              color={mapViewSelectedSport === sport.id ? 'primary' : 'default'}
               onClick={(e) => handleSportFilterChange(sport.id, e)}
-              sx={{ flexShrink: 0 }}
+              variant={mapViewSelectedSport === sport.id ? 'filled' : 'outlined'}
+              sx={{
+                flexShrink: 0,
+                borderRadius: 1.5,
+                fontWeight: 500,
+                transition: 'all 0.2s ease-in-out',
+                ...(mapViewSelectedSport === sport.id ? {
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                  },
+                } : {
+                  bgcolor: 'background.paper',
+                  color: 'text.secondary',
+                  borderColor: 'divider',
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                    color: 'text.primary',
+                    borderColor: 'primary.main',
+                  },
+                }),
+              }}
             />
           ))}
         </Box>

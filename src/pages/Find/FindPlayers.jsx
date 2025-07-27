@@ -843,31 +843,102 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
         Find Players
       </Typography>
       
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel id="sport-filter-label">
-                <FilterListIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Filter by Sport
-              </InputLabel>
-              <Select
-                labelId="sport-filter-label"
-                value={sportFilter}
-                onChange={handleSportFilterChange}
-                label="Filter by Sport"
-              >
-                <MenuItem value="all">All Sports</MenuItem>
-                {availableSports.map(sport => (
-                  <MenuItem key={sport.id} value={sport.name}>
-                    {getSportIcon(sport.name)}
-                    <span style={{ marginLeft: '8px' }}>{sport.name}</span>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
+      <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: 'grey.50' }}>
+        <Box sx={{ mb: 1.5 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              color: 'text.secondary',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}
+          >
+            <FilterListIcon sx={{ fontSize: '1.1rem' }} />
+            Filter by Sport
+          </Typography>
+        </Box>
+        <Box sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 1,
+          maxHeight: '120px',
+          overflowY: 'auto',
+          '&::-webkit-scrollbar': {
+            width: '4px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: 'rgba(0,0,0,0.2)',
+            borderRadius: '2px',
+          },
+        }}>
+          <Chip
+            label="All Sports"
+            onClick={() => handleSportFilterChange({ target: { value: 'all' } })}
+            variant={sportFilter === 'all' ? 'filled' : 'outlined'}
+            sx={{
+              borderRadius: 1.5,
+              fontWeight: 500,
+              fontSize: '0.875rem',
+              transition: 'all 0.2s ease-in-out',
+              ...(sportFilter === 'all' ? {
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                '&:hover': {
+                  bgcolor: 'primary.dark',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                },
+              } : {
+                bgcolor: 'background.paper',
+                color: 'text.secondary',
+                borderColor: 'divider',
+                '&:hover': {
+                  bgcolor: 'action.hover',
+                  color: 'text.primary',
+                  borderColor: 'primary.main',
+                },
+              }),
+            }}
+          />
+          {availableSports.map(sport => (
+            <Chip
+              key={sport.id}
+              icon={getSportIcon(sport.name)}
+              label={sport.name}
+              onClick={() => handleSportFilterChange({ target: { value: sport.name } })}
+              variant={sportFilter === sport.name ? 'filled' : 'outlined'}
+              sx={{
+                borderRadius: 1.5,
+                fontWeight: 500,
+                fontSize: '0.875rem',
+                transition: 'all 0.2s ease-in-out',
+                ...(sportFilter === sport.name ? {
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                  },
+                } : {
+                  bgcolor: 'background.paper',
+                  color: 'text.secondary',
+                  borderColor: 'divider',
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                    color: 'text.primary',
+                    borderColor: 'primary.main',
+                  },
+                }),
+              }}
+            />
+          ))}
+        </Box>
       </Paper>
 
       {loading ? (
