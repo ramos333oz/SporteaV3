@@ -23,77 +23,77 @@ const SportSelection = ({ matchData, onUpdateMatchData }) => {
       id: 'fb575fc1-2eac-4142-898a-2f7dae107844',
       name: 'Badminton',
       displayName: 'Badminton',
-      icon: <SportsTennisIcon sx={{ fontSize: 40 }} />,
+      icon: <img src="/images/sportslectionicons/badminton.png" alt="Badminton" style={{ width: 40, height: 40 }} />,
       constraints: { minPlayers: 2, maxPlayers: 8 }
     },
     {
       id: 'dd400853-7ce6-47bc-aee6-2ee241530f79',
       name: 'Basketball',
       displayName: 'Basketball',
-      icon: <SportsBasketballIcon sx={{ fontSize: 40 }} />,
+      icon: <img src="/images/sportslectionicons/basketball.png" alt="Basketball" style={{ width: 40, height: 40 }} />,
       constraints: { minPlayers: 4, maxPlayers: 15 }
     },
     {
       id: '4746e9c1-f772-4515-8d08-6c28563fbfc9',
       name: 'Football',
       displayName: 'Football',
-      icon: <SportsSoccerIcon sx={{ fontSize: 40 }} />,
+      icon: <img src="/images/sportslectionicons/football.png" alt="Football" style={{ width: 40, height: 40 }} />,
       constraints: { minPlayers: 6, maxPlayers: 22 }
     },
     {
       id: 'dcedf87a-13aa-4c2f-979f-6b71d457f531',
       name: 'Frisbee',
       displayName: 'Frisbee',
-      icon: <SportsIcon sx={{ fontSize: 40 }} />,
+      icon: <img src="/images/sportslectionicons/frisbee.png" alt="Frisbee" style={{ width: 40, height: 40 }} />,
       constraints: { minPlayers: 4, maxPlayers: 14 }
     },
     {
       id: 'd662bc78-9e50-4785-ac71-d1e591e4a9ce',
       name: 'Futsal',
       displayName: 'Futsal',
-      icon: <SportsSoccerIcon sx={{ fontSize: 40 }} />,
+      icon: <img src="/images/sportslectionicons/futsal.png" alt="Futsal" style={{ width: 40, height: 40 }} />,
       constraints: { minPlayers: 4, maxPlayers: 12 }
     },
     {
       id: '3aba0f36-38bf-4ca2-b713-3dabd9f993f1',
       name: 'Hockey',
       displayName: 'Hockey',
-      icon: <SportsIcon sx={{ fontSize: 40 }} />,
+      icon: <img src="/images/sportslectionicons/hockey.png" alt="Hockey" style={{ width: 40, height: 40 }} />,
       constraints: { minPlayers: 6, maxPlayers: 22 }
     },
     {
       id: '13e32815-8a3b-48f7-8cc9-5fdad873b851',
       name: 'Rugby',
       displayName: 'Rugby',
-      icon: <SportsIcon sx={{ fontSize: 40 }} />,
+      icon: <img src="/images/sportslectionicons/rugby.png" alt="Rugby" style={{ width: 40, height: 40 }} />,
       constraints: { minPlayers: 8, maxPlayers: 30 }
     },
     {
       id: '0ec51cfc-f644-4057-99d8-d2c29c1b7dd0',
       name: 'Squash',
       displayName: 'Squash',
-      icon: <SportsTennisIcon sx={{ fontSize: 40 }} />,
+      icon: <img src="/images/sportslectionicons/squash.png" alt="Squash" style={{ width: 40, height: 40 }} />,
       constraints: { minPlayers: 2, maxPlayers: 4 }
     },
     {
       id: '845d3461-42fc-45c2-a403-8efcaf237c17',
       name: 'Table Tennis',
       displayName: 'Table Tennis',
-      icon: <SportsTennisIcon sx={{ fontSize: 40 }} />,
+      icon: <img src="/images/sportslectionicons/table tennis.png" alt="Table Tennis" style={{ width: 40, height: 40 }} />,
       constraints: { minPlayers: 2, maxPlayers: 8 }
     },
     {
       id: '9a304214-6c57-4c33-8c5f-3f1955b63caf',
       name: 'Tennis',
       displayName: 'Tennis',
-      icon: <SportsTennisIcon sx={{ fontSize: 40 }} />,
+      icon: <img src="/images/sportslectionicons/tennis.png" alt="Tennis" style={{ width: 40, height: 40 }} />,
       constraints: { minPlayers: 2, maxPlayers: 4 }
     },
     {
       id: '66e9893a-2be7-47f0-b7d3-d7191901dd77',
       name: 'Volleyball',
       displayName: 'Volleyball',
-      icon: <SportsVolleyballIcon sx={{ fontSize: 40 }} />,
+      icon: <img src="/images/sportslectionicons/volleyball.png" alt="Volleyball" style={{ width: 40, height: 40 }} />,
       constraints: { minPlayers: 6, maxPlayers: 15 }
     }
   ];
