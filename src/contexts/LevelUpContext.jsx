@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
-// Lazy load the LevelUpCelebration component for better performance
-const LevelUpCelebration = lazy(() => import('../components/achievements/LevelUpCelebration'));
+// Lazy load the Enhanced LevelUpModal component for better performance
+const EnhancedLevelUpModal = lazy(() => import('../components/achievements/EnhancedLevelUpModal'));
 
 const LevelUpContext = createContext();
 
@@ -41,8 +41,14 @@ export const LevelUpProvider = ({ children }) => {
     setLevelUpData(null);
   };
 
-  const triggerLevelUp = (newLevel, oldLevel) => {
-    setLevelUpData({ newLevel, oldLevel });
+  const triggerLevelUp = (newLevel, oldLevel, additionalData = {}) => {
+    setLevelUpData({
+      newLevel,
+      oldLevel,
+      xpGained: additionalData.xpGained || 0,
+      newUnlocks: additionalData.newUnlocks || [],
+      userTier: additionalData.userTier || 'bronze'
+    });
     setShowCelebration(true);
   };
 
@@ -57,14 +63,17 @@ export const LevelUpProvider = ({ children }) => {
     <LevelUpContext.Provider value={value}>
       {children}
       
-      {/* Global Level Up Celebration with Suspense for lazy loading */}
+      {/* Global Enhanced Level Up Modal with Suspense for lazy loading */}
       {levelUpData && (
         <Suspense fallback={<div>Loading celebration...</div>}>
-          <LevelUpCelebration
+          <EnhancedLevelUpModal
             open={showCelebration}
             onClose={closeCelebration}
             newLevel={levelUpData.newLevel}
             oldLevel={levelUpData.oldLevel}
+            xpGained={levelUpData.xpGained || 0}
+            newUnlocks={levelUpData.newUnlocks || []}
+            userTier={levelUpData.userTier || 'bronze'}
           />
         </Suspense>
       )}

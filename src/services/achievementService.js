@@ -42,6 +42,61 @@ export const getLevelColor = (level) => {
   return LEVEL_COLORS[1];
 };
 
+// Tier configuration for enhanced level up modal
+export const TIER_CONFIG = {
+  bronze: {
+    name: 'Bronze',
+    subtitle: 'Getting Started',
+    color: '#CD7F32',
+    icon: '🥉',
+    levels: '1-10'
+  },
+  silver: {
+    name: 'Silver',
+    subtitle: 'Building Momentum',
+    color: '#C0C0C0',
+    icon: '🥈',
+    levels: '11-25'
+  },
+  gold: {
+    name: 'Gold',
+    subtitle: 'Advanced Player',
+    color: '#FFD700',
+    icon: '🥇',
+    levels: '26-50'
+  },
+  platinum: {
+    name: 'Platinum',
+    subtitle: 'Expert Level',
+    color: '#E5E4E2',
+    icon: '💎',
+    levels: '51-75'
+  },
+  diamond: {
+    name: 'Diamond',
+    subtitle: 'Master Athlete',
+    color: '#B9F2FF',
+    icon: '💠',
+    levels: '76-100'
+  }
+};
+
+// Get tier information based on level or tier key
+export const getTierInfo = (levelOrTier) => {
+  // If it's a string, treat as tier key
+  if (typeof levelOrTier === 'string') {
+    return TIER_CONFIG[levelOrTier] || TIER_CONFIG.bronze;
+  }
+
+  // If it's a number, determine tier by level
+  const level = levelOrTier;
+  if (level >= 76) return TIER_CONFIG.diamond;
+  if (level >= 51) return TIER_CONFIG.platinum;
+  if (level >= 26) return TIER_CONFIG.gold;
+  if (level >= 11) return TIER_CONFIG.silver;
+  return TIER_CONFIG.bronze;
+};
+
 // Simplified XP calculation for next level (linear progression)
 export const calculateNextLevelXP = (currentLevel) => {
   // In simplified system, each level requires 500 XP
