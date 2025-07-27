@@ -22,6 +22,7 @@ import {
   LocationOn,
   CalendarMonth,
   SportsScore,
+  FilterList,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 
@@ -204,27 +205,81 @@ const ProfilePreferences = ({ value, onChange, facilities = [] }) => {
   };
 
   return (
-    <Box sx={{ mt: 3 }}>
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-          <CalendarMonth sx={{ mr: 1 }} />
+    <Box>
+      {/* Available Days Section */}
+      <Box sx={{ mb: 1.5 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 600,
+            color: 'text.secondary',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            fontSize: '0.875rem'
+          }}
+        >
+          <CalendarMonth sx={{ fontSize: '1.1rem' }} />
           Available Days
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3 }}>
-          {DAYS_OF_WEEK.map(({ day, label }) => (
-            <DayBox
-              key={day}
-              className={preferences.available_days.includes(day) ? 'selected' : ''}
-              onClick={() => handleDayToggle(day)}
-            >
-              <Typography variant="body2">{label}</Typography>
-            </DayBox>
-          ))}
-        </Box>
+      </Box>
 
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-          <AccessTime sx={{ mr: 1 }} />
-          Available Time Slots
-        </Typography>
+      <Box sx={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 1,
+        mb: 3
+      }}>
+        {DAYS_OF_WEEK.map(({ day, label }) => (
+          <Chip
+            key={day}
+            label={label}
+            onClick={() => handleDayToggle(day)}
+            variant={preferences.available_days.includes(day) ? 'filled' : 'outlined'}
+            sx={{
+              borderRadius: 1.5,
+              fontWeight: 500,
+              fontSize: '0.875rem',
+              transition: 'all 0.2s ease-in-out',
+              ...(preferences.available_days.includes(day) ? {
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                '&:hover': {
+                  bgcolor: 'primary.dark',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                },
+              } : {
+                bgcolor: 'background.paper',
+                color: 'text.secondary',
+                borderColor: 'divider',
+                '&:hover': {
+                  bgcolor: 'action.hover',
+                  color: 'text.primary',
+                  borderColor: 'primary.main',
+                },
+              }),
+            }}
+          />
+        ))}
+      </Box>
+
+        <Box sx={{ mb: 1.5 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              color: 'text.secondary',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              fontSize: '0.875rem'
+            }}
+          >
+            <AccessTime sx={{ fontSize: '1.1rem' }} />
+            Available Time Slots
+          </Typography>
+        </Box>
 
         {preferences.available_days.length === 0 ? (
           <Alert severity="info" sx={{ mb: 2 }}>

@@ -33,6 +33,11 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import UndoIcon from '@mui/icons-material/Undo';
 import Tooltip from '@mui/material/Tooltip';
 import AddIcon from '@mui/icons-material/Add';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import SportsIcon from '@mui/icons-material/Sports';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import PersonIcon from '@mui/icons-material/Person';
+import InfoIcon from '@mui/icons-material/Info';
 
 import CakeIcon from '@mui/icons-material/Cake';
 import ProfilePreferences from '../components/ProfilePreferences';
@@ -801,10 +806,22 @@ const ProfileEdit = () => {
   
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Paper sx={{ p: 3, borderRadius: 2 }}>
-        <Typography variant="h4" gutterBottom>
+      {/* Main Header */}
+      <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: 'grey.50' }}>
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 600,
+            color: 'text.primary',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5
+          }}
+        >
+          <PersonIcon sx={{ fontSize: '2rem', color: 'primary.main' }} />
           Edit Profile
         </Typography>
+      </Paper>
         
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
@@ -813,9 +830,28 @@ const ProfileEdit = () => {
         )}
         
         <form onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
-            {/* Avatar Upload */}
-            <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+          {/* Basic Information Section */}
+          <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: 'grey.50' }}>
+            <Box sx={{ mb: 1.5 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  fontSize: '0.875rem'
+                }}
+              >
+                <InfoIcon sx={{ fontSize: '1.1rem' }} />
+                Basic Information
+              </Typography>
+            </Box>
+
+            <Grid container spacing={3}>
+              {/* Avatar Upload */}
+              <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
               <Box
                 sx={{
                   position: 'relative',
@@ -1118,20 +1154,42 @@ const ProfileEdit = () => {
                 </Select>
               </FormControl>
             </Grid>
-            
-            {/* Sports Preferences */}
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h5">Sports Preferences</Typography>
-                <Button 
-                  variant="outlined" 
-                  startIcon={<AddIcon />}
-                  onClick={() => setShowSportForm(true)}
-                >
-                  Add Sport
-                </Button>
-              </Box>
+            </Grid>
+          </Paper>
+
+          {/* Sports Preferences Section */}
+          <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: 'grey.50' }}>
+            <Box sx={{ mb: 1.5 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  fontSize: '0.875rem'
+                }}
+              >
+                <SportsIcon sx={{ fontSize: '1.1rem' }} />
+                Sports Preferences
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => setShowSportForm(true)}
+                sx={{
+                  borderRadius: 1.5,
+                  textTransform: 'none',
+                  fontWeight: 500
+                }}
+              >
+                Add Sport
+              </Button>
+            </Box>
               
               {showSportForm && (
                 <Paper sx={{ p: 2, mb: 3, bgcolor: 'background.neutral' }}>
@@ -1231,55 +1289,86 @@ const ProfileEdit = () => {
                   ))}
                 </Grid>
               )}
-            </Grid>
-            
-            {/* Recommendation Preferences Section */}
-            <Grid item xs={12}>
-              <Divider sx={{ my: 3 }} />
-              <Typography variant="h5" sx={{ mb: 3 }}>
+          </Paper>
+
+          {/* Match Recommendation Preferences Section */}
+          <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: 'grey.50' }}>
+            <Box sx={{ mb: 1.5 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  fontSize: '0.875rem'
+                }}
+              >
+                <CalendarTodayIcon sx={{ fontSize: '1.1rem' }} />
                 Match Recommendation Preferences
               </Typography>
+            </Box>
               
-              <Card variant="outlined" sx={{ mb: 3 }}>
-                <CardContent>
-                  <ProfilePreferences 
-                    value={{
-                      available_days: formData.available_days,
-                      available_hours: processAvailableHours(formData.available_hours),
-                      preferred_facilities: formData.preferred_facilities,
-                      home_location: formData.home_location,
-                      play_style: formData.play_style
-                    }}
-                    onChange={handlePreferenceChange}
-                    facilities={locations}
-                  />
-                </CardContent>
-              </Card>
-            </Grid>
-            
-            {/* Submit Buttons */}
-            <Grid item xs={12} sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
-              <Button 
-                variant="outlined" 
-                color="secondary"
+            <ProfilePreferences
+              value={{
+                available_days: formData.available_days,
+                available_hours: processAvailableHours(formData.available_hours),
+                preferred_facilities: formData.preferred_facilities,
+                home_location: formData.home_location,
+                play_style: formData.play_style
+              }}
+              onChange={handlePreferenceChange}
+              facilities={locations}
+            />
+          </Paper>
+
+          {/* Submit Buttons */}
+          <Paper sx={{ p: 2, borderRadius: 2, bgcolor: 'grey.50' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+              <Button
+                variant="outlined"
                 onClick={() => navigate('/profile')}
                 disabled={saving}
+                sx={{
+                  borderRadius: 1.5,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  px: 3,
+                  borderColor: 'text.secondary',
+                  color: 'text.secondary',
+                  bgcolor: 'background.paper',
+                  '&:hover': {
+                    borderColor: 'text.primary',
+                    color: 'text.primary',
+                    bgcolor: 'action.hover'
+                  }
+                }}
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
-                variant="contained" 
+              <Button
+                type="submit"
+                variant="contained"
                 color="primary"
                 disabled={saving}
                 startIcon={saving && <CircularProgress size={20} color="inherit" />}
+                sx={{
+                  borderRadius: 1.5,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  px: 3,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  '&:hover': {
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                  }
+                }}
               >
                 {saving ? 'Saving...' : 'Save Profile'}
               </Button>
-            </Grid>
-          </Grid>
+            </Box>
+          </Paper>
         </form>
-      </Paper>
     </Container>
   );
 };
