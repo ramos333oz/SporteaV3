@@ -580,7 +580,7 @@ const HostedMatches = () => {
           <MenuItem onClick={() => handleCancelMatch(selectedMatch)}>Cancel Match</MenuItem>
         )}
         {/* Removed Restore Match option from dropdown menu for cancelled matches */}
-        {(selectedMatch?.status === 'cancelled' || selectedMatch?.status === 'completed') && (
+        {selectedMatch?.status === 'completed' && (
           <MenuItem onClick={() => handleDeleteMatch(selectedMatch)}>Delete Match</MenuItem>
         )}
         {/* Only show View Participants/Summary for upcoming and completed matches, not cancelled */}
