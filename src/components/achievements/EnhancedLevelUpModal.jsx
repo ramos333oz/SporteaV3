@@ -11,7 +11,8 @@ import {
   LinearProgress,
   Chip,
   Divider,
-  Stack
+  Stack,
+  Avatar
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -30,11 +31,11 @@ import ShinyText from '../animations/ShinyText';
  * Modern, professional, and highly interactive level up celebration
  * Features glass morphism design, multi-stage animations, and tier-specific theming
  */
-const EnhancedLevelUpModal = ({ 
-  open, 
-  onClose, 
-  newLevel, 
-  oldLevel, 
+const EnhancedLevelUpModal = ({
+  open,
+  onClose,
+  newLevel,
+  oldLevel,
   xpGained = 0,
   newUnlocks = [],
   userTier = 'bronze'
@@ -424,20 +425,85 @@ const EnhancedLevelUpModal = ({
                             <>
                               <Divider sx={{ my: 1 }} />
                               <Box sx={{ textAlign: 'center' }}>
-                                <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-                                  <StarIcon sx={{ color: tierInfo.color, fontSize: 20 }} />
-                                  <Typography variant="h6" sx={{
-                                    fontFamily: '"Libre Baskerville", Georgia, serif',
-                                    color: tierInfo.color,
-                                    fontWeight: 600
+                                {/* Tier Image */}
+                                <Box sx={{ mb: 2 }}>
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.5, rotateY: 180 }}
+                                    animate={{
+                                      opacity: 1,
+                                      scale: 1,
+                                      rotateY: 0
+                                    }}
+                                    transition={{
+                                      type: 'spring',
+                                      damping: 20,
+                                      stiffness: 300,
+                                      duration: 0.8
+                                    }}
+                                  >
+                                    <Avatar
+                                      src={tierInfo.iconImage}
+                                      alt={`${tierInfo.name} rank`}
+                                      slotProps={{
+                                        img: {
+                                          style: {
+                                            objectFit: 'contain',
+                                            width: '100%',
+                                            height: '100%',
+                                            transition: 'all 0.4s ease-in-out'
+                                          }
+                                        }
+                                      }}
+                                      sx={{
+                                        width: 80,
+                                        height: 80,
+                                        mx: 'auto',
+                                        mb: 1,
+                                        border: `3px solid ${tierInfo.color}`,
+                                        boxShadow: `0 8px 24px ${tierInfo.color}40`,
+                                        background: 'transparent', // Remove background when image loads
+                                        fontSize: '2rem',
+                                        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        '&:hover': {
+                                          transform: 'scale(1.05) rotateY(5deg)',
+                                          boxShadow: `0 12px 32px ${tierInfo.color}60`
+                                        },
+                                        // Fallback background only when no image
+                                        '&:not(:has(img))': {
+                                          background: `linear-gradient(135deg, ${tierInfo.bgColor} 0%, ${tierInfo.color}20 100%)`
+                                        }
+                                      }}
+                                    >
+                                      {tierInfo.icon}
+                                    </Avatar>
+                                  </motion.div>
+                                </Box>
+
+                                {/* Tier Text */}
+                                <motion.div
+                                  initial={{ opacity: 0, y: 20 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: 0.3, duration: 0.6 }}
+                                >
+                                  <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+                                    <StarIcon sx={{ color: tierInfo.color, fontSize: 20 }} />
+                                    <Typography variant="h6" sx={{
+                                      fontFamily: '"Libre Baskerville", Georgia, serif',
+                                      color: tierInfo.color,
+                                      fontWeight: 600,
+                                      textShadow: `0 2px 4px ${tierInfo.color}20`
+                                    }}>
+                                      {tierInfo.name.replace(' Tier', '')}
+                                    </Typography>
+                                    <StarIcon sx={{ color: tierInfo.color, fontSize: 20 }} />
+                                  </Stack>
+                                  <Typography variant="body2" color="text.secondary" sx={{
+                                    mt: 0.5,
+                                    fontStyle: 'italic'
                                   }}>
-                                    {tierInfo.name} Tier
+                                    {tierInfo.subtitle}
                                   </Typography>
-                                  <StarIcon sx={{ color: tierInfo.color, fontSize: 20 }} />
-                                </Stack>
-                                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                                  {tierInfo.subtitle}
-                                </Typography>
+                                </motion.div>
                               </Box>
                             </>
                           )}

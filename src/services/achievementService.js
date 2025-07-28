@@ -48,35 +48,45 @@ export const TIER_CONFIG = {
     name: 'Bronze',
     subtitle: 'Getting Started',
     color: '#CD7F32',
+    bgColor: '#FFF8DC',
     icon: '🥉',
+    iconImage: '/images/ranks/bronze.png',
     levels: '1-10'
   },
   silver: {
     name: 'Silver',
     subtitle: 'Building Momentum',
     color: '#C0C0C0',
+    bgColor: '#F8F8FF',
     icon: '🥈',
+    iconImage: '/images/ranks/silver.png',
     levels: '11-25'
   },
   gold: {
     name: 'Gold',
     subtitle: 'Advanced Player',
     color: '#FFD700',
+    bgColor: '#FFFACD',
     icon: '🥇',
+    iconImage: '/images/ranks/gold.png',
     levels: '26-50'
   },
   platinum: {
     name: 'Platinum',
     subtitle: 'Expert Level',
     color: '#E5E4E2',
+    bgColor: '#F5F5F5',
     icon: '💎',
+    iconImage: '/images/ranks/platinum.png',
     levels: '51-75'
   },
   diamond: {
     name: 'Diamond',
     subtitle: 'Master Athlete',
     color: '#B9F2FF',
+    bgColor: '#F0F8FF',
     icon: '💠',
+    iconImage: '/images/ranks/diamond.png',
     levels: '76-100'
   }
 };

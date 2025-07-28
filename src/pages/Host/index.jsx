@@ -352,8 +352,8 @@ const Host = () => {
             <Typography variant="h1" component="h1">
               Host a Match
             </Typography>
-            <Button 
-              variant="contained" 
+            <Button
+              variant="contained"
               color="primary"
               onClick={() => setShowNewMatch(true)}
               sx={{ borderRadius: 2 }}
