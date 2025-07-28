@@ -1,0 +1,4 @@
+# This is a placeholder file
+# The actual venue images are in /public/venuespic/ directory
+# This file exists to prevent 404 errors for components that still reference the old path
+# Components should be updated to use the getVenueImage() function instead

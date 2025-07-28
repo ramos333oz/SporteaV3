@@ -50,6 +50,7 @@ import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import UnifiedCard from './UnifiedCard';
+import { getVenueImage } from '../utils/venueImageMapping';
 
 /**
  * Enhanced Recommendation Card Component
@@ -134,8 +135,9 @@ const EnhancedRecommendationCard = React.memo(({
   const sportName = match.sport?.name || match.sports?.name || 'Sport';
   const sportIcon = sportIcons[sportId] || <SportsSoccer />;
   
-  // Prioritize actual venue image from location, fallback to sport-based default (same as LiveMatchBoard)
-  const venueImage = match.location_image_url ||
+  // Prioritize venue image from our mapping, then location data, then sport-based default
+  const venueImage = getVenueImage(match.locations?.name || match.location?.name) ||
+                     match.location_image_url ||
                      (match.locations?.image_url) ||
                      defaultVenueImages[sportId] ||
                      '/images/venues/default-field.jpg';
