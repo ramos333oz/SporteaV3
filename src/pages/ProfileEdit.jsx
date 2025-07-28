@@ -60,7 +60,7 @@ const getSportIcon = (sportName) => {
     'Volleyball': '/images/sportslectionicons/volleyball.png',
     'Rugby': '/images/sportslectionicons/rugby.png',
     'Hockey': '/images/sportslectionicons/hockey.png',
-    'Frisbee': '/images/sportslectionicons/football.png' // Fallback
+    'Frisbee': '/images/sportslectionicons/frisbee.png'
   };
 
   const iconPath = sportIconPaths[sportName] || '/images/sportslectionicons/football.png';

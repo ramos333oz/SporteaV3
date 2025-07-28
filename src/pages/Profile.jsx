@@ -94,6 +94,7 @@ const getSportIcon = (sportName) => {
     'Rugby': '/images/sportslectionicons/rugby.png',
     'Hockey': '/images/sportslectionicons/hockey.png',
     'Squash': '/images/sportslectionicons/squash.png',
+    'Frisbee': '/images/sportslectionicons/frisbee.png',
     'Baseball': '/images/sportslectionicons/football.png', // Fallback
     'Boxing': '/images/sportslectionicons/football.png', // Fallback
     'Martial Arts': '/images/sportslectionicons/football.png', // Fallback
