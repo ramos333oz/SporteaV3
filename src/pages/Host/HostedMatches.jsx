@@ -192,6 +192,7 @@ const HostedMatches = () => {
   
   const handleMenuClose = () => {
     setMenuAnchorEl(null);
+    setSelectedMatch(null);
   };
   
   const handleEditMatch = (matchFromButton = null) => {
@@ -224,10 +225,14 @@ const HostedMatches = () => {
     if (!matchToCancel || !matchToCancel.id) {
       console.error('No valid match object found for cancelling');
       showErrorToast('Error', 'Unable to cancel match. Please try again.');
+      // Close menu even on error if it was opened from menu
+      if (!matchFromMenu) {
+        handleMenuClose();
+      }
       return;
     }
 
-    // Only close menu if it was opened (selectedMatch exists)
+    // Close menu immediately if it was opened from menu
     if (!matchFromMenu) {
       handleMenuClose();
     }
@@ -249,6 +254,7 @@ const HostedMatches = () => {
         showErrorToast('Cancel Failed', error.message || 'Failed to cancel the match. Please try again.');
       }
     }
+    // Note: Menu is already closed above, regardless of user's choice in confirmation dialog
   };
   
   const handleDeleteMatch = async (matchFromMenu = null) => {
@@ -260,10 +266,14 @@ const HostedMatches = () => {
     if (!matchToDelete || !matchToDelete.id) {
       console.error('No valid match object found for deleting');
       showErrorToast('Error', 'Unable to delete match. Please try again.');
+      // Close menu even on error if it was opened from menu
+      if (!matchFromMenu) {
+        handleMenuClose();
+      }
       return;
     }
 
-    // Only close menu if it was opened (selectedMatch exists)
+    // Close menu immediately if it was opened from menu
     if (!matchFromMenu) {
       handleMenuClose();
     }
@@ -285,6 +295,7 @@ const HostedMatches = () => {
         showErrorToast('Delete Failed', error.message || 'Failed to delete the match. Please try again.');
       }
     }
+    // Note: Menu is already closed above, regardless of user's choice in confirmation dialog
   };
   
   // Handle restoring a cancelled match

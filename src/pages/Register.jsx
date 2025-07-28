@@ -272,13 +272,15 @@ const Register = () => {
   const extractStudentIdFromEmail = (email) => {
     if (!email) return '';
 
+    // Only extract student ID from @student.uitm.edu.my emails
+    if (!email.endsWith('@student.uitm.edu.my')) return '';
+
     // Extract the part before @ symbol
     const beforeAt = email.split('@')[0];
 
-    // Extract numeric portion from the beginning
-    const numericMatch = beforeAt.match(/^\d+/);
-
-    return numericMatch ? numericMatch[0] : '';
+    // For UiTM student emails, the part before @ should be the student ID
+    // Return the full part before @ as it should be the complete student ID
+    return beforeAt;
   };
 
   const handleChange = (e) => {
@@ -432,11 +434,10 @@ const Register = () => {
       errors.email = 'Email is required';
       isValid = false;
     } else {
-      // Email domain validation - allow test domains in development
-      const allowedDomains = ['@student.uitm.edu.my', '@example.com', '@test.local', '@mailhog.example', '@gmail.com', '@outlook.com', '@yahoo.com', '@hotmail.com'];
-      const isValidDomain = allowedDomains.some(domain => formData.email.endsWith(domain));
-      if (!isValidDomain) {
-        errors.email = 'Only @student.uitm.edu.my email addresses are allowed (test domains: @example.com, @test.local, @mailhog.example, @gmail.com, @outlook.com, @yahoo.com, @hotmail.com)';
+      // Email domain validation - only accept @student.uitm.edu.my
+      const allowedDomain = '@student.uitm.edu.my';
+      if (!formData.email.endsWith(allowedDomain)) {
+        errors.email = 'This application only accepts @student.uitm.edu.my email addresses';
         isValid = false;
       }
     }
@@ -452,7 +453,7 @@ const Register = () => {
     }
 
     if (!formData.studentId.trim()) {
-      errors.studentId = 'Student ID is required - please enter an email that starts with your student ID number';
+      errors.studentId = 'Student ID is required - please enter a valid @student.uitm.edu.my email address';
       isValid = false;
     }
     // TEMPORARY: Allow alphanumeric characters for testing with non-student email domains
@@ -911,7 +912,7 @@ const Register = () => {
             autoFocus
             value={formData.email}
             onChange={handleChange}
-            placeholder="student@student.uitm.edu.my or test@example.com"
+            placeholder="2022812796@student.uitm.edu.my"
             helperText={
               emailValidation.isChecking
                 ? "Checking email availability..."
@@ -919,7 +920,7 @@ const Register = () => {
                   ? emailValidation.error
                   : fieldErrors.email
                     ? fieldErrors.email
-                    : "Must be a valid @student.uitm.edu.my email (test domains: @example.com, @test.local, @mailhog.example, @gmail.com, @outlook.com, @yahoo.com, @hotmail.com)"
+                    : "Must be a valid @student.uitm.edu.my email address"
             }
             error={!!fieldErrors.email || !!emailValidation.error}
             InputProps={{
@@ -970,9 +971,8 @@ const Register = () => {
             label="Student ID"
             name="studentId"
             value={formData.studentId}
-            onChange={handleChange}
-            disabled={false}
-            helperText={fieldErrors.studentId || "Auto-populated from email, but can be edited for testing"}
+            disabled={true}
+            helperText={fieldErrors.studentId}
             error={!!fieldErrors.studentId}
             sx={{
               mb: 2,

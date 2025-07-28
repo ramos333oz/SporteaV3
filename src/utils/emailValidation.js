@@ -51,19 +51,11 @@ export const checkEmailExists = async (email) => {
  */
 export const isValidEmailDomain = (email) => {
   if (!email || !email.trim()) return false;
-  
-  const allowedDomains = [
-    '@student.uitm.edu.my',
-    '@example.com',
-    '@test.local',
-    '@mailhog.example',
-    '@gmail.com',
-    '@outlook.com',
-    '@yahoo.com',
-    '@hotmail.com'
-  ];
-  
-  return allowedDomains.some(domain => email.toLowerCase().endsWith(domain));
+
+  // Only accept @student.uitm.edu.my domain
+  const allowedDomain = '@student.uitm.edu.my';
+
+  return email.toLowerCase().endsWith(allowedDomain);
 };
 
 /**
@@ -78,7 +70,7 @@ export const getEmailErrorMessage = (email, checkResult) => {
   }
 
   if (!isValidEmailDomain(email)) {
-    return 'Only @student.uitm.edu.my email addresses are allowed (test domains: @example.com, @test.local, @mailhog.example, @gmail.com, @outlook.com, @yahoo.com, @hotmail.com)';
+    return 'This application only accepts @student.uitm.edu.my email addresses';
   }
 
   if (checkResult.exists && checkResult.isConfirmed) {
@@ -117,7 +109,7 @@ export const getEmailSuggestions = (email, checkResult) => {
 
   if (!isValidEmailDomain(email)) {
     return {
-      message: 'Please use a valid UiTM student email address or one of the allowed test domains.',
+      message: 'Please use a valid UiTM student email address ending with @student.uitm.edu.my',
       primaryAction: null,
       secondaryAction: null
     };
