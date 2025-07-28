@@ -52,7 +52,7 @@ const sportIcons = {
   },
   // Frisbee
   'dcedf87a-13aa-4c2f-979f-6b71d457f531': {
-    icon: <img src="/images/sportslectionicons/football.png" alt="Frisbee" style={{ width: 24, height: 24 }} />,
+    icon: <img src="/images/sportslectionicons/frisbee.png" alt="Frisbee" style={{ width: 24, height: 24 }} />,
     color: 'var(--sport-frisbee)',
     name: 'Frisbee'
   },
