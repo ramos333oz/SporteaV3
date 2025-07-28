@@ -204,10 +204,14 @@ const HostedMatches = () => {
     if (!matchToEdit || !matchToEdit.id) {
       console.error('No valid match object found for editing');
       showErrorToast('Error', 'Unable to edit match. Please try again.');
+      // Close menu even on error if it was opened from menu
+      if (!matchFromButton) {
+        handleMenuClose();
+      }
       return;
     }
 
-    // Only close menu if it was opened (selectedMatch exists)
+    // Close menu if it was opened from menu
     if (!matchFromButton) {
       handleMenuClose();
     }
@@ -232,12 +236,12 @@ const HostedMatches = () => {
       return;
     }
 
-    // Close menu immediately if it was opened from menu
-    if (!matchFromMenu) {
-      handleMenuClose();
-    }
-
     if (window.confirm('Are you sure you want to cancel this match? This action cannot be undone.')) {
+      // Close menu only after user confirms the action
+      if (!matchFromMenu) {
+        handleMenuClose();
+      }
+
       try {
         const result = await matchService.cancelMatch(matchToCancel.id);
 
@@ -247,14 +251,21 @@ const HostedMatches = () => {
 
         showSuccessToast('Match Cancelled', 'The match has been cancelled successfully');
 
-        // Refresh the matches list
-        fetchHostedMatches();
+        // Refresh the matches list and ensure menu is closed
+        await fetchHostedMatches();
+        // Force close menu and reset state after data refresh
+        setMenuAnchorEl(null);
+        setSelectedMatch(null);
       } catch (error) {
         console.error('Error cancelling match:', error);
         showErrorToast('Cancel Failed', error.message || 'Failed to cancel the match. Please try again.');
       }
+    } else {
+      // Close menu if user cancels the confirmation dialog
+      if (!matchFromMenu) {
+        handleMenuClose();
+      }
     }
-    // Note: Menu is already closed above, regardless of user's choice in confirmation dialog
   };
   
   const handleDeleteMatch = async (matchFromMenu = null) => {
@@ -273,12 +284,12 @@ const HostedMatches = () => {
       return;
     }
 
-    // Close menu immediately if it was opened from menu
-    if (!matchFromMenu) {
-      handleMenuClose();
-    }
-
     if (window.confirm('Are you sure you want to delete this match? This action cannot be undone and all match data will be permanently deleted.')) {
+      // Close menu only after user confirms the action
+      if (!matchFromMenu) {
+        handleMenuClose();
+      }
+
       try {
         const result = await matchService.deleteMatch(matchToDelete.id);
 
@@ -288,14 +299,21 @@ const HostedMatches = () => {
 
         showSuccessToast('Match Deleted', 'The match has been permanently deleted');
 
-        // Refresh the matches list
-        fetchHostedMatches();
+        // Refresh the matches list and ensure menu is closed
+        await fetchHostedMatches();
+        // Force close menu and reset state after data refresh
+        setMenuAnchorEl(null);
+        setSelectedMatch(null);
       } catch (error) {
         console.error('Error deleting match:', error);
         showErrorToast('Delete Failed', error.message || 'Failed to delete the match. Please try again.');
       }
+    } else {
+      // Close menu if user cancels the confirmation dialog
+      if (!matchFromMenu) {
+        handleMenuClose();
+      }
     }
-    // Note: Menu is already closed above, regardless of user's choice in confirmation dialog
   };
   
   // Handle restoring a cancelled match
@@ -579,8 +597,8 @@ const HostedMatches = () => {
         {selectedMatch?.status === 'upcoming' && (
           <MenuItem onClick={() => handleCancelMatch(selectedMatch)}>Cancel Match</MenuItem>
         )}
-        {/* Removed Restore Match option from dropdown menu for cancelled matches */}
-        {selectedMatch?.status === 'completed' && (
+        {/* Delete option for both completed and cancelled matches */}
+        {(selectedMatch?.status === 'completed' || selectedMatch?.status === 'cancelled') && (
           <MenuItem onClick={() => handleDeleteMatch(selectedMatch)}>Delete Match</MenuItem>
         )}
         {/* Only show View Participants/Summary for upcoming and completed matches, not cancelled */}
