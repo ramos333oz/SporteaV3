@@ -1118,8 +1118,6 @@ const RecommendationCard = memo(({
       </CardContent>
     </Card>
   );
-};
-
 });
 
 export default RecommendationCard;
