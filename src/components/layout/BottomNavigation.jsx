@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Paper, BottomNavigation as MuiBottomNavigation, BottomNavigationAction, Badge, Avatar, Fade, Zoom } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import HomeIcon from '@mui/icons-material/Home';
@@ -10,10 +10,12 @@ import { useAuth } from '../../hooks/useAuth';
 import { UserAvatarWithLevel } from '../achievements';
 
 const BottomNavigation = () => {
-  const { user } = useAuth();
+  const { user, supabase } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [value, setValue] = React.useState(getActiveTab(location.pathname));
+  const [userLevel, setUserLevel] = useState(1);
+  const [gamificationData, setGamificationData] = useState(null);
   
   // Determine the active tab based on current route
   function getActiveTab(pathname) {
@@ -30,6 +32,54 @@ const BottomNavigation = () => {
   React.useEffect(() => {
     setValue(getActiveTab(location.pathname));
   }, [location.pathname]);
+
+  // Fetch user's gamification data to get actual level
+  useEffect(() => {
+    const fetchUserLevel = async () => {
+      if (!user?.id || !supabase) return;
+
+      try {
+        const { data: gamificationData, error } = await supabase
+          .from('user_gamification')
+          .select('current_level, total_xp')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user gamification data:', error);
+          // If no gamification data exists, create it
+          if (error.code === 'PGRST116') {
+            const { data: newGamificationData, error: createError } = await supabase
+              .from('user_gamification')
+              .insert({
+                user_id: user.id,
+                total_xp: 0,
+                current_level: 1,
+                current_streak: 0,
+                longest_streak: 0,
+                community_score: 0,
+                weekly_xp: 0,
+                monthly_xp: 0
+              })
+              .select()
+              .single();
+
+            if (!createError && newGamificationData) {
+              setUserLevel(newGamificationData.current_level);
+              setGamificationData(newGamificationData);
+            }
+          }
+        } else if (gamificationData) {
+          setUserLevel(gamificationData.current_level);
+          setGamificationData(gamificationData);
+        }
+      } catch (error) {
+        console.error('Error in fetchUserLevel:', error);
+      }
+    };
+
+    fetchUserLevel();
+  }, [user?.id, supabase]);
   
   const handleChange = (event, newValue) => {
     setValue(newValue);
@@ -208,7 +258,7 @@ const BottomNavigation = () => {
                   user={{
                     avatar_url: user?.user_metadata?.avatar_url,
                     full_name: user?.user_metadata?.username || user?.user_metadata?.full_name,
-                    level: user?.level || 1
+                    level: userLevel
                   }}
                   size={24}
                   badgeSize="small"
