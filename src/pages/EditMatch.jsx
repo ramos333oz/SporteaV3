@@ -22,7 +22,6 @@ import { DatePicker, TimePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { addHours, format, parseISO } from 'date-fns';
-import SportsIcon from '@mui/icons-material/Sports';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PersonIcon from '@mui/icons-material/Person';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -37,6 +36,38 @@ import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../contexts/ToastContext';
 import { matchService } from '../services/supabase';
 import { invalidateAllCache } from '../services/simplifiedRecommendationService';
+
+// Sport icon mapping function using the sportslectionicons directory
+const getSportIcon = (sportName, size = 20) => {
+  const sportIconPaths = {
+    'Football': '/images/sportslectionicons/football.png',
+    'Soccer': '/images/sportslectionicons/football.png',
+    'Futsal': '/images/sportslectionicons/futsal.png',
+    'Basketball': '/images/sportslectionicons/basketball.png',
+    'Badminton': '/images/sportslectionicons/badminton.png',
+    'Tennis': '/images/sportslectionicons/tennis.png',
+    'Table Tennis': '/images/sportslectionicons/table tennis.png',
+    'Volleyball': '/images/sportslectionicons/volleyball.png',
+    'Rugby': '/images/sportslectionicons/rugby.png',
+    'Hockey': '/images/sportslectionicons/hockey.png',
+    'Squash': '/images/sportslectionicons/squash.png',
+    'Frisbee': '/images/sportslectionicons/frisbee.png'
+  };
+
+  const iconPath = sportIconPaths[sportName] || '/images/sportslectionicons/football.png';
+
+  return (
+    <img
+      src={iconPath}
+      alt={sportName}
+      style={{
+        width: size,
+        height: size,
+        objectFit: 'contain'
+      }}
+    />
+  );
+};
 
 const EditMatch = () => {
   const { matchId } = useParams();
@@ -373,7 +404,14 @@ const EditMatch = () => {
                     onChange={handleChange}
                     startAdornment={
                       <InputAdornment position="start">
-                        <SportsIcon color="action" />
+                        {formData.sport_id ? (
+                          getSportIcon(
+                            sports.find(s => s.id === formData.sport_id)?.name || 'Football',
+                            20
+                          )
+                        ) : (
+                          getSportIcon('Football', 20)
+                        )}
                       </InputAdornment>
                     }
                     sx={{
