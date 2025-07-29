@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Box, 
-  Typography, 
+import {
+  Box,
+  Typography,
   TextField,
   Button,
   Grid,
@@ -11,13 +11,12 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  FormControlLabel,
-  Switch,
   CircularProgress,
   Alert,
   Stack,
   InputAdornment,
-  Container
+  Container,
+  Divider
 } from '@mui/material';
 import { DatePicker, TimePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -30,7 +29,9 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TitleIcon from '@mui/icons-material/Title';
 import DescriptionIcon from '@mui/icons-material/Description';
 import PeopleIcon from '@mui/icons-material/People';
-import LockIcon from '@mui/icons-material/Lock';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import TimerIcon from '@mui/icons-material/Timer';
 
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../contexts/ToastContext';
@@ -53,10 +54,7 @@ const EditMatch = () => {
     duration_minutes: 60,
     max_participants: 10,
     skill_level: 'Intermediate',
-    description: '',
-    rules: '',
-    is_private: false,
-    access_code: ''
+    description: ''
   });
 
   // UI state
@@ -103,10 +101,7 @@ const EditMatch = () => {
           duration_minutes: durationMinutes || 60,
           max_participants: matchData.max_participants || 10,
           skill_level: matchData.skill_level || 'Intermediate',
-          description: matchData.description || '',
-          rules: matchData.rules || '',
-          is_private: matchData.is_private || false,
-          access_code: matchData.access_code || ''
+          description: matchData.description || ''
         });
 
         // Fetch sports and locations for dropdowns
@@ -244,10 +239,7 @@ const EditMatch = () => {
         end_time: endDateTime.toISOString(),
         max_participants: parseInt(formData.max_participants, 10),
         skill_level: formData.skill_level,
-        description: formData.description,
-        rules: formData.rules,
-        is_private: formData.is_private,
-        access_code: formData.is_private ? formData.access_code : null
+        description: formData.description
       };
 
       // Update match in database
@@ -307,255 +299,413 @@ const EditMatch = () => {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Paper elevation={2} sx={{ p: 3 }}>
-        <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
+      <Paper
+        elevation={2}
+        sx={{
+          p: 4,
+          borderRadius: 2,
+          bgcolor: 'grey.50',
+          boxShadow: '0 6px 20px rgba(0,0,0,0.08)'
+        }}
+      >
+        <Typography
+          variant="h4"
+          gutterBottom
+          sx={{
+            mb: 4,
+            fontWeight: 600,
+            color: 'text.primary',
+            fontFamily: 'Libre Baskerville, serif'
+          }}
+        >
           Edit Match
         </Typography>
 
         <form onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
-            {/* Title */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                required
-                label="Title"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <TitleIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-
-            {/* Sport */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Sport</InputLabel>
-                <Select
-                  name="sport_id"
-                  value={formData.sport_id}
-                  onChange={handleChange}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <SportsIcon />
-                    </InputAdornment>
-                  }
-                >
-                  {sports.map((sport) => (
-                    <MenuItem key={sport.id} value={sport.id}>
-                      {sport.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {/* Location */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Location</InputLabel>
-                <Select
-                  name="location_id"
-                  value={formData.location_id}
-                  onChange={handleChange}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <LocationOnIcon />
-                    </InputAdornment>
-                  }
-                >
-                  {locations.map((location) => (
-                    <MenuItem key={location.id} value={location.id}>
-                      {location.name} ({location.campus})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {/* Date Picker */}
-            <Grid item xs={12} sm={6}>
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <DatePicker
-                  label="Date"
-                  value={formData.start_date}
-                  onChange={handleDateChange}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
-                />
-              </LocalizationProvider>
-            </Grid>
-
-            {/* Time Picker */}
-            <Grid item xs={12} sm={6}>
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <TimePicker
-                  label="Start Time"
-                  value={formData.start_time}
-                  onChange={handleTimeChange}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
-                />
-              </LocalizationProvider>
-            </Grid>
-
-            {/* Duration */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Duration (minutes)"
-                name="duration_minutes"
-                type="number"
-                value={formData.duration_minutes}
-                onChange={handleChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <AccessTimeIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-
-            {/* Max Participants */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Max Participants"
-                name="max_participants"
-                type="number"
-                value={formData.max_participants}
-                onChange={handleChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <PeopleIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-
-            {/* Skill Level */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Skill Level</InputLabel>
-                <Select
-                  name="skill_level"
-                  value={formData.skill_level}
-                  onChange={handleChange}
-                >
-                  <MenuItem value="Beginner">Beginner</MenuItem>
-                  <MenuItem value="Intermediate">Intermediate</MenuItem>
-                  <MenuItem value="Advanced">Advanced</MenuItem>
-                  <MenuItem value="All Levels">All Levels</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {/* Private Match Toggle */}
-            <Grid item xs={12} sm={6}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    name="is_private"
-                    checked={formData.is_private}
-                    onChange={handleChange}
-                    color="primary"
-                  />
-                }
-                label="Private Match"
-              />
-            </Grid>
-
-            {/* Access Code (shown only when is_private is true) */}
-            {formData.is_private && (
+          {/* Basic Information Section */}
+          <Paper sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: 'background.paper' }}>
+            <Typography
+              variant="h6"
+              sx={{
+                mb: 2,
+                fontWeight: 600,
+                color: 'text.secondary',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}
+            >
+              <TitleIcon sx={{ fontSize: '1.2rem' }} />
+              Basic Information
+            </Typography>
+            <Grid container spacing={2}>
+              {/* Title */}
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Access Code"
-                  name="access_code"
-                  value={formData.access_code}
+                  required
+                  label="Match Title"
+                  name="title"
+                  value={formData.title}
                   onChange={handleChange}
-                  helperText="Share this code with people you want to invite"
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <LockIcon />
+                        <TitleIcon color="action" />
                       </InputAdornment>
                     ),
                   }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 1.5,
+                    }
+                  }}
                 />
               </Grid>
-            )}
 
-            {/* Description */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                multiline
-                rows={3}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <DescriptionIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
+              {/* Sport */}
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth required>
+                  <InputLabel>Sport</InputLabel>
+                  <Select
+                    name="sport_id"
+                    value={formData.sport_id}
+                    onChange={handleChange}
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <SportsIcon color="action" />
+                      </InputAdornment>
+                    }
+                    sx={{
+                      borderRadius: 1.5,
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderRadius: 1.5,
+                      }
+                    }}
+                  >
+                    {sports.map((sport) => (
+                      <MenuItem key={sport.id} value={sport.id}>
+                        {sport.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
 
-            {/* Rules */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Rules"
-                name="rules"
-                value={formData.rules}
-                onChange={handleChange}
-                multiline
-                rows={3}
-                helperText="Optional: Add any specific rules for this match"
-              />
+              {/* Location */}
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth required>
+                  <InputLabel>Location</InputLabel>
+                  <Select
+                    name="location_id"
+                    value={formData.location_id}
+                    onChange={handleChange}
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <LocationOnIcon color="action" />
+                      </InputAdornment>
+                    }
+                    sx={{
+                      borderRadius: 1.5,
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderRadius: 1.5,
+                      }
+                    }}
+                  >
+                    {locations.map((location) => (
+                      <MenuItem key={location.id} value={location.id}>
+                        {location.name} ({location.campus})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
             </Grid>
-          </Grid>
+          </Paper>
+
+          {/* Schedule Section */}
+          <Paper sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: 'background.paper' }}>
+            <Typography
+              variant="h6"
+              sx={{
+                mb: 2,
+                fontWeight: 600,
+                color: 'text.secondary',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}
+            >
+              <ScheduleIcon sx={{ fontSize: '1.2rem' }} />
+              Schedule
+            </Typography>
+            <Grid container spacing={2}>
+              {/* Date Picker */}
+              <Grid item xs={12} sm={4}>
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <DatePicker
+                    label="Date"
+                    value={formData.start_date}
+                    onChange={handleDateChange}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        InputProps: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <CalendarTodayIcon color="action" />
+                            </InputAdornment>
+                          ),
+                        },
+                        sx: {
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 1.5,
+                          }
+                        }
+                      }
+                    }}
+                  />
+                </LocalizationProvider>
+              </Grid>
+
+              {/* Time Picker */}
+              <Grid item xs={12} sm={4}>
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <TimePicker
+                    label="Start Time"
+                    value={formData.start_time}
+                    onChange={handleTimeChange}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        InputProps: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <AccessTimeIcon color="action" />
+                            </InputAdornment>
+                          ),
+                        },
+                        sx: {
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 1.5,
+                          }
+                        }
+                      }
+                    }}
+                  />
+                </LocalizationProvider>
+              </Grid>
+
+              {/* Duration */}
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  label="Duration (minutes)"
+                  name="duration_minutes"
+                  type="number"
+                  value={formData.duration_minutes}
+                  onChange={handleChange}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <TimerIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 1.5,
+                    }
+                  }}
+                />
+              </Grid>
+            </Grid>
+          </Paper>
+
+          {/* Participants Section */}
+          <Paper sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: 'background.paper' }}>
+            <Typography
+              variant="h6"
+              sx={{
+                mb: 2,
+                fontWeight: 600,
+                color: 'text.secondary',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}
+            >
+              <PeopleIcon sx={{ fontSize: '1.2rem' }} />
+              Participants
+            </Typography>
+            <Grid container spacing={2}>
+              {/* Max Participants */}
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Max Participants"
+                  name="max_participants"
+                  type="number"
+                  value={formData.max_participants}
+                  onChange={handleChange}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <PeopleIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 1.5,
+                    }
+                  }}
+                />
+              </Grid>
+
+              {/* Skill Level */}
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Skill Level</InputLabel>
+                  <Select
+                    name="skill_level"
+                    value={formData.skill_level}
+                    onChange={handleChange}
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <PersonIcon color="action" />
+                      </InputAdornment>
+                    }
+                    sx={{
+                      borderRadius: 1.5,
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderRadius: 1.5,
+                      }
+                    }}
+                  >
+                    <MenuItem value="Beginner">Beginner</MenuItem>
+                    <MenuItem value="Intermediate">Intermediate</MenuItem>
+                    <MenuItem value="Advanced">Advanced</MenuItem>
+                    <MenuItem value="All Levels">All Levels</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </Paper>
+
+          {/* Additional Details Section */}
+          <Paper sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: 'background.paper' }}>
+            <Typography
+              variant="h6"
+              sx={{
+                mb: 2,
+                fontWeight: 600,
+                color: 'text.secondary',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}
+            >
+              <DescriptionIcon sx={{ fontSize: '1.2rem' }} />
+              Additional Details
+            </Typography>
+            <Grid container spacing={2}>
+              {/* Description */}
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  multiline
+                  rows={4}
+                  placeholder="Describe your match, any special requirements, or additional information..."
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
+                        <DescriptionIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 1.5,
+                    }
+                  }}
+                />
+              </Grid>
+            </Grid>
+          </Paper>
 
           {/* Display any errors */}
           {error && (
-            <Alert severity="error" sx={{ mt: 3 }}>
+            <Alert
+              severity="error"
+              sx={{
+                mb: 3,
+                borderRadius: 1.5,
+                '& .MuiAlert-message': {
+                  fontWeight: 500
+                }
+              }}
+            >
               {error}
             </Alert>
           )}
 
           {/* Form Actions */}
-          <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
-            <Button
-              variant="outlined"
-              onClick={handleCancel}
-              disabled={submitting}
-              fullWidth
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              disabled={submitting}
-              fullWidth
-            >
-              {submitting ? <CircularProgress size={24} /> : 'Update Match'}
-            </Button>
-          </Stack>
+          <Paper sx={{ p: 3, borderRadius: 2, bgcolor: 'background.paper' }}>
+            <Stack direction="row" spacing={2} justifyContent="flex-end">
+              <Button
+                variant="outlined"
+                onClick={handleCancel}
+                disabled={submitting}
+                sx={{
+                  minWidth: 120,
+                  borderRadius: 1.5,
+                  fontWeight: 500,
+                  textTransform: 'none',
+                  borderColor: 'grey.300',
+                  color: 'text.secondary',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    bgcolor: 'action.hover'
+                  }
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={submitting}
+                sx={{
+                  minWidth: 140,
+                  borderRadius: 1.5,
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  bgcolor: 'primary.main',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                    boxShadow: '0 4px 12px rgba(155, 44, 44, 0.3)'
+                  },
+                  '&:disabled': {
+                    bgcolor: 'grey.300'
+                  }
+                }}
+              >
+                {submitting ? (
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <CircularProgress size={20} color="inherit" />
+                    <span>Updating...</span>
+                  </Stack>
+                ) : (
+                  'Update Match'
+                )}
+              </Button>
+            </Stack>
+          </Paper>
         </form>
       </Paper>
     </Container>
