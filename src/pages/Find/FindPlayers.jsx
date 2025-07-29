@@ -1047,7 +1047,7 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                     >
                       <CardContent sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
                         {/* User Avatar and Basic Info */}
-                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2, flexShrink: 0 }}>
                           <Box sx={{ mb: 1.5 }}>
                             <UserAvatarWithRank
                               user={{
@@ -1098,8 +1098,16 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                           )}
                         </Box>
 
-                        {/* User Details */}
-                        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, fontSize: '0.8rem' }}>
+                        {/* User Details - Scrollable Content Area */}
+                        <Box sx={{
+                          flex: 1,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 1,
+                          fontSize: '0.8rem',
+                          minHeight: 0, // Allow flex item to shrink below content size
+                          overflow: 'hidden' // Prevent overflow from pushing buttons out
+                        }}>
                           {/* Bio */}
                           {bio && (
                             <Typography
@@ -1110,10 +1118,16 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                                 fontStyle: 'italic',
                                 textAlign: 'center',
                                 mb: 1,
-                                lineHeight: 1.3
+                                lineHeight: 1.3,
+                                maxHeight: '3.9em', // Limit to ~3 lines
+                                overflow: 'hidden',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 3,
+                                WebkitBoxOrient: 'vertical',
+                                textOverflow: 'ellipsis'
                               }}
                             >
-                              "{bio.length > 60 ? `${bio.substring(0, 60)}...` : bio}"
+                              "{bio.length > 80 ? `${bio.substring(0, 80)}...` : bio}"
                             </Typography>
                           )}
 
@@ -1166,8 +1180,14 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                           )}
                         </Box>
 
-                        {/* Action Buttons */}
-                        <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                        {/* Action Buttons - Always at bottom */}
+                        <Box sx={{
+                          display: 'flex',
+                          gap: 1,
+                          mt: 'auto', // Push to bottom
+                          pt: 2, // Add padding top
+                          flexShrink: 0 // Prevent shrinking
+                        }}>
                           {renderFriendshipButton(player.id)}
                           <Button
                             onClick={() => handleViewProfile(player.id)}
