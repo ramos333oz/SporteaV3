@@ -53,12 +53,9 @@ import {
   IconButton,
   Collapse,
   FormControl,
-  FormGroup,
-  FormControlLabel,
   InputLabel,
   Select,
   MenuItem,
-  Checkbox,
   Slider,
   Dialog,
   DialogTitle,
@@ -204,9 +201,6 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
   const [filters, setFilters] = useState({
     skillLevel: "all",
     minSpots: 1,
-    maxDistance: 50, // in km
-    showPrivate: true,
-    showFull: false,
     dateRange: "all", // 'today', 'tomorrow', 'week', 'all'
   });
 
@@ -344,15 +338,7 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
             return false;
           }
 
-          // Apply full matches filter
-          if (!filters.showFull && spotsLeft <= 0) {
-            return false;
-          }
-
-          // Apply private matches filter
-          if (!filters.showPrivate && match.is_private) {
-            return false;
-          }
+          // Note: Removed showPrivate and showFull filters as they are not being used
 
           // Apply date range filter
           if (filters.dateRange !== "all" && match.start_time) {
@@ -1329,21 +1315,7 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
         return false;
       }
 
-      // Apply full matches filter
-      if (!filters.showFull && spotsLeft <= 0) {
-        if (isUserCreatedMatch) {
-          console.log(`User match ${match.id} filtered out - match is full and showFull is false`);
-        }
-        return false;
-      }
-
-      // Apply private matches filter
-      if (!filters.showPrivate && match.is_private) {
-        if (isUserCreatedMatch) {
-          console.log(`User match ${match.id} filtered out - match is private and showPrivate is false`);
-        }
-        return false;
-      }
+      // Note: Removed showPrivate and showFull filters as they are not being used
 
       // Filter out matches that have already ended
       const now = new Date();
@@ -1447,9 +1419,6 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
     setFilters({
       skillLevel: "all",
       minSpots: 1,
-      maxDistance: 50,
-      showPrivate: true,
-      showFull: false,
       dateRange: "all",
     });
     
@@ -2396,13 +2365,54 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
 
           {/* Advanced filters panel */}
           <Collapse in={showFilters}>
-            <Paper sx={{ p: 2, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
+            <Paper
+              sx={{
+                p: 2,
+                mb: 3,
+                borderRadius: 2,
+                bgcolor: 'grey.50',
+                border: '1px solid',
+                borderColor: 'divider',
+                boxShadow: '0 6px 20px rgba(0,0,0,0.08)',
+                transition: 'all 0.2s ease-in-out',
+              }}
+            >
+              <Typography
+                variant="h6"
+                gutterBottom
+                sx={{
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                  fontSize: '0.875rem',
+                  mb: 3,
+                }}
+              >
                 Advanced Filters
               </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth size="small">
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={4}>
+                  <FormControl
+                    fullWidth
+                    size="small"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 1.5,
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        transition: 'all 0.2s ease-in-out',
+                        minHeight: '40px',
+                        '&:hover': {
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: 'primary.main',
+                          },
+                        },
+                      },
+                      '& .MuiInputLabel-root': {
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                      },
+                    }}
+                  >
                     <InputLabel id="skill-level-label">Skill Level</InputLabel>
                     <Select
                       labelId="skill-level-label"
@@ -2420,8 +2430,29 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth size="small">
+                <Grid item xs={12} sm={4}>
+                  <FormControl
+                    fullWidth
+                    size="small"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 1.5,
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        transition: 'all 0.2s ease-in-out',
+                        minHeight: '40px',
+                        '&:hover': {
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: 'primary.main',
+                          },
+                        },
+                      },
+                      '& .MuiInputLabel-root': {
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                      },
+                    }}
+                  >
                     <InputLabel id="date-range-label">Date</InputLabel>
                     <Select
                       labelId="date-range-label"
@@ -2439,8 +2470,29 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth size="small">
+                <Grid item xs={12} sm={4}>
+                  <FormControl
+                    fullWidth
+                    size="small"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 1.5,
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        transition: 'all 0.2s ease-in-out',
+                        minHeight: '40px',
+                        '&:hover': {
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: 'primary.main',
+                          },
+                        },
+                      },
+                      '& .MuiInputLabel-root': {
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                      },
+                    }}
+                  >
                     <InputLabel id="min-spots-label">Minimum Spots</InputLabel>
                     <Select
                       labelId="min-spots-label"
@@ -2456,31 +2508,6 @@ const FindGames = React.memo(({ matches: propMatches, sports: propSports }) => {
                       <MenuItem value={5}>At least 5</MenuItem>
                     </Select>
                   </FormControl>
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={3}>
-                  <FormGroup>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={filters.showPrivate}
-                          onChange={handleFilterChange}
-                          name="showPrivate"
-                        />
-                      }
-                      label="Show Private Matches"
-                    />
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={filters.showFull}
-                          onChange={handleFilterChange}
-                          name="showFull"
-                        />
-                      }
-                      label="Show Full Matches"
-                    />
-                  </FormGroup>
                 </Grid>
               </Grid>
 
