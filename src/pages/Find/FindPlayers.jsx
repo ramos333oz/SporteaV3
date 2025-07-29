@@ -1098,15 +1098,15 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                           )}
                         </Box>
 
-                        {/* User Details - Scrollable Content Area */}
+                        {/* User Details - Limited height to prevent button displacement */}
                         <Box sx={{
                           flex: 1,
                           display: 'flex',
                           flexDirection: 'column',
                           gap: 1,
                           fontSize: '0.8rem',
-                          minHeight: 0, // Allow flex item to shrink below content size
-                          overflow: 'hidden' // Prevent overflow from pushing buttons out
+                          minHeight: 0, // Allow shrinking
+                          overflow: 'hidden' // Prevent content from overflowing
                         }}>
                           {/* Bio */}
                           {bio && (
@@ -1119,12 +1119,12 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                                 textAlign: 'center',
                                 mb: 1,
                                 lineHeight: 1.3,
-                                maxHeight: '3.9em', // Limit to ~3 lines
+                                maxHeight: '3.9rem', // Limit to ~3 lines (1.3 * 3 = 3.9rem)
                                 overflow: 'hidden',
                                 display: '-webkit-box',
                                 WebkitLineClamp: 3,
                                 WebkitBoxOrient: 'vertical',
-                                textOverflow: 'ellipsis'
+                                wordBreak: 'break-word'
                               }}
                             >
                               "{bio.length > 80 ? `${bio.substring(0, 80)}...` : bio}"
@@ -1180,12 +1180,12 @@ const FindPlayers = React.memo(({ players: propPlayers }) => {
                           )}
                         </Box>
 
-                        {/* Action Buttons - Always at bottom */}
+                        {/* Action Buttons - Fixed at bottom */}
                         <Box sx={{
                           display: 'flex',
                           gap: 1,
                           mt: 'auto', // Push to bottom
-                          pt: 2, // Add padding top
+                          pt: 2, // Add padding top for spacing
                           flexShrink: 0 // Prevent shrinking
                         }}>
                           {renderFriendshipButton(player.id)}
