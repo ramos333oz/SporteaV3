@@ -276,7 +276,15 @@ const TierDetailsModal = ({
                         mb: 2,
                         border: '3px solid rgba(255,255,255,0.8)',
                         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                        flexShrink: 0
+                        flexShrink: 0,
+                        ...(tier.iconImage?.includes('diamond.png') && {
+                          '& .MuiAvatar-img': {
+                            objectFit: 'contain',
+                            width: '98%',
+                            height: '98%',
+                            padding: '1%',
+                          }
+                        })
                       }}
                     >
                       {tier.icon}

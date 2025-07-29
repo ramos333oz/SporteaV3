@@ -153,6 +153,14 @@ const ProfileRankDisplay = ({
                 <RankImage
                   src={rankImage}
                   alt={tier.name}
+                  sx={rankImage?.includes('diamond.png') ? {
+                    '& .MuiAvatar-img': {
+                      objectFit: 'contain',
+                      width: '98%',
+                      height: '98%',
+                      padding: '1%',
+                    }
+                  } : {}}
                 >
                   {!rankImage && tier.icon}
                 </RankImage>
