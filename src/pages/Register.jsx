@@ -41,6 +41,7 @@ import { ExpandMore, SportsBasketball, AccessTime, LocationOn, Cake } from '@mui
 import { sportService, locationService, supabase } from '../services/supabase';
 import { subYears } from 'date-fns';
 import { checkEmailExists, isValidEmailDomain, getEmailErrorMessage, getEmailSuggestions } from '../utils/emailValidation';
+import DotGrid from '../components/animations/DotGrid';
 
 // Predefined time slots for availability selection
 const TIME_SLOTS = [
@@ -711,19 +712,56 @@ const Register = () => {
   // Verification pending screen
   if (verificationSent) {
     return (
-      <Container component="main" maxWidth="sm" sx={{ display: 'flex', minHeight: '100vh', alignItems: 'center' }}>
-        <Paper 
-          elevation={2} 
-          sx={{ 
-            p: 4, 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center',
+      <Box sx={{ position: 'relative', minHeight: '100vh', overflow: 'hidden' }}>
+        {/* Animated Background */}
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
             width: '100%',
-            borderRadius: 3,
-            backgroundColor: 'background.light'
+            height: '100%',
+            zIndex: 0,
+            opacity: 0.15, // Subtle background effect
           }}
         >
+          <DotGrid
+            dotSize={8}
+            gap={25}
+            baseColor="#9b2c2c"
+            activeColor="#b91c1c"
+            proximity={120}
+            shockRadius={200}
+            shockStrength={4}
+            resistance={600}
+            returnDuration={1.2}
+          />
+        </Box>
+
+        {/* Verification Content */}
+        <Container
+          component="main"
+          maxWidth="sm"
+          sx={{
+            display: 'flex',
+            minHeight: '100vh',
+            alignItems: 'center',
+            position: 'relative',
+            zIndex: 1
+          }}
+        >
+          <Paper
+            elevation={2}
+            sx={{
+              p: 4,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              width: '100%',
+              borderRadius: 3,
+              backgroundColor: 'background.light'
+            }}
+          >
           <Box sx={{ textAlign: 'center', mb: 3 }}>
             <Box
               component="img"
@@ -792,6 +830,7 @@ const Register = () => {
           </Button>
         </Paper>
       </Container>
+    </Box>
     );
   }
   
@@ -834,18 +873,53 @@ const Register = () => {
   ];
   
   return (
-    <Container component="main" maxWidth="sm" sx={{ py: 4 }}>
-      <Paper 
-        elevation={2} 
-        sx={{ 
-          p: 4, 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center',
+    <Box sx={{ position: 'relative', minHeight: '100vh', overflow: 'hidden' }}>
+      {/* Animated Background */}
+      <Box
+        sx={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
           width: '100%',
-          borderRadius: 3
+          height: '100%',
+          zIndex: 0,
+          opacity: 0.15, // Subtle background effect
         }}
       >
+        <DotGrid
+          dotSize={8}
+          gap={25}
+          baseColor="#9b2c2c"
+          activeColor="#b91c1c"
+          proximity={120}
+          shockRadius={200}
+          shockStrength={4}
+          resistance={600}
+          returnDuration={1.2}
+        />
+      </Box>
+
+      {/* Register Content */}
+      <Container
+        component="main"
+        maxWidth="sm"
+        sx={{
+          py: 4,
+          position: 'relative',
+          zIndex: 1
+        }}
+      >
+        <Paper
+          elevation={2}
+          sx={{
+            p: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            width: '100%',
+            borderRadius: 3
+          }}
+        >
         <Box sx={{ textAlign: 'center', mb: 3 }}>
           <Box
             component="img"
@@ -1436,6 +1510,7 @@ const Register = () => {
         </DialogActions>
       </Dialog>
     </Container>
+  </Box>
   );
 };
 
