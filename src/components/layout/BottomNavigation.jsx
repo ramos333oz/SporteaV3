@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, BottomNavigation as MuiBottomNavigation, BottomNavigationAction, Badge, Avatar } from '@mui/material';
+import { Box, Paper, BottomNavigation as MuiBottomNavigation, BottomNavigationAction, Badge, Avatar, Fade, Zoom } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import HomeIcon from '@mui/icons-material/Home';
 import SearchIcon from '@mui/icons-material/Search';
@@ -8,7 +8,6 @@ import PeopleIcon from '@mui/icons-material/People';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { useAuth } from '../../hooks/useAuth';
 import { UserAvatarWithLevel } from '../achievements';
-import ClickSpark from '../animations/ClickSpark';
 
 const BottomNavigation = () => {
   const { user } = useAuth();
@@ -60,120 +59,148 @@ const BottomNavigation = () => {
     }
   };
   
-  // Mock new matches notification count
-  const newMatchesCount = 3;
+  // Remove hardcoded badge - should be dynamic based on actual data
+  const newMatchesCount = 0; // Set to 0 to hide misleading badge
   
   return (
-    <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100 }}>
-      <Paper elevation={3} sx={{ borderRadius: '16px 16px 0 0' }}>
-        <MuiBottomNavigation
-          showLabels
-          value={value}
-          onChange={handleChange}
+    <Fade in timeout={300}>
+      <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100 }}>
+        <Paper
+          elevation={8}
           sx={{
-            height: 64,
-            '& .MuiBottomNavigationAction-root': {
-              minWidth: 'auto',
-              py: 1,
-              color: 'text.secondary',
-              '&.Mui-selected': {
-                color: 'primary.main',
-              },
-            },
+            borderRadius: '20px 20px 0 0',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(250,247,245,0.95) 100%)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(155, 44, 44, 0.1)',
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.1), 0 -1px 4px rgba(155, 44, 44, 0.1)',
           }}
         >
-          <ClickSpark
-            sparkColor="#9b2c2c"
-            sparkSize={8}
-            sparkRadius={12}
-            sparkCount={4}
-            duration={300}
+          <MuiBottomNavigation
+            showLabels
+            value={value}
+            onChange={handleChange}
+            sx={{
+              height: 72,
+              background: 'transparent',
+              '& .MuiBottomNavigationAction-root': {
+                minWidth: 'auto',
+                py: 1.5,
+                px: 0.5,
+                color: 'text.secondary',
+                borderRadius: 2,
+                margin: '4px 2px',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&.Mui-selected': {
+                  color: 'primary.main',
+                  backgroundColor: 'rgba(155, 44, 44, 0.08)',
+                  transform: 'translateY(-2px)',
+                  '& .MuiBottomNavigationAction-label': {
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    transform: 'scale(1.05)',
+                  },
+                  '& .MuiSvgIcon-root': {
+                    transform: 'scale(1.1)',
+                  },
+                },
+                '&:hover:not(.Mui-selected)': {
+                  backgroundColor: 'rgba(155, 44, 44, 0.04)',
+                  transform: 'translateY(-1px)',
+                },
+                '& .MuiBottomNavigationAction-label': {
+                  fontSize: '0.7rem',
+                  fontWeight: 500,
+                  marginTop: '4px',
+                  transition: 'all 0.2s ease',
+                },
+                '& .MuiSvgIcon-root': {
+                  fontSize: '1.4rem',
+                  transition: 'all 0.2s ease',
+                },
+              },
+            }}
           >
+          <Zoom in timeout={200}>
             <BottomNavigationAction
               label="Home"
               icon={<HomeIcon />}
             />
-          </ClickSpark>
-          <ClickSpark
-            sparkColor="#9b2c2c"
-            sparkSize={8}
-            sparkRadius={12}
-            sparkCount={4}
-            duration={300}
-          >
+          </Zoom>
+          <Zoom in timeout={250}>
             <BottomNavigationAction
               label="Find"
               icon={
-                <Badge badgeContent={newMatchesCount} color="error" max={9}>
+                newMatchesCount > 0 ? (
+                  <Badge
+                    badgeContent={newMatchesCount}
+                    color="error"
+                    max={9}
+                    sx={{
+                      '& .MuiBadge-badge': {
+                        fontSize: '0.65rem',
+                        minWidth: '16px',
+                        height: '16px',
+                        backgroundColor: '#d32f2f',
+                        color: 'white',
+                        fontWeight: 600,
+                      }
+                    }}
+                  >
+                    <SearchIcon />
+                  </Badge>
+                ) : (
                   <SearchIcon />
-                </Badge>
+                )
               }
             />
-          </ClickSpark>
-          <ClickSpark
-            sparkColor="#9b2c2c"
-            sparkSize={10}
-            sparkRadius={15}
-            sparkCount={6}
-            duration={400}
-          >
+          </Zoom>
+          <Zoom in timeout={300}>
             <BottomNavigationAction
               label="Host"
               icon={
                 <AddCircleIcon
                   sx={{
-                    fontSize: 32,
-                    color: 'primary.main',
-                    filter: 'drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.1))'
+                    fontSize: '2rem',
+                    color: value === 2 ? 'primary.main' : 'primary.main',
+                    filter: 'drop-shadow(0px 2px 4px rgba(155, 44, 44, 0.3))',
+                    transition: 'all 0.2s ease',
                   }}
                 />
               }
               sx={{
                 '& .MuiBottomNavigationAction-label': {
                   color: 'primary.main',
-                  fontWeight: 500,
+                  fontWeight: 600,
+                },
+                '&.Mui-selected': {
+                  '& .MuiBottomNavigationAction-label': {
+                    color: 'primary.main',
+                  },
                 },
               }}
             />
-          </ClickSpark>
-          <ClickSpark
-            sparkColor="#9b2c2c"
-            sparkSize={8}
-            sparkRadius={12}
-            sparkCount={4}
-            duration={300}
-          >
+          </Zoom>
+          <Zoom in timeout={350}>
             <BottomNavigationAction
               label="Friends"
               icon={<PeopleIcon />}
             />
-          </ClickSpark>
-          <ClickSpark
-            sparkColor="#9b2c2c"
-            sparkSize={8}
-            sparkRadius={12}
-            sparkCount={4}
-            duration={300}
-          >
+          </Zoom>
+          <Zoom in timeout={400}>
             <BottomNavigationAction
               label="Leaderboard"
               icon={
                 <EmojiEventsIcon
                   sx={{
-                    fontSize: 28,
-                    color: value === 4 ? 'primary.main' : 'text.secondary'
+                    fontSize: '1.5rem',
+                    color: value === 4 ? 'primary.main' : 'text.secondary',
+                    transition: 'all 0.2s ease',
                   }}
                 />
               }
             />
-          </ClickSpark>
-          <ClickSpark
-            sparkColor="#9b2c2c"
-            sparkSize={8}
-            sparkRadius={12}
-            sparkCount={4}
-            duration={300}
-          >
+          </Zoom>
+          <Zoom in timeout={450}>
             <BottomNavigationAction
               label="Profile"
               icon={
@@ -183,19 +210,21 @@ const BottomNavigation = () => {
                     full_name: user?.user_metadata?.username || user?.user_metadata?.full_name,
                     level: user?.level || 1
                   }}
-                  size={28}
+                  size={24}
                   badgeSize="small"
                   sx={{
                     bgcolor: 'primary.main',
-                    fontSize: '0.875rem',
+                    fontSize: '0.75rem',
+                    transition: 'all 0.2s ease',
                   }}
                 />
               }
             />
-          </ClickSpark>
-        </MuiBottomNavigation>
-      </Paper>
-    </Box>
+          </Zoom>
+          </MuiBottomNavigation>
+        </Paper>
+      </Box>
+    </Fade>
   );
 };
 
