@@ -96,17 +96,33 @@ async function checkSupabaseAuth() {
 async function checkEdgeFunctions() {
   try {
     log('⚡ Checking Supabase Edge Functions...', 'blue');
-    
-    // Test a simple edge function
+
+    // Fetch a valid user id for testing the recommendations function
+    const { data: userRow, error: userFetchError } = await supabase
+      .from('users')
+      .select('id')
+      .limit(1)
+      .single();
+
+    if (userFetchError) {
+      log(`❌ Edge functions check failed: could not fetch a user id (${userFetchError.message})`, 'red');
+      return false;
+    }
+    if (!userRow || !userRow.id) {
+      log('❌ Edge functions check failed: no users found in database to use for testing', 'red');
+      return false;
+    }
+
+    // Invoke the edge function with a real userId and minimal limit
     const { data, error } = await supabase.functions.invoke('simplified-recommendations', {
-      body: { test: true }
+      body: { userId: userRow.id, limit: 1 }
     });
-    
-    if (error && !error.message.includes('test')) {
+
+    if (error) {
       log(`❌ Edge functions check failed: ${error.message}`, 'red');
       return false;
     }
-    
+
     log('✅ Edge functions accessible', 'green');
     return true;
   } catch (error) {
