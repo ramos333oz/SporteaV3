@@ -64,8 +64,9 @@ jobs:
       run: supabase link --project-ref ${{ env.SUPABASE_PROJECT_ID }}
       
     - name: Deploy database migrations
+      if: env.MIGRATIONS_ENABLED == 'true'
       run: supabase db push
-      
+
     - name: Deploy Edge Functions
       run: supabase functions deploy --no-verify-jwt
 
