@@ -17,12 +17,12 @@ const venueImages = [
   {
     fileName: 'Court Pusat Sukan A (Futsal).jpeg',
     locationName: 'Court Pusat Sukan A (Futsal)',
-    filePath: path.join(__dirname, '../venuespic/Court Pusat Sukan A (Futsal).jpeg')
+    filePath: path.join(__dirname, '../public/venuespic/Court Pusat Sukan A (Futsal).jpeg')
   },
   {
     fileName: 'Court Pusat Sukan A (Basketball).jpeg',
     locationName: 'Court Pusat Sukan A (Basketball)',
-    filePath: path.join(__dirname, '../venuespic/Court Pusat Sukan A (Basketball).jpeg')
+    filePath: path.join(__dirname, '../public/venuespic/Court Pusat Sukan A (Basketball).jpeg')
   }
 ];
 

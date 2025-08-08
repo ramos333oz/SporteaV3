@@ -44,5 +44,24 @@ node_modules/
 # OS specific
 # Task files
 tasks.json
-tasks/ 
+tasks/
 .vercel
+
+
+# Dev tool artifacts and backups
+.cursor/
+.kiro/
+.taskmaster/
+
+# Backups & temp files
+*.backup
+*.old
+*.tmp
+*~
+
+# Local binaries/tools
+mailhog.exe
+
+# Build outputs (ensure these stay out of git)
+dist/
+build/
