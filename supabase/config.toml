@@ -11,24 +11,8 @@ verify_jwt = false
 [functions.generate-match-vectors-v3]
 verify_jwt = false
 
-[functions.process-embedding-queue]
-verify_jwt = false
-
 # Disable JWT verification for recommendation functions to fix frontend integration
 [functions.simplified-recommendations]
-verify_jwt = false
-
-[functions.enhanced-weighted-recommendations]
-verify_jwt = false
-
-[functions.test-enhanced-recommendations]
-verify_jwt = false
-
-[functions.get-recommendations-diagnostic]
-verify_jwt = false
-
-# Disable JWT verification for user profile creation during registration
-[functions.create-user-profile]
 verify_jwt = false
 
 # Content Moderation Function with ML Integration
