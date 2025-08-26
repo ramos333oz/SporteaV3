@@ -65,3 +65,4 @@ mailhog.exe
 # Build outputs (ensure these stay out of git)
 dist/
 build/
+.env.production
